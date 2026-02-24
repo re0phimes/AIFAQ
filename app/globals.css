@@ -1,26 +1,128 @@
 @import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@import "katex/dist/katex.min.css";
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-warm-white: #FAF9F6;
+  --color-deep-ink: #1A1A2E;
+  --color-copper: #C45D3E;
+  --color-copper-light: #D4785F;
+  --color-slate-secondary: #64748B;
+  --color-code-bg: #F1F0EB;
+  --font-serif: "Noto Serif SC", serif;
+  --font-sans: "Noto Sans SC", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-warm-white);
+  color: var(--color-deep-ink);
+  font-family: var(--font-sans);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.faq-item-enter {
+  animation: fadeInUp 0.3s ease-out both;
+}
+
+/* Smooth expand/collapse via CSS grid-rows trick */
+.answer-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms ease;
+}
+
+.answer-wrapper.open {
+  grid-template-rows: 1fr;
+}
+
+.answer-wrapper > div {
+  overflow: hidden;
+}
+
+/* Expanded answer: independent scroll on long content */
+.answer-scroll {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar for answer area and tag filter */
+.answer-scroll::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar {
+  width: 4px;
+}
+
+.answer-scroll::-webkit-scrollbar-track,
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.answer-scroll::-webkit-scrollbar-thumb,
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: var(--color-slate-secondary);
+  border-radius: 2px;
+  opacity: 0.4;
+}
+
+/* Markdown prose refinements */
+.prose p {
+  margin-bottom: 0.75em;
+  line-height: 1.75;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.25em;
+  margin-bottom: 0.75em;
+}
+
+.prose li {
+  margin-bottom: 0.25em;
+}
+
+.prose strong {
+  color: var(--color-deep-ink);
+}
+
+/* Mobile: disable stagger animation for performance */
+@media (max-width: 767px) {
+  .faq-item-enter {
+    animation-delay: 0ms !important;
+  }
+
+  .answer-scroll {
+    max-height: 50vh;
+  }
+}
+
+/* Print styles for PDF export */
+@media print {
+  body {
+    background: white;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .reading-view article {
+    break-inside: avoid;
+    border: 1px solid #ddd;
+    margin-bottom: 1rem;
+    box-shadow: none;
+  }
+
+  .reading-view .prose {
+    font-size: 12pt;
+    line-height: 1.6;
+  }
 }
