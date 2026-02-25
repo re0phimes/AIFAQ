@@ -22,7 +22,7 @@ export async function initDB(): Promise<void> {
       answer_raw    TEXT NOT NULL,
       answer        TEXT,
       tags          TEXT[] DEFAULT '{}',
-      references    JSONB DEFAULT '[]',
+      "references"  JSONB DEFAULT '[]',
       status        VARCHAR(20) DEFAULT 'pending',
       error_message TEXT,
       created_at    TIMESTAMPTZ DEFAULT NOW(),
@@ -55,7 +55,7 @@ export async function updateFaqStatus(
       SET status = ${status},
           answer = ${data.answer},
           tags = ${tagsLiteral}::text[],
-          references = ${JSON.stringify(data.references ?? [])}::jsonb,
+          "references" = ${JSON.stringify(data.references ?? [])}::jsonb,
           error_message = NULL,
           updated_at = NOW()
       WHERE id = ${id}
