@@ -76,14 +76,15 @@ function parseFAQ(content: string, blogIndex: BlogEntry[]): FAQItem[] {
     const dateMatch = section.match(/\*\*日期\*\*:\s*(\d{4}-\d{2}-\d{2})/);
     const date = dateMatch ? dateMatch[1] : "";
 
-    // Tags
+    // Tags — supports multi-word tags like #Context Engineering
     const tagsMatch = section.match(/\*\*标签\*\*:\s*(.+)$/m);
     const tags: string[] = [];
     if (tagsMatch) {
-      const tagMatches = tagsMatch[1].match(/#(\S+)/g);
+      const tagMatches = tagsMatch[1].match(/#([^#]+)/g);
       if (tagMatches) {
         for (const t of tagMatches) {
-          tags.push(t.slice(1));
+          const tag = t.slice(1).trim();
+          if (tag) tags.push(tag);
         }
       }
     }

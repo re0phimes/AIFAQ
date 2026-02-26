@@ -1143,7 +1143,7 @@
     "question": "max_position_embeddings 是什么？超过会怎样？",
     "date": "2026-02-24",
     "tags": [
-      "上下文长度",
+      "Context Engineering",
       "推理框架"
     ],
     "categories": [],
@@ -1184,7 +1184,7 @@
     "date": "2026-02-24",
     "tags": [
       "llama.cpp",
-      "上下文管理"
+      "Context Engineering"
     ],
     "categories": [],
     "references": [
