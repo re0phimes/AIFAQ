@@ -14,57 +14,19 @@ interface FAQItemProps {
   showCheckbox: boolean;
   onToggle: () => void;
   onSelect: () => void;
-  onVote: (type: VoteType) => void;
-  onInaccurateVote: (reason: string, detail: string) => void;
-  votedTypes: Set<VoteType>;
+  onVote: (type: VoteType, reason?: string, detail?: string) => void;
+  onRevokeVote: () => void;
+  currentVote: VoteType | null;
 }
 
-function VoteButton({
-  type,
-  count,
-  voted,
-  onClick,
-}: {
-  type: VoteType;
-  count: number;
-  voted: boolean;
-  onClick: () => void;
-}) {
-  const config = {
-    upvote: { label: "有用", icon: "M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z M2 13h2v9H2z" },
-    outdated: { label: "过期", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
-    inaccurate: { label: "不准确", icon: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" },
-  };
-  const { label, icon } = config[type];
-
-  return (
-    <button
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5
-        text-[11px] transition-colors ${
-          voted
-            ? "bg-copper/10 text-copper"
-            : "text-slate-secondary hover:bg-code-bg"
-        }`}
-    >
-      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor"
-        viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
-      </svg>
-      {label}
-      {count > 0 && <span className="font-mono text-[10px]">{count}</span>}
-    </button>
-  );
-}
-
-const INACCURATE_REASONS = [
-  { value: "factual_error", label: "事实错误" },
-  { value: "outdated_info", label: "过时信息" },
+const DOWNVOTE_REASONS = [
+  { value: "outdated", label: "过时" },
+  { value: "factual_error", label: "不准确" },
   { value: "unclear", label: "表述不清" },
   { value: "other", label: "其他" },
 ] as const;
 
-function InaccuratePanel({
+function DownvotePanel({
   onSubmit,
   onCancel,
 }: {
@@ -77,10 +39,10 @@ function InaccuratePanel({
     <div className="mt-2 rounded-lg border border-gray-200 bg-code-bg/50 p-3"
       onClick={(e) => e.stopPropagation()}>
       <p className="mb-2 text-xs font-medium text-slate-secondary">
-        请选择不准确的原因:
+        请选择反馈原因:
       </p>
       <div className="flex flex-wrap gap-1.5">
-        {INACCURATE_REASONS.map((r) => (
+        {DOWNVOTE_REASONS.map((r) => (
           <button
             key={r.value}
             onClick={() => setReason(r.value)}
@@ -132,12 +94,11 @@ export default function FAQItem({
   onToggle,
   onSelect,
   onVote,
-  onInaccurateVote,
-  votedTypes,
+  onRevokeVote,
+  currentVote,
 }: FAQItemProps) {
-  const [showInaccuratePanel, setShowInaccuratePanel] = useState(false);
-  const hasTimelinessWarning =
-    (item.outdatedCount ?? 0) + (item.inaccurateCount ?? 0) >= 3;
+  const [showDownvotePanel, setShowDownvotePanel] = useState(false);
+  const hasTimelinessWarning = (item.downvoteCount ?? 0) >= 3;
 
   return (
     <article
@@ -247,31 +208,70 @@ export default function FAQItem({
               </ReactMarkdown>
             </div>
             <ReferenceList references={item.references} />
-            {/* Vote buttons */}
-            <div className="mt-3 flex items-center gap-3 border-t
-              border-gray-100 pt-3">
-              <VoteButton type="upvote" count={item.upvoteCount ?? 0}
-                voted={votedTypes.has("upvote")}
-                onClick={() => onVote("upvote")} />
-              <VoteButton type="outdated" count={item.outdatedCount ?? 0}
-                voted={votedTypes.has("outdated")}
-                onClick={() => onVote("outdated")} />
-              <VoteButton type="inaccurate"
-                count={item.inaccurateCount ?? 0}
-                voted={votedTypes.has("inaccurate")}
-                onClick={() => {
-                  if (!votedTypes.has("inaccurate")) {
-                    setShowInaccuratePanel((v) => !v);
+            {/* Vote buttons — up/down 互斥 */}
+            <div className="mt-3 flex items-center gap-3 border-t border-gray-100 pt-3">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (currentVote === "upvote") {
+                    onRevokeVote();
+                  } else {
+                    onVote("upvote");
                   }
-                }} />
-            </div>
-            {showInaccuratePanel && (
-              <InaccuratePanel
-                onSubmit={(reason, detail) => {
-                  onInaccurateVote(reason, detail);
-                  setShowInaccuratePanel(false);
                 }}
-                onCancel={() => setShowInaccuratePanel(false)}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1
+                  text-xs transition-colors ${
+                    currentVote === "upvote"
+                      ? "bg-green-100 text-green-700"
+                      : "text-slate-secondary hover:bg-code-bg"
+                  }`}
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor"
+                  viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z M2 13h2v9H2z" />
+                </svg>
+                有用
+                {(item.upvoteCount ?? 0) > 0 && (
+                  <span className="font-mono text-[10px]">{item.upvoteCount}</span>
+                )}
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (currentVote === "downvote") {
+                    onRevokeVote();
+                    setShowDownvotePanel(false);
+                  } else {
+                    setShowDownvotePanel((v) => !v);
+                  }
+                }}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1
+                  text-xs transition-colors ${
+                    currentVote === "downvote"
+                      ? "bg-red-100 text-red-600"
+                      : "text-slate-secondary hover:bg-code-bg"
+                  }`}
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor"
+                  viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z M22 2h-2v9h2z" />
+                </svg>
+                反馈
+                {(item.downvoteCount ?? 0) > 0 && (
+                  <span className="font-mono text-[10px]">{item.downvoteCount}</span>
+                )}
+              </button>
+            </div>
+            {showDownvotePanel && currentVote !== "downvote" && (
+              <DownvotePanel
+                onSubmit={(reason, detail) => {
+                  onVote("downvote", reason, detail);
+                  setShowDownvotePanel(false);
+                }}
+                onCancel={() => setShowDownvotePanel(false)}
               />
             )}
           </div>
