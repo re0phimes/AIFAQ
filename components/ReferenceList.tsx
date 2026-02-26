@@ -68,26 +68,20 @@ function RefItems({ references }: { references: Reference[] }) {
     <ul className="space-y-1">
       {references.map((ref, i) => (
         <li key={i} className="flex items-start gap-2 text-xs md:text-sm">
-          {ref.type === "paper" && ref.url ? (
-            <>
-              <span className="shrink-0 text-slate-secondary">📄</span>
-              <a
-                href={ref.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="break-all text-copper underline-offset-2
-                  hover:underline"
-              >
-                {ref.title}
-              </a>
-            </>
+          <span className="shrink-0 text-slate-secondary">
+            {ref.type === "paper" ? "📄" : ref.type === "blog" ? "📖" : "📌"}
+          </span>
+          {ref.url ? (
+            <a
+              href={ref.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="break-all text-copper underline-offset-2 hover:underline"
+            >
+              {ref.title}
+            </a>
           ) : (
-            <>
-              <span className="shrink-0 text-slate-secondary">
-                {ref.type === "blog" ? "📖" : "📌"}
-              </span>
-              <span className="text-slate-secondary">{ref.title}</span>
-            </>
+            <span className="text-slate-secondary">{ref.title}</span>
           )}
         </li>
       ))}
