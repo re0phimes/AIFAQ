@@ -11,6 +11,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@fingerprintjs/fingerprintjs": "^5.0.1",
     "@vercel/functions": "^3.4.3",
     "@vercel/postgres": "^0.10.0",
     "jose": "^6.1.3",
