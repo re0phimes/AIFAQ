@@ -42,6 +42,7 @@ async function processAIAnalysis(id: number, question: string, answerRaw: string
     await updateFaqStatus(id, "ready", {
       answer: result.answer,
       tags: result.tags,
+      categories: result.categories,
       references: result.references,
     });
   } catch (err) {

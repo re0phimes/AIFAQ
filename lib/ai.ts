@@ -1,7 +1,11 @@
 import type { Reference } from "@/src/types/faq";
+import taxonomy from "@/data/tag-taxonomy.json";
+
+const CATEGORY_NAMES = (taxonomy as { categories: { name: string }[] }).categories.map(c => c.name);
 
 interface AIAnalysisResult {
   tags: string[];
+  categories: string[];
   references: Reference[];
   answer: string;
 }
@@ -25,6 +29,7 @@ export async function analyzeFAQ(
 1. tags: 为这个问答生成 2-5 个标签。尽量复用已有标签列表中的标签，保持一致性。标签应该是中文的技术术语。
 2. references: 根据问答内容，推荐 1-3 个相关的论文 (arXiv) 或技术博客文章。每个引用包含 type ("paper" 或 "blog")、title 和 url。
 3. answer: 对原始答案进行润色和补充，使其更完整、准确。保持 Markdown 格式，支持 LaTeX 公式 (用 $ 或 $$ 包裹)。
+4. categories: 从以下大标签列表中选择 1-2 个最匹配的分类: ${CATEGORY_NAMES.join(", ")}
 
 已有标签列表: ${existingTags.join(", ")}
 
@@ -66,6 +71,9 @@ ${answerRaw}`;
   // Validate structure
   if (!Array.isArray(parsed.tags) || !Array.isArray(parsed.references) || typeof parsed.answer !== "string") {
     throw new Error("AI returned invalid JSON structure");
+  }
+  if (!Array.isArray(parsed.categories)) {
+    parsed.categories = [];
   }
 
   return parsed;

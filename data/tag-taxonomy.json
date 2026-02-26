@@ -1,0 +1,153 @@
+{
+  "categories": [
+    {
+      "name": "AI 基础概念",
+      "description": "AI 定义、智能体、发展史",
+      "tags": [
+        "仿射变换",
+        "作用域",
+        "公式",
+        "公式推导",
+        "反面题",
+        "流形",
+        "流形假说",
+        "线性变换",
+        "维度",
+        "维度变换"
+      ]
+    },
+    {
+      "name": "机器学习基础",
+      "description": "监督/无监督学习、过拟合、评估指标、特征工程",
+      "tags": [
+        "优化理论",
+        "优化目标",
+        "损失曲面",
+        "梯度",
+        "训练技巧"
+      ]
+    },
+    {
+      "name": "深度学习",
+      "description": "神经网络、CNN、RNN、Transformer、训练技巧",
+      "tags": [
+        "Add&Norm",
+        "Attention优化",
+        "BERT",
+        "BatchNorm",
+        "CLS",
+        "DecoupledRoPE",
+        "ELU",
+        "Embedding",
+        "FFN",
+        "GELU",
+        "GLU",
+        "GQA",
+        "InstanceNorm",
+        "KVCache",
+        "LayerNorm",
+        "MLA",
+        "MQA",
+        "MoE",
+        "QKV",
+        "RMSNorm",
+        "ReLU",
+        "RoPE",
+        "SwiGLU",
+        "Transformer",
+        "位置编码",
+        "多头注意力",
+        "归一化",
+        "恒等映射",
+        "有界性",
+        "梯度",
+        "模型设计",
+        "残差连接",
+        "注意力机制",
+        "深度学习",
+        "激活函数",
+        "点积",
+        "特征融合",
+        "矩阵吸收",
+        "神经元死亡",
+        "缩放点积",
+        "网络退化",
+        "计算复杂度",
+        "训练技巧",
+        "训练稳定性",
+        "训练过程"
+      ]
+    },
+    {
+      "name": "自然语言处理",
+      "description": "文本分类、机器翻译、情感分析、问答系统",
+      "tags": [
+        "BERT",
+        "CLS",
+        "NLP"
+      ]
+    },
+    {
+      "name": "计算机视觉",
+      "description": "图像分类、目标检测、图像分割",
+      "tags": []
+    },
+    {
+      "name": "生成式 AI / LLM",
+      "description": "GPT、Prompt Engineering、RAG、微调、Agent",
+      "tags": [
+        "GPT",
+        "LoRA",
+        "RAG",
+        "logprob",
+        "上下文管理",
+        "上下文长度"
+      ]
+    },
+    {
+      "name": "强化学习",
+      "description": "Q-learning、策略梯度、多智能体 RL",
+      "tags": []
+    },
+    {
+      "name": "推荐系统与搜索",
+      "description": "协同过滤、内容推荐、向量检索",
+      "tags": []
+    },
+    {
+      "name": "数据工程与 MLOps",
+      "description": "数据清洗、特征存储、模型部署、监控",
+      "tags": [
+        "Attention优化",
+        "ComputeBound",
+        "GEMM",
+        "GEMV",
+        "KVCache",
+        "MemoryBound",
+        "内存墙",
+        "工程实践",
+        "推理优化",
+        "推理阶段",
+        "量化"
+      ]
+    },
+    {
+      "name": "AI 伦理与安全",
+      "description": "公平性、可解释性、隐私保护、对齐",
+      "tags": []
+    },
+    {
+      "name": "AI 应用场景",
+      "description": "医疗AI、自动驾驶、金融风控等垂直领域",
+      "tags": []
+    },
+    {
+      "name": "工具与框架",
+      "description": "PyTorch、TensorFlow、HuggingFace、LangChain",
+      "tags": [
+        "llama.cpp",
+        "推理框架"
+      ]
+    }
+  ]
+}

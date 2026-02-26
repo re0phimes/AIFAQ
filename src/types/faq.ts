@@ -9,6 +9,22 @@ export interface FAQItem {
   question: string;
   date: string;
   tags: string[];
+  categories: string[];
   references: Reference[];
   answer: string;
+  upvoteCount: number;
+  outdatedCount: number;
+  inaccurateCount: number;
 }
+
+export interface TagCategory {
+  name: string;
+  description: string;
+  tags: string[];
+}
+
+export interface TagTaxonomy {
+  categories: TagCategory[];
+}
+
+export type VoteType = "upvote" | "outdated" | "inaccurate";

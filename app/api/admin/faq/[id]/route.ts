@@ -48,6 +48,7 @@ async function retryAnalysis(id: number, question: string, answerRaw: string): P
     await updateFaqStatus(id, "ready", {
       answer: result.answer,
       tags: result.tags,
+      categories: result.categories,
       references: result.references,
     });
   } catch (err) {

@@ -73,7 +73,18 @@ function parseFAQ(content: string): FAQItem[] {
     const answerMatch = section.match(/### 答案\s*\n\n([\s\S]+)$/);
     const answer = answerMatch ? answerMatch[1].trim() : "";
 
-    items.push({ id, question, date, tags, references, answer });
+    items.push({
+      id,
+      question,
+      date,
+      tags,
+      categories: [],
+      references,
+      answer,
+      upvoteCount: 0,
+      outdatedCount: 0,
+      inaccurateCount: 0,
+    });
   }
 
   return items;
