@@ -66,25 +66,38 @@ export default function ReferenceList({ references }: ReferenceListProps) {
 function RefItems({ references }: { references: Reference[] }) {
   return (
     <ul className="space-y-1">
-      {references.map((ref, i) => (
-        <li key={i} className="flex items-start gap-2 text-xs md:text-sm">
-          <span className="shrink-0 text-slate-secondary">
-            {ref.type === "paper" ? "📄" : ref.type === "blog" ? "📖" : "📌"}
-          </span>
-          {ref.url ? (
-            <a
-              href={ref.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="break-all text-copper underline-offset-2 hover:underline"
-            >
-              {ref.title}
-            </a>
-          ) : (
-            <span className="text-slate-secondary">{ref.title}</span>
-          )}
-        </li>
-      ))}
+      {references.map((ref, i) => {
+        const isPhimes = ref.author === "Phimes";
+        const displayTitle = ref.author
+          ? `${ref.author} · ${ref.title}`
+          : ref.title;
+
+        return (
+          <li key={i} className="flex items-start gap-2 text-xs md:text-sm">
+            <span className="shrink-0 text-slate-secondary">
+              {ref.type === "paper" ? "📄" : ref.type === "blog" ? "📖" : "📌"}
+            </span>
+            {ref.url ? (
+              <a
+                href={ref.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`break-all underline-offset-2 hover:underline ${
+                  isPhimes
+                    ? "font-medium text-red-600"
+                    : "text-copper"
+                }`}
+              >
+                {displayTitle}
+              </a>
+            ) : (
+              <span className={isPhimes ? "font-medium text-red-600" : "text-slate-secondary"}>
+                {displayTitle}
+              </span>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
