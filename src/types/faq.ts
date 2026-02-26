@@ -2,6 +2,8 @@ export interface Reference {
   type: "blog" | "paper" | "other";
   title: string;
   url?: string;
+  author?: string;
+  platform?: string;
 }
 
 export interface FAQItem {

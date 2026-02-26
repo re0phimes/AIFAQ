@@ -44,11 +44,12 @@ function parseReferences(lines: string[], blogIndex: BlogEntry[]): Reference[] {
         url: `https://arxiv.org/abs/${arxivMatch[1]}`,
       });
     } else if (trimmed.startsWith("来源文章:") || trimmed.startsWith("来源文章：")) {
-      const blogTitle = trimmed.replace(/^来源文章[:：]\s*/, "");
+      const blogTitle = trimmed.replace(/^来源文章[:：]\s*/, "").replace(/\.md$/i, "");
       const url = matchBlogUrl(blogTitle, blogIndex);
       refs.push({
         type: "blog",
         title: blogTitle,
+        author: "Phimes",
         ...(url ? { url } : {}),
       });
     } else {
