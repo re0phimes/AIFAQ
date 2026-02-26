@@ -79,6 +79,25 @@ body {
   line-height: 1.75;
 }
 
+/* KaTeX: prevent prose/code styles from leaking into rendered math */
+.prose .katex {
+  font-size: 1em;
+}
+
+.prose .katex-display {
+  overflow-x: auto;
+  padding: 0.5rem 0;
+}
+
+.prose .katex code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
 .prose ul,
 .prose ol {
   padding-left: 1.25em;

@@ -6,7 +6,18 @@ import type { FAQItem } from "@/src/types/faq";
 export const revalidate = 60;
 
 export default async function Home() {
-  const staticItems = faqData as FAQItem[];
+  const staticItems: FAQItem[] = (faqData as Record<string, unknown>[]).map((item) => ({
+    id: item.id as number,
+    question: item.question as string,
+    date: item.date as string,
+    tags: (item.tags as string[]) ?? [],
+    categories: (item.categories as string[]) ?? [],
+    references: item.references as FAQItem["references"],
+    answer: item.answer as string,
+    upvoteCount: (item.upvoteCount as number) ?? 0,
+    outdatedCount: (item.outdatedCount as number) ?? 0,
+    inaccurateCount: (item.inaccurateCount as number) ?? 0,
+  }));
 
   let dynamicItems: FAQItem[] = [];
   try {
@@ -16,8 +27,12 @@ export default async function Home() {
       question: item.question,
       date: item.created_at.toISOString().slice(0, 10),
       tags: item.tags,
+      categories: item.categories,
       references: item.references,
       answer: item.answer ?? item.answer_raw,
+      upvoteCount: item.upvote_count,
+      outdatedCount: item.outdated_count,
+      inaccurateCount: item.inaccurate_count,
     }));
   } catch {
     // DB not available (e.g., local dev without Postgres) — graceful fallback
@@ -25,15 +40,5 @@ export default async function Home() {
 
   const allItems = [...staticItems, ...dynamicItems];
 
-  return (
-    <>
-      <header className="mb-8">
-        <h1 className="font-serif text-3xl font-bold text-deep-ink">AIFAQ</h1>
-        <p className="mt-1 text-sm text-slate-secondary">
-          AI/ML 常见问题知识库
-        </p>
-      </header>
-      <FAQList items={allItems} />
-    </>
-  );
+  return <FAQList items={allItems} />;
 }

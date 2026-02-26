@@ -1,18 +1,26 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import SearchBar, { type SearchMode } from "./SearchBar";
 import TagFilter from "./TagFilter";
 import FAQItem from "./FAQItem";
 import SelectionSidebar from "./SelectionSidebar";
 import ReadingView from "./ReadingView";
-import type { FAQItem as FAQItemType } from "@/src/types/faq";
+import Pagination from "./Pagination";
+import taxonomy from "@/data/tag-taxonomy.json";
+import type {
+  FAQItem as FAQItemType,
+  TagTaxonomy,
+  VoteType,
+} from "@/src/types/faq";
 
 interface FAQListProps {
   items: FAQItemType[];
 }
 
 const LS_KEY = "aifaq-selected";
+const LS_PAGESIZE = "aifaq-pagesize";
+const LS_VOTED = "aifaq-voted";
 
 function loadSelected(): Set<number> {
   if (typeof window === "undefined") return new Set();
@@ -23,18 +31,80 @@ function loadSelected(): Set<number> {
   return new Set();
 }
 
+function loadPageSize(): number {
+  if (typeof window === "undefined") return 20;
+  return Number(localStorage.getItem(LS_PAGESIZE)) || 20;
+}
+
+function loadVotedMap(): Map<number, Set<VoteType>> {
+  if (typeof window === "undefined") return new Map();
+  try {
+    const raw = localStorage.getItem(LS_VOTED);
+    if (raw) {
+      const obj = JSON.parse(raw) as Record<string, VoteType[]>;
+      const map = new Map<number, Set<VoteType>>();
+      for (const [k, v] of Object.entries(obj)) {
+        map.set(Number(k), new Set(v));
+      }
+      return map;
+    }
+  } catch { /* ignore */ }
+  return new Map();
+}
+
+function saveVotedMap(map: Map<number, Set<VoteType>>): void {
+  const obj: Record<string, VoteType[]> = {};
+  for (const [k, v] of map) obj[String(k)] = [...v];
+  localStorage.setItem(LS_VOTED, JSON.stringify(obj));
+}
+
 export default function FAQList({ items }: FAQListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMode, setSearchMode] = useState<SearchMode>("combined");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [openItems, setOpenItems] = useState<Set<number>>(new Set());
   const [selectedItems, setSelectedItems] = useState<Set<number>>(loadSelected);
   const [view, setView] = useState<"list" | "reading">("list");
+  const [compareMode, setCompareMode] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(loadPageSize);
+  const [votedMap, setVotedMap] = useState<Map<number, Set<VoteType>>>(loadVotedMap);
+  const [fingerprint, setFingerprint] = useState("");
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
 
-  // Persist selection to localStorage
+  // Load fingerprint
+  useEffect(() => {
+    import("@fingerprintjs/fingerprintjs").then((FP) =>
+      FP.load().then((fp) =>
+        fp.get().then((r) => setFingerprint(r.visitorId))
+      )
+    );
+  }, []);
+
+  // Hide header on scroll down, show on scroll up
+  useEffect(() => {
+    const THRESHOLD = 10;
+    function handleScroll() {
+      const currentY = window.scrollY;
+      if (Math.abs(currentY - lastScrollY.current) < THRESHOLD) return;
+      setHeaderVisible(currentY < lastScrollY.current || currentY < 80);
+      lastScrollY.current = currentY;
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Persist selection
   useEffect(() => {
     localStorage.setItem(LS_KEY, JSON.stringify([...selectedItems]));
   }, [selectedItems]);
+
+  // Persist pageSize
+  useEffect(() => {
+    localStorage.setItem(LS_PAGESIZE, String(pageSize));
+  }, [pageSize]);
 
   const { allTags, tagCounts } = useMemo(() => {
     const freq = new Map<string, number>();
@@ -49,7 +119,16 @@ export default function FAQList({ items }: FAQListProps) {
     return { allTags: sorted, tagCounts: freq };
   }, [items]);
 
-  // Filter logic based on search mode
+  // 构建 category -> tags 映射
+  const categoryTagsMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const cat of (taxonomy as TagTaxonomy).categories) {
+      map.set(cat.name, new Set(cat.tags));
+    }
+    return map;
+  }, []);
+
+  // Filter logic
   const filtered = useMemo(() => {
     let result = items;
     const q = searchQuery.trim().toLowerCase();
@@ -86,8 +165,46 @@ export default function FAQList({ items }: FAQListProps) {
       );
     }
 
+    if (selectedCategories.length > 0) {
+      result = result.filter((item) =>
+        selectedCategories.some((cat) => {
+          const catTags = categoryTagsMap.get(cat);
+          return catTags ? item.tags.some((tag) => catTags.has(tag)) : false;
+        })
+      );
+    }
+
     return result;
-  }, [items, searchQuery, searchMode, selectedTags]);
+  }, [items, searchQuery, searchMode, selectedTags, selectedCategories, categoryTagsMap]);
+
+  // Reset page on filter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, searchMode, selectedTags, selectedCategories]);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedItems = filtered.slice(
+    (safePage - 1) * pageSize,
+    safePage * pageSize
+  );
+
+  function handlePageChange(page: number): void {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handlePageSizeChange(size: number): void {
+    setPageSize(size);
+    setCurrentPage(1);
+  }
+
+  function handleToggleCategory(cat: string): void {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  }
 
   function handleToggleTag(tag: string): void {
     setSelectedTags((prev) =>
@@ -113,6 +230,79 @@ export default function FAQList({ items }: FAQListProps) {
     });
   }
 
+  function handleExpandAll(): void {
+    setOpenItems(new Set(paginatedItems.map((item) => item.id)));
+  }
+
+  function handleCollapseAll(): void {
+    setOpenItems(new Set());
+  }
+
+  function handleToggleCompare(): void {
+    if (compareMode) {
+      setCompareMode(false);
+      setSelectedItems(new Set());
+    } else {
+      setCompareMode(true);
+    }
+  }
+
+  const handleVote = useCallback(
+    async (faqId: number, type: VoteType) => {
+      if (!fingerprint) return;
+      // Check if already voted locally
+      if (votedMap.get(faqId)?.has(type)) return;
+      try {
+        const res = await fetch(`/api/faq/${faqId}/vote`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type, fingerprint }),
+        });
+        if (res.ok || res.status === 409) {
+          setVotedMap((prev) => {
+            const next = new Map(prev);
+            const types = new Set(next.get(faqId) ?? []);
+            types.add(type);
+            next.set(faqId, types);
+            saveVotedMap(next);
+            return next;
+          });
+        }
+      } catch { /* network error, ignore */ }
+    },
+    [fingerprint, votedMap]
+  );
+
+  const handleInaccurateVote = useCallback(
+    async (faqId: number, reason: string, detail: string) => {
+      if (!fingerprint) return;
+      if (votedMap.get(faqId)?.has("inaccurate")) return;
+      try {
+        const res = await fetch(`/api/faq/${faqId}/vote`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "inaccurate",
+            fingerprint,
+            reason,
+            detail,
+          }),
+        });
+        if (res.ok || res.status === 409) {
+          setVotedMap((prev) => {
+            const next = new Map(prev);
+            const types = new Set(next.get(faqId) ?? []);
+            types.add("inaccurate");
+            next.set(faqId, types);
+            saveVotedMap(next);
+            return next;
+          });
+        }
+      } catch { /* network error */ }
+    },
+    [fingerprint, votedMap]
+  );
+
   const handleRemoveFromReading = useCallback((id: number) => {
     setSelectedItems((prev) => {
       const next = new Set(prev);
@@ -121,7 +311,7 @@ export default function FAQList({ items }: FAQListProps) {
     });
   }, []);
 
-  // Reading view: show selected items, auto-back if empty
+  // Reading view
   const readingItems = items.filter((item) => selectedItems.has(item.id));
 
   if (view === "reading") {
@@ -139,25 +329,79 @@ export default function FAQList({ items }: FAQListProps) {
   }
 
   return (
-    <div className="flex gap-4">
-      {/* Main content */}
-      <div className="min-w-0 flex-1 space-y-4">
+    <>
+      <div
+        className={`sticky top-0 z-20 -mx-4 bg-warm-white/95 px-4 pb-3 backdrop-blur-sm
+          transition-transform duration-300 md:-mx-8 md:px-8 ${
+            headerVisible ? "translate-y-0" : "-translate-y-full"
+          }`}
+      >
+        <header className="mb-4 pt-2">
+          <h1 className="font-serif text-3xl font-bold text-deep-ink">AIFAQ</h1>
+          <p className="mt-1 text-sm text-slate-secondary">
+            AI/ML 常见问题知识库
+          </p>
+        </header>
         <SearchBar
           value={searchQuery}
           onChange={setSearchQuery}
           mode={searchMode}
           onModeChange={setSearchMode}
         />
-        <TagFilter
-          allTags={allTags}
-          tagCounts={tagCounts}
-          selectedTags={selectedTags}
-          onToggleTag={handleToggleTag}
-          onClearTags={() => setSelectedTags([])}
-        />
-        <p className="text-sm text-slate-secondary">
-          显示 {items.length} 条中的 {filtered.length} 条
-        </p>
+        <div className="mt-3">
+          <TagFilter
+            taxonomy={taxonomy as TagTaxonomy}
+            allTags={allTags}
+            tagCounts={tagCounts}
+            selectedCategories={selectedCategories}
+            selectedTags={selectedTags}
+            onToggleCategory={handleToggleCategory}
+            onToggleTag={handleToggleTag}
+            onClearAll={() => {
+              setSelectedTags([]);
+              setSelectedCategories([]);
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-4">
+        {/* Main content */}
+        <div className="min-w-0 flex-1 space-y-4">
+
+        {/* Toolbar: compare, expand/collapse, info */}
+        <div className="flex items-center justify-between">
+          <div className="flex gap-2">
+            <button
+              onClick={handleToggleCompare}
+              className={`rounded-md px-3 py-1 text-xs font-medium
+                transition-colors ${
+                  compareMode
+                    ? "bg-copper text-white"
+                    : "border border-gray-200 text-slate-secondary hover:bg-code-bg"
+                }`}
+            >
+              {compareMode ? "退出比较" : "比较"}
+            </button>
+            <button
+              onClick={handleExpandAll}
+              className="rounded-md border border-gray-200 px-3 py-1
+                text-xs text-slate-secondary hover:bg-code-bg"
+            >
+              全部展开
+            </button>
+            <button
+              onClick={handleCollapseAll}
+              className="rounded-md border border-gray-200 px-3 py-1
+                text-xs text-slate-secondary hover:bg-code-bg"
+            >
+              全部折叠
+            </button>
+          </div>
+          <p className="text-xs text-slate-secondary">
+            共 {filtered.length} 条，第 {safePage}/{totalPages} 页
+          </p>
+        </div>
 
         {filtered.length === 0 ? (
           <div className="py-16 text-center">
@@ -177,36 +421,57 @@ export default function FAQList({ items }: FAQListProps) {
             <p className="text-slate-secondary">没有找到匹配的问题</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {filtered.map((item, index) => (
-              <div
-                key={item.id}
-                className="faq-item-enter"
-                style={{ animationDelay: `${index * 30}ms` }}
-              >
-                <FAQItem
-                  item={item}
-                  isOpen={openItems.has(item.id)}
-                  isSelected={selectedItems.has(item.id)}
-                  onToggle={() => handleToggleItem(item.id)}
-                  onSelect={() => handleToggleSelect(item.id)}
-                />
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="space-y-2">
+              {paginatedItems.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="faq-item-enter"
+                  style={{ animationDelay: `${index * 30}ms` }}
+                >
+                  <FAQItem
+                    item={item}
+                    isOpen={openItems.has(item.id)}
+                    isSelected={selectedItems.has(item.id)}
+                    showCheckbox={compareMode}
+                    onToggle={() => handleToggleItem(item.id)}
+                    onSelect={() => handleToggleSelect(item.id)}
+                    onVote={(type) => handleVote(item.id, type)}
+                    onInaccurateVote={(reason, detail) =>
+                      handleInaccurateVote(item.id, reason, detail)
+                    }
+                    votedTypes={votedMap.get(item.id) ?? new Set()}
+                  />
+                </div>
+              ))}
+            </div>
+            <Pagination
+              currentPage={safePage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={filtered.length}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          </>
         )}
         {/* Mobile bottom bar spacer */}
-        {selectedItems.size > 0 && <div className="h-16 md:hidden" />}
+        {compareMode && selectedItems.size > 0 && (
+          <div className="h-16 md:hidden" />
+        )}
       </div>
 
-      {/* Selection sidebar */}
-      <SelectionSidebar
-        items={items}
-        selectedIds={selectedItems}
-        onRemove={(id) => handleToggleSelect(id)}
-        onClear={() => setSelectedItems(new Set())}
-        onCompare={() => setView("reading")}
-      />
+      {/* Selection sidebar - only in compare mode */}
+      {compareMode && (
+        <SelectionSidebar
+          items={items}
+          selectedIds={selectedItems}
+          onRemove={(id) => handleToggleSelect(id)}
+          onClear={() => setSelectedItems(new Set())}
+          onCompare={() => setView("reading")}
+        />
+      )}
     </div>
+    </>
   );
 }

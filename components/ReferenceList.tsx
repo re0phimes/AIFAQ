@@ -8,7 +8,7 @@ interface ReferenceListProps {
 }
 
 export default function ReferenceList({ references }: ReferenceListProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
 
   if (references.length === 0) return null;
 
