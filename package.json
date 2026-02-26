@@ -9,7 +9,8 @@
     "prebuild": "tsx scripts/parse-faq.ts",
     "start": "next start",
     "lint": "eslint",
-    "seed": "npx tsx scripts/seed-faq.ts"
+    "seed": "npx tsx scripts/seed-faq.ts",
+    "analyze-difficulty": "npx tsx scripts/analyze-difficulty.ts"
   },
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^5.0.1",
