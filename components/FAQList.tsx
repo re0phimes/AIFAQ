@@ -7,6 +7,7 @@ import FAQItem from "./FAQItem";
 import SelectionSidebar from "./SelectionSidebar";
 import ReadingView from "./ReadingView";
 import Pagination from "./Pagination";
+import BackToTop from "./BackToTop";
 import taxonomy from "@/data/tag-taxonomy.json";
 import type {
   FAQItem as FAQItemType,
@@ -511,6 +512,7 @@ export default function FAQList({ items }: FAQListProps) {
         />
       )}
     </div>
+    <BackToTop />
     </>
   );
 }
