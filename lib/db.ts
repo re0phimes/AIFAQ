@@ -11,6 +11,8 @@ export interface DBFaqItem {
   references: Reference[];
   upvote_count: number;
   downvote_count: number;
+  date: string;
+  difficulty: "beginner" | "intermediate" | "advanced" | null;
   status: "pending" | "processing" | "ready" | "failed";
   error_message: string | null;
   created_at: Date;
@@ -36,6 +38,8 @@ export async function initDB(): Promise<void> {
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS categories TEXT[] DEFAULT '{}'`;
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS upvote_count INTEGER DEFAULT 0`;
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS downvote_count INTEGER DEFAULT 0`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS date VARCHAR(10) DEFAULT ''`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS difficulty VARCHAR(20)`;
 
   await sql`
     UPDATE faq_items
@@ -166,6 +170,8 @@ function rowToFaqItem(row: Record<string, unknown>): DBFaqItem {
       : row.references) as Reference[],
     upvote_count: (row.upvote_count as number) ?? 0,
     downvote_count: (row.downvote_count as number) ?? 0,
+    date: (row.date as string) ?? "",
+    difficulty: (row.difficulty as DBFaqItem["difficulty"]) ?? null,
     status: row.status as DBFaqItem["status"],
     error_message: row.error_message as string | null,
     created_at: new Date(row.created_at as string),
