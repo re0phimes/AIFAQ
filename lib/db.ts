@@ -10,8 +10,7 @@ export interface DBFaqItem {
   categories: string[];
   references: Reference[];
   upvote_count: number;
-  outdated_count: number;
-  inaccurate_count: number;
+  downvote_count: number;
   status: "pending" | "processing" | "ready" | "failed";
   error_message: string | null;
   created_at: Date;
@@ -36,8 +35,43 @@ export async function initDB(): Promise<void> {
 
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS categories TEXT[] DEFAULT '{}'`;
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS upvote_count INTEGER DEFAULT 0`;
-  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS outdated_count INTEGER DEFAULT 0`;
-  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS inaccurate_count INTEGER DEFAULT 0`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS downvote_count INTEGER DEFAULT 0`;
+
+  await sql`
+    UPDATE faq_items
+    SET downvote_count = COALESCE(outdated_count, 0) + COALESCE(inaccurate_count, 0)
+    WHERE downvote_count = 0
+      AND (COALESCE(outdated_count, 0) + COALESCE(inaccurate_count, 0)) > 0
+  `;
+
+  await sql`
+    DELETE FROM faq_votes
+    WHERE vote_type IN ('outdated', 'inaccurate')
+      AND (faq_id, fingerprint) IN (
+        SELECT faq_id, fingerprint FROM faq_votes WHERE vote_type = 'upvote'
+      )
+  `;
+  await sql`
+    DELETE FROM faq_votes a
+    USING faq_votes b
+    WHERE a.vote_type IN ('outdated', 'inaccurate')
+      AND b.vote_type IN ('outdated', 'inaccurate')
+      AND a.faq_id = b.faq_id
+      AND a.fingerprint = b.fingerprint
+      AND a.id < b.id
+  `;
+  await sql`UPDATE faq_votes SET vote_type = 'downvote' WHERE vote_type IN ('outdated', 'inaccurate')`;
+
+  await sql`ALTER TABLE faq_votes DROP CONSTRAINT IF EXISTS faq_votes_faq_id_vote_type_fingerprint_key`;
+  await sql`
+    DO $$ BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'faq_votes_faq_id_fingerprint_key'
+      ) THEN
+        ALTER TABLE faq_votes ADD CONSTRAINT faq_votes_faq_id_fingerprint_key UNIQUE (faq_id, fingerprint);
+      END IF;
+    END $$
+  `;
 
   await sql`
     CREATE TABLE IF NOT EXISTS faq_votes (
@@ -131,8 +165,7 @@ function rowToFaqItem(row: Record<string, unknown>): DBFaqItem {
       ? JSON.parse(row.references)
       : row.references) as Reference[],
     upvote_count: (row.upvote_count as number) ?? 0,
-    outdated_count: (row.outdated_count as number) ?? 0,
-    inaccurate_count: (row.inaccurate_count as number) ?? 0,
+    downvote_count: (row.downvote_count as number) ?? 0,
     status: row.status as DBFaqItem["status"],
     error_message: row.error_message as string | null,
     created_at: new Date(row.created_at as string),
@@ -142,8 +175,7 @@ function rowToFaqItem(row: Record<string, unknown>): DBFaqItem {
 
 const VALID_VOTE_COLUMNS: Record<string, string> = {
   upvote: "upvote_count",
-  outdated: "outdated_count",
-  inaccurate: "inaccurate_count",
+  downvote: "downvote_count",
 };
 
 export async function castVote(
@@ -153,28 +185,81 @@ export async function castVote(
   ipAddress: string | null,
   reason?: string,
   detail?: string
-): Promise<boolean> {
-  const result = await sql`
-    INSERT INTO faq_votes (faq_id, vote_type, fingerprint, ip_address, reason, detail)
-    VALUES (${faqId}, ${voteType}, ${fingerprint}, ${ipAddress}, ${reason ?? null}, ${detail ?? null})
-    ON CONFLICT (faq_id, vote_type, fingerprint) DO NOTHING
-    RETURNING id
-  `;
-  if (result.rows.length === 0) return false;
-
-  // Update aggregate count - column name is validated against a whitelist
+): Promise<{ inserted: boolean; switched: boolean }> {
   const column = VALID_VOTE_COLUMNS[voteType];
   if (!column) throw new Error(`Invalid vote type: ${voteType}`);
+
+  const existing = await sql`
+    SELECT vote_type FROM faq_votes
+    WHERE faq_id = ${faqId} AND fingerprint = ${fingerprint}
+  `;
+
+  if (existing.rows.length > 0) {
+    const oldType = existing.rows[0].vote_type as string;
+    if (oldType === voteType) {
+      return { inserted: false, switched: false };
+    }
+    const oldColumn = VALID_VOTE_COLUMNS[oldType];
+    if (oldColumn) {
+      await sql.query(
+        `UPDATE faq_items SET ${oldColumn} = GREATEST(${oldColumn} - 1, 0) WHERE id = $1`,
+        [faqId]
+      );
+    }
+    await sql`DELETE FROM faq_votes WHERE faq_id = ${faqId} AND fingerprint = ${fingerprint}`;
+  }
+
+  await sql`
+    INSERT INTO faq_votes (faq_id, vote_type, fingerprint, ip_address, reason, detail)
+    VALUES (${faqId}, ${voteType}, ${fingerprint}, ${ipAddress}, ${reason ?? null}, ${detail ?? null})
+  `;
   await sql.query(
     `UPDATE faq_items SET ${column} = ${column} + 1 WHERE id = $1`,
     [faqId]
   );
+
+  return { inserted: true, switched: existing.rows.length > 0 };
+}
+
+export async function revokeVote(
+  faqId: number,
+  fingerprint: string
+): Promise<boolean> {
+  const existing = await sql`
+    SELECT vote_type FROM faq_votes
+    WHERE faq_id = ${faqId} AND fingerprint = ${fingerprint}
+  `;
+  if (existing.rows.length === 0) return false;
+
+  const voteType = existing.rows[0].vote_type as string;
+  const column = VALID_VOTE_COLUMNS[voteType];
+
+  await sql`DELETE FROM faq_votes WHERE faq_id = ${faqId} AND fingerprint = ${fingerprint}`;
+  if (column) {
+    await sql.query(
+      `UPDATE faq_items SET ${column} = GREATEST(${column} - 1, 0) WHERE id = $1`,
+      [faqId]
+    );
+  }
   return true;
+}
+
+export async function getVotesByFingerprint(
+  fingerprint: string
+): Promise<Record<number, string>> {
+  const result = await sql`
+    SELECT faq_id, vote_type FROM faq_votes WHERE fingerprint = ${fingerprint}
+  `;
+  const map: Record<number, string> = {};
+  for (const row of result.rows) {
+    map[row.faq_id as number] = row.vote_type as string;
+  }
+  return map;
 }
 
 export async function getVoteCounts(
   faqIds: number[]
-): Promise<Map<number, { upvote: number; outdated: number; inaccurate: number }>> {
+): Promise<Map<number, { upvote: number; downvote: number }>> {
   if (faqIds.length === 0) return new Map();
   const result = await sql.query(
     `SELECT faq_id, vote_type, COUNT(*)::int as count
@@ -183,15 +268,14 @@ export async function getVoteCounts(
      GROUP BY faq_id, vote_type`,
     [faqIds]
   );
-  const map = new Map<number, { upvote: number; outdated: number; inaccurate: number }>();
+  const map = new Map<number, { upvote: number; downvote: number }>();
   for (const row of result.rows) {
     const faqId = row.faq_id as number;
-    if (!map.has(faqId)) map.set(faqId, { upvote: 0, outdated: 0, inaccurate: 0 });
+    if (!map.has(faqId)) map.set(faqId, { upvote: 0, downvote: 0 });
     const entry = map.get(faqId)!;
     const type = row.vote_type as string;
     if (type === "upvote") entry.upvote = row.count as number;
-    else if (type === "outdated") entry.outdated = row.count as number;
-    else if (type === "inaccurate") entry.inaccurate = row.count as number;
+    else if (type === "downvote") entry.downvote = row.count as number;
   }
   return map;
 }
