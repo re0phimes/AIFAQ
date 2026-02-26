@@ -1,42 +1,28 @@
 import FAQList from "@/components/FAQList";
-import faqData from "@/data/faq.json";
 import { getReadyFaqItems } from "@/lib/db";
 import type { FAQItem } from "@/src/types/faq";
 
 export const revalidate = 60;
 
 export default async function Home() {
-  const staticItems: FAQItem[] = (faqData as Record<string, unknown>[]).map((item) => ({
-    id: item.id as number,
-    question: item.question as string,
-    date: item.date as string,
-    tags: (item.tags as string[]) ?? [],
-    categories: (item.categories as string[]) ?? [],
-    references: item.references as FAQItem["references"],
-    answer: item.answer as string,
-    upvoteCount: (item.upvoteCount as number) ?? 0,
-    downvoteCount: (item.downvoteCount as number) ?? 0,
-  }));
-
-  let dynamicItems: FAQItem[] = [];
+  let items: FAQItem[] = [];
   try {
     const dbItems = await getReadyFaqItems();
-    dynamicItems = dbItems.map((item) => ({
-      id: 10000 + item.id, // Offset to avoid ID collision with static items
+    items = dbItems.map((item) => ({
+      id: item.id,
       question: item.question,
-      date: item.created_at.toISOString().slice(0, 10),
+      date: item.date || item.created_at.toISOString().slice(0, 10),
       tags: item.tags,
       categories: item.categories,
       references: item.references,
       answer: item.answer ?? item.answer_raw,
       upvoteCount: item.upvote_count,
       downvoteCount: item.downvote_count,
+      difficulty: item.difficulty,
     }));
   } catch {
-    // DB not available (e.g., local dev without Postgres) — graceful fallback
+    // DB not available — empty list fallback
   }
 
-  const allItems = [...staticItems, ...dynamicItems];
-
-  return <FAQList items={allItems} />;
+  return <FAQList items={items} />;
 }

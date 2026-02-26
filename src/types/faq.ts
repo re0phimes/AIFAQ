@@ -14,6 +14,7 @@ export interface FAQItem {
   answer: string;
   upvoteCount: number;
   downvoteCount: number;
+  difficulty?: "beginner" | "intermediate" | "advanced" | null;
 }
 
 export interface TagCategory {
