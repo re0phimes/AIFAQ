@@ -2,6 +2,8 @@ export interface Reference {
   type: "blog" | "paper" | "other";
   title: string;
   url?: string;
+  author?: string;
+  platform?: string;
 }
 
 export interface FAQItem {
@@ -14,6 +16,7 @@ export interface FAQItem {
   answer: string;
   upvoteCount: number;
   downvoteCount: number;
+  difficulty?: "beginner" | "intermediate" | "advanced" | null;
 }
 
 export interface TagCategory {

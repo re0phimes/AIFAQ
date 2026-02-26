@@ -57,9 +57,9 @@
 | 53 | 从流形视角看，为什么 LoRA 微调只需少量高质量数据？ | 2026-02-24 | #LoRA #流形 |
 | 54 | 从流形视角看，为什么量化后模型性能基本保持？ | 2026-02-24 | #量化 #流形 |
 | 55 | 为什么 Embedding 需要 768 维甚至更高的维度？ | 2026-02-24 | #Embedding #维度 |
-| 56 | max_position_embeddings 是什么？超过会怎样？ | 2026-02-24 | #上下文长度 #推理框架 |
+| 56 | max_position_embeddings 是什么？超过会怎样？ | 2026-02-24 | #Context Engineering #推理框架 |
 | 57 | 如何用 logprob 检测上下文截断？ | 2026-02-24 | #logprob #推理优化 |
-| 58 | llama.cpp 的 n_keep 参数如何工作？ | 2026-02-24 | #llama.cpp #上下文管理 |
+| 58 | llama.cpp 的 n_keep 参数如何工作？ | 2026-02-24 | #llama.cpp #Context Engineering |
 | 59 | 从任务角度看，BERT 和 GPT 为什么选择了不同的架构？ | 2026-02-24 | #BERT #GPT |
 | 60 | 为什么 BERT 不能像 GPT 一样做生成任务？ | 2026-02-24 | #BERT #反面题 |
 | 61 | 为什么 [CLS] token 能表示整个序列的信息？ | 2026-02-24 | #BERT #CLS |
@@ -870,7 +870,7 @@ sin 和 cos 的值域永远在 [-1, 1] 之间，保证位置编码不会因数�
 **参考**:
 - 来源文章: LLM最长上下文的一些理解.md
 
-**标签**: #上下文长度 #推理框架
+**标签**: #Context Engineering #推理框架
 
 ### 答案
 
@@ -898,7 +898,7 @@ logprob = log(p)，越接近 0 置信度越高。两种检测方法：(1) 绝对
 **参考**:
 - 来源文章: LLM最长上下文的一些理解.md
 
-**标签**: #llama.cpp #上下文管理
+**标签**: #llama.cpp #Context Engineering
 
 ### 答案
 
