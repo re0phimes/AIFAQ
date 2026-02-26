@@ -15,6 +15,14 @@ import type {
   VoteType,
 } from "@/src/types/faq";
 
+type SortMode = "default" | "date" | "difficulty";
+
+const DIFFICULTY_ORDER: Record<string, number> = {
+  beginner: 0,
+  intermediate: 1,
+  advanced: 2,
+};
+
 interface FAQListProps {
   items: FAQItemType[];
 }
@@ -72,6 +80,7 @@ export default function FAQList({ items }: FAQListProps) {
   const [pageSize, setPageSize] = useState(loadPageSize);
   const [votedMap, setVotedMap] = useState<Map<number, VoteType>>(loadVotedMap);
   const [fingerprint, setFingerprint] = useState("");
+  const [sortMode, setSortMode] = useState<SortMode>("default");
   const [headerVisible, setHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
 
@@ -197,15 +206,31 @@ export default function FAQList({ items }: FAQListProps) {
     return result;
   }, [items, searchQuery, searchMode, selectedTags, selectedCategories, categoryTagsMap]);
 
+  // Sort logic
+  const sorted = useMemo(() => {
+    if (sortMode === "default") return filtered;
+    const arr = [...filtered];
+    if (sortMode === "date") {
+      arr.sort((a, b) => b.date.localeCompare(a.date));
+    } else if (sortMode === "difficulty") {
+      arr.sort(
+        (a, b) =>
+          (DIFFICULTY_ORDER[a.difficulty ?? ""] ?? 99) -
+          (DIFFICULTY_ORDER[b.difficulty ?? ""] ?? 99)
+      );
+    }
+    return arr;
+  }, [filtered, sortMode]);
+
   // Reset page on filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, searchMode, selectedTags, selectedCategories]);
+  }, [searchQuery, searchMode, selectedTags, selectedCategories, sortMode]);
 
   // Pagination
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
-  const paginatedItems = filtered.slice(
+  const paginatedItems = sorted.slice(
     (safePage - 1) * pageSize,
     safePage * pageSize
   );
@@ -439,13 +464,29 @@ export default function FAQList({ items }: FAQListProps) {
             >
               全部折叠
             </button>
+            <div className="flex items-center gap-1 ml-2 border-l border-gray-200 pl-2">
+              <span className="text-[11px] text-slate-secondary">排序:</span>
+              {(["default", "date", "difficulty"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setSortMode(mode)}
+                  className={`rounded-md px-2 py-1 text-xs transition-colors ${
+                    sortMode === mode
+                      ? "bg-copper text-white"
+                      : "text-slate-secondary hover:bg-code-bg"
+                  }`}
+                >
+                  {mode === "default" ? "默认" : mode === "date" ? "时间" : "难度"}
+                </button>
+              ))}
+            </div>
           </div>
           <p className="text-xs text-slate-secondary">
-            共 {filtered.length} 条，第 {safePage}/{totalPages} 页
+            共 {sorted.length} 条，第 {safePage}/{totalPages} 页
           </p>
         </div>
 
-        {filtered.length === 0 ? (
+        {sorted.length === 0 ? (
           <div className="py-16 text-center">
             <svg
               className="mx-auto mb-4 h-12 w-12 text-gray-300"
@@ -489,7 +530,7 @@ export default function FAQList({ items }: FAQListProps) {
               currentPage={safePage}
               totalPages={totalPages}
               pageSize={pageSize}
-              totalItems={filtered.length}
+              totalItems={sorted.length}
               onPageChange={handlePageChange}
               onPageSizeChange={handlePageSizeChange}
             />
