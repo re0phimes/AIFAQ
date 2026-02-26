@@ -8,7 +8,8 @@
     "build": "next build",
     "prebuild": "tsx scripts/parse-faq.ts",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "npx tsx scripts/seed-faq.ts"
   },
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^5.0.1",
