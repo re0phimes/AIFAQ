@@ -1,0 +1,1663 @@
+[
+  {
+    "id": 1,
+    "question": "残差连接中 F(x) 代表什么？",
+    "date": "2026-02-23",
+    "tags": [
+      "残差连接",
+      "Transformer"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm（一）：对残差连接深入解析.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm（一）：对残差连接深入解析.html"
+      },
+      {
+        "type": "paper",
+        "title": "He, K., et al. \"Deep Residual Learning for Image Recognition\", arXiv:1512.03385, 2015",
+        "url": "https://arxiv.org/abs/1512.03385"
+      }
+    ],
+    "answer": "F(x) 代表\"信息差\"（残差），即当前输入 x 与理想输出 H(x) 之间需要调整的增量，而非一个全新的完整表征。传统网络中每层直接学习完整的目标函数 H(x)，残差网络则将目标重新参数化为 H(x) = F(x) + x，让网络只需学习\"在原始输入基础上还需要补充什么\"。例如，对于 \"bank\" 一词，F(x) 可能输出 [+0.3, -0.2]，表示\"增强金融属性、减弱地理属性\"，而非重新定义整个语义。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 2,
+    "question": "残差连接的梯度公式及 \"+1\" 项的作用",
+    "date": "2026-02-23",
+    "tags": [
+      "残差连接",
+      "梯度"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm（一）：对残差连接深入解析.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm（一）：对残差连接深入解析.html"
+      }
+    ],
+    "answer": "梯度公式为 `dL/dx = dL/dH * (1 + dF(x)/dx)`。\"+1\" 项创建了一条梯度直通路径：即使 dF(x)/dx 因网络加深而趋近于零，梯度信号至少能以系数 1 无衰减地向前传播。这从根本上解决了深层网络的梯度消失问题，保证底层参数始终能接收到有效的更新信号。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 3,
+    "question": "为什么传统网络难以学习恒等映射？",
+    "date": "2026-02-23",
+    "tags": [
+      "残差连接",
+      "恒等映射"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm（一）：对残差连接深入解析.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm（一）：对残差连接深入解析.html"
+      }
+    ],
+    "answer": "传统网络要实现恒等映射 Layer(x) = x，需要将权重 W 精确优化到单位矩阵 I、偏置 b 优化到零向量，这是一个高度非凸的优化目标，从随机初始化出发很难稳定达成。残差结构下只需将 F(x) 驱动向零即可实现 H(x) = 0 + x = x。让网络输出为零远比精确复制输入容易得多，优化器自然倾向于这个更简单的解。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 4,
+    "question": "为什么用 Add 而不用 Concat？",
+    "date": "2026-02-23",
+    "tags": [
+      "残差连接",
+      "特征融合"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm（一）：对残差连接深入解析.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm（一）：对残差连接深入解析.html"
+      }
+    ],
+    "answer": "两个核心原因。一是 Concat 导致维度以 d_model * 2^N 指数级爆炸（N 为层数），计算和存储不可承受。二是 Concat 没有梯度直通路径，梯度必须完整流经处理拼接后向量的后续所有层，连乘效应使梯度消失/爆炸风险急剧增加。Add 则通过 \"+1\" 项保证梯度无衰减传播，且维度始终不变。注意：Concat 在多模态融合等场景仍有价值，因为不同模态的语义空间不同，直接相加无意义。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 5,
+    "question": "网络退化和过拟合的区别",
+    "date": "2026-02-23",
+    "tags": [
+      "网络退化",
+      "深度学习"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm（一）：对残差连接深入解析.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm（一）：对残差连接深入解析.html"
+      },
+      {
+        "type": "other",
+        "title": "He, K., et al. \"Deep Residual Learning for Image Recognition\", 2015"
+      }
+    ],
+    "answer": "网络退化是深层网络的训练误差反而高于浅层网络，本质是优化困难而非泛化问题。过拟合是训练误差低但测试误差高（泛化差）。何凯明等人实验发现，超过 20 层的 CNN 出现训练误差上升，这不是因为模型记住了噪声，而是因为网络无法有效优化到好的解。残差连接正是为解决退化问题而提出的。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 6,
+    "question": "F(x) 值远大于 x 会怎样？",
+    "date": "2026-02-23",
+    "tags": [
+      "残差连接",
+      "训练稳定性"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm（一）：对残差连接深入解析.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm（一）：对残差连接深入解析.html"
+      }
+    ],
+    "answer": "当 ||F(x)|| >> ||x|| 时，y = F(x) + x 近似等于 F(x)，原始信息 x 被\"淹没\"，残差块退化为普通前馈层，失去保护原始信息流的作用。同时过大的 F(x) 会导致梯度爆炸（过大梯度在多层中累积）、训练不稳定（权重剧烈震荡）和泛化性能下降。这就是为什么 Add 操作高度依赖 F(x) 与 x 量级匹配这一前提。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 7,
+    "question": "为什么 Add 之后必须跟 Norm？",
+    "date": "2026-02-23",
+    "tags": [
+      "Add&Norm",
+      "归一化"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm（一）：对残差连接深入解析.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm（一）：对残差连接深入解析.html"
+      }
+    ],
+    "answer": "Add 操作会改变数据分布，尤其是方差会累积增长（两个独立分布相加，方差相加：sigma1^2 + sigma2^2）。加上后续 FFN 中非线性激活函数的尺度变换效应，分布偏移会随深度指数级恶化。Norm 将数据重新约束到稳定分布（近似均值 0、方差 1），防止后续层需要不断适应动态变化的输入分布，从而稳定训练过程并加速收敛。Transformer 中选用 Layer Norm 而非 Batch Norm，是因为序列数据长度可变、样本间差异大，不适合依赖 Batch 统计量。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 8,
+    "question": "防止 F(x) 值过大的三种手段",
+    "date": "2026-02-23",
+    "tags": [
+      "训练技巧",
+      "归一化"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm（一）：对残差连接深入解析.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm（一）：对残差连接深入解析.html"
+      }
+    ],
+    "answer": "(1) 归一化（BN/LN）：将 F(x) 约束到稳定分布，近似均值 0、方差 1，是最直接的手段。(2) 智能权重初始化（He/Xavier）：根据层的输入输出维度设定初始权重范围，防止信号在传播初期即指数级增长。(3) 学习率预热 + 衰减：初期用小学习率稳定网络参数，随后逐步提升，后期精细调整步长，避免单次迭代中权重更新步长失控。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 9,
+    "question": "Q、K、V 从哪里来？Wq/Wk/Wv 的初始状态",
+    "date": "2026-02-23",
+    "tags": [
+      "注意力机制",
+      "Transformer"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Transformer中的Q和K 2025-01-29.md",
+        "url": "https://blog.phimes.top/posts/2025/Transformer中的Q和K 2025-01-29.html"
+      }
+    ],
+    "answer": "Q = Wq * X，K = Wk * X，V = Wv * X，其中 X 是词嵌入加位置编码后的输入。Wq、Wk、Wv 是三个独立的可学习权重矩阵，初始状态是随机的（通过 nn.Linear 随机初始化），通过反向传播在训练中逐步学习到有意义的特征投影。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 10,
+    "question": "为什么不能直接训练 Q、K、V 而必须用权重矩阵？",
+    "date": "2026-02-23",
+    "tags": [
+      "注意力机制",
+      "反面题"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Transformer中的Q和K 2025-01-29.md",
+        "url": "https://blog.phimes.top/posts/2025/Transformer中的Q和K 2025-01-29.html"
+      }
+    ],
+    "answer": "如果直接训练 Q、K、V 而不与输入 X 相乘，那么注意力分布与输入无关，任何输入都会得到相同的注意力权重。权重矩阵的作用是将输入 X 投影到不同的特征空间，使得 Q、K、V 是输入的函数，从而实现动态的、依赖于输入内容的注意力计算。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 11,
+    "question": "sqrt(d_k) 缩放因子的作用",
+    "date": "2026-02-23",
+    "tags": [
+      "注意力机制",
+      "缩放点积"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Transformer中的Q和K 2025-01-29.md",
+        "url": "https://blog.phimes.top/posts/2025/Transformer中的Q和K 2025-01-29.html"
+      },
+      {
+        "type": "paper",
+        "title": "Vaswani, A., et al. \"Attention Is All You Need\", arXiv:1706.03762, 2017",
+        "url": "https://arxiv.org/abs/1706.03762"
+      }
+    ],
+    "answer": "sqrt(d_k) 是缩放因子，d_k 是 Q/K 的维度。当维度较大时，QK^T 的点积值会很大，经过 softmax 后概率分布变得极端（接近 one-hot），导致梯度消失，模型难以学习。除以 sqrt(d_k) 将点积值缩放到合理范围，保持 softmax 输出的梯度有效。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 12,
+    "question": "点积在注意力机制中的语义含义",
+    "date": "2026-02-23",
+    "tags": [
+      "注意力机制",
+      "点积"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Transformer中的Q和K 2025-01-29.md",
+        "url": "https://blog.phimes.top/posts/2025/Transformer中的Q和K 2025-01-29.html"
+      }
+    ],
+    "answer": "两个向量的点积 = |a||b|cos(theta)。点积越大说明两个向量夹角越小、方向越接近，在语义空间中表示两个词越相似、关联越强。QK^T 计算的就是每个 Query 向量与所有 Key 向量的点积，得到词与词之间的关联度（注意力分数）。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 13,
+    "question": "为什么用三个矩阵而不是更多？",
+    "date": "2026-02-23",
+    "tags": [
+      "注意力机制",
+      "QKV"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Transformer中的Q和K 2025-01-29.md",
+        "url": "https://blog.phimes.top/posts/2025/Transformer中的Q和K 2025-01-29.html"
+      }
+    ],
+    "answer": "增加更多矩阵有两个问题：(1) 计算复杂度增加；(2) 新增矩阵与 Q、K 在概念上存在重叠，收益递减。实际上 Q 和 K 本身也不是绝对正交的，它们都是同一输入空间的不同投影，存在一定的意义重叠。Q 和 K 的角色划分是人为赋予的，神经网络只是在寻找最优特征表示。三个矩阵是功能分工和计算效率的最佳平衡点。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 14,
+    "question": "Wq/Wk/Wv 训练三阶段分别学到什么？",
+    "date": "2026-02-23",
+    "tags": [
+      "注意力机制",
+      "训练过程"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Transformer中的Q和K 2025-01-29.md",
+        "url": "https://blog.phimes.top/posts/2025/Transformer中的Q和K 2025-01-29.html"
+      }
+    ],
+    "answer": "训练初期：随机初始化，Q 乱问 K 乱答，输出无意义。训练中期：学习到语法特征，Q 和 K 能初步识别词性和基本关系（如\"程序\"能问\"员\"是否有关系）。训练后期（收敛）：学习到精细化语义特征，Q 能精确查询语义关系，K 能准确编码特征关系。整个过程由反向传播驱动，损失函数不断修正 Wq、Wk、Wv 的参数。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 15,
+    "question": "BN 的成功原因是解决 ICS 吗？真正原因是什么？",
+    "date": "2026-02-23",
+    "tags": [
+      "BatchNorm",
+      "损失曲面"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.html"
+      },
+      {
+        "type": "paper",
+        "title": "Santurkar, S., et al. \"How Does Batch Normalization Help Optimization?\", arXiv:1805.11604, 2019",
+        "url": "https://arxiv.org/abs/1805.11604"
+      }
+    ],
+    "answer": "不是。2018 年论文《How Does Batch Normalization Help Optimization?》通过两步实验否定了 ICS 假说：(1) 在 BN 后人为注入噪声重新引入分布偏移，训练效果依然好；(2) 设计只稳定分布但不平滑曲面的方法，对训练几乎无帮助。BN 的真正作用是对优化过程的重参数化，平滑了损失曲面（降低利普希茨常数），使梯度方向更稳定、允许更高学习率、加速收敛。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 16,
+    "question": "利普希茨常数 L 大和 L 小分别意味着什么？",
+    "date": "2026-02-23",
+    "tags": [
+      "优化理论",
+      "损失曲面"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.html"
+      }
+    ],
+    "answer": "L 大意味着损失曲面存在陡峭悬崖或峡谷，微小参数移动可能导致损失剧烈震荡（梯度爆炸/消失风险高）。L 小意味着曲面平缓，梯度方向稳定可预测，允许使用更高学习率且不易\"飞出\"好的区域。Normalization 的核心作用之一就是降低 L，将崎岖的优化景观重塑为平滑地形。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 17,
+    "question": "为什么 BatchNorm 不适用于 NLP 任务？",
+    "date": "2026-02-23",
+    "tags": [
+      "BatchNorm",
+      "NLP"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.html"
+      }
+    ],
+    "answer": "两个核心原因。(1) 变长序列需要 PAD 填充，大量无意义的 PAD token 参与 BN 统计，污染了均值和方差。(2) 语义位置敏感性——BN 沿 feature dimension 跨样本归一化，但同一维度位置在不同词汇中承载截然不同的含义（如动词\"学\"和名词\"型\"的第一个维度），强行统一分布会破坏分布式语义表示。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 18,
+    "question": "仿射变换在 Normalization 中的作用是什么？",
+    "date": "2026-02-23",
+    "tags": [
+      "归一化",
+      "仿射变换"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.html"
+      }
+    ],
+    "answer": "仿射变换（gamma * x_hat + beta）赋予模型\"可控恢复\"能力。归一化将数据压缩到均值 0、方差 1 的标准分布，平滑了损失曲面，但也可能丢失有用的分布信息。可学习的 gamma（缩放）和 beta（偏移）让模型在训练中自行决定恢复多少原始分布特征，在\"平滑优化\"和\"保留表征能力\"之间取得平衡。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 19,
+    "question": "不同 Norm 方法公式几乎相同，为什么效果差异巨大？",
+    "date": "2026-02-23",
+    "tags": [
+      "归一化",
+      "作用域"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.html"
+      }
+    ],
+    "answer": "关键在于作用域（normalization scope）。作用域不同赋予了不同的归纳偏置/隐式表达：BN 跨样本同通道归一化，隐含\"同通道特征应服从统一分布\"；LN 在单样本所有特征上归一化，隐含\"不同特征维度应统计平衡\"；IN 在单样本单通道上归一化，隐含\"内容与风格分离\"；GN 在通道组内归一化，隐含\"存在功能相关的特征群组\"。理解 Norm 的关键不是背公式，而是理解作用域的现实意义。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 20,
+    "question": "CNN 中的 LayerNorm 和 Transformer 中的 LayerNorm 有什么区别？",
+    "date": "2026-02-23",
+    "tags": [
+      "LayerNorm",
+      "Transformer"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.html"
+      }
+    ],
+    "answer": "概念相同，但\"层\"的形态不同。CNN 中 LN 对单个样本的所有 C x H x W 一起归一化（一个\"面\"）；Transformer 中 LN 对单个 token 的 feature dimension 归一化（一个\"条\"），执行 batch_size x seq_len 次。原因是架构对数据的抽象不同：CNN 数据是四维 (B,C,H,W)，一\"层\"是整个三维特征图；Transformer 数据是三维 (B,S,D)，一\"层\"是单个词向量。ViT 中的 LN 和 NLP 完全一样，因为都是序列化数据。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 21,
+    "question": "Transformer-LayerNorm 和 CNN-InstanceNorm 都是\"一条\"，区别是什么？",
+    "date": "2026-02-23",
+    "tags": [
+      "LayerNorm",
+      "InstanceNorm"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.html"
+      }
+    ],
+    "answer": "方向不同，含义不同。IN 是\"竖条\"——对单样本单通道的 H x W 空间维度归一化，消除通道内统计偏差（剥离风格信息）。Transformer-LN 是\"横条\"——对单 token 的 feature dimension 归一化，稳定词向量的特征表示。动机也不同：IN 旨在剥离实例级风格信息，LN 旨在稳定 token 级特征表示以服务于全局上下文构建。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 22,
+    "question": "RMSNorm 相比 LayerNorm 简化了什么？为什么可以简化？",
+    "date": "2026-02-23",
+    "tags": [
+      "RMSNorm",
+      "LayerNorm"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.md",
+        "url": "https://blog.phimes.top/posts/2025/Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.html"
+      }
+    ],
+    "answer": "RMSNorm 去掉了均值计算（中心化）和偏置项 beta，将分母从 sqrt(sigma^2 + epsilon) 替换为均方根 sqrt(1/n * sum(x_i^2) + epsilon)。能简化的核心假设是：LayerNorm 的有效性主要来自重缩放不变性，而非中心化。实验证明 RMSNorm+ReLU 组合训练效率反而提升。中心化不是不重要，而是没那么重要——现代 Transformer 有残差连接、Adam 优化器、GLU 变体激活函数等机制共同维持训练稳定性。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 23,
+    "question": "多头注意力的核心思想是什么？d_k 和 d_model 的关系？",
+    "date": "2026-02-23",
+    "tags": [
+      "多头注意力",
+      "Transformer"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Transformer之多头注意力.md"
+      },
+      {
+        "type": "paper",
+        "title": "Vaswani, A., et al. \"Attention Is All You Need\", arXiv:1706.03762, 2017",
+        "url": "https://arxiv.org/abs/1706.03762"
+      }
+    ],
+    "answer": "多头注意力通过将 Q/K/V 投影到不同的子空间（subspace），使模型能并行学习多种语义特征。每个头有独立的权重矩阵 Wq^i, Wk^i, Wv^i，维度为 d_model x d_k，其中 d_k = d_model / h（h 为头数）。各头独立计算注意力后拼接，再通过 W_o 投影回原空间：MultiHead(Q,K,V) = Concat(head_1,...,head_h) * W_o。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 24,
+    "question": "多头注意力的理论描述和代码实现有什么不同？",
+    "date": "2026-02-23",
+    "tags": [
+      "多头注意力",
+      "工程实践"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Transformer之多头注意力.md"
+      }
+    ],
+    "answer": "理论上每个头维护独立的小权重矩阵 Wq^i (d_model x d_k)；实际代码中维护一个完整的大矩阵 W_q (d_model x d_model)，一次线性变换后通过 view + transpose 操作将输出 reshape 为 (batch, num_heads, seq_len, head_dim)。这样做的好处是可以利用矩阵乘法的并行性，避免循环遍历每个头，计算效率更高。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 25,
+    "question": "为什么多个头能学到不同的语义特征？",
+    "date": "2026-02-23",
+    "tags": [
+      "多头注意力",
+      "梯度"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Transformer之多头注意力.md"
+      }
+    ],
+    "answer": "三个关键机制共同作用：(1) 参数独立——各头的 W 矩阵随机初始化不同，起点就不同；(2) 注意力权重的非线性计算——softmax 的指数运算会放大特定位置、抑制其他位置，使每个头的梯度方向自然分化；(3) 损失函数的隐式正则化——如果多个头梯度高度一致，会出现梯度消失现象，损失函数会驱使它们分化。训练有效时，头的参数矩阵会逐渐展现正交性。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 26,
+    "question": "如果多个头的梯度方向高度一致会怎样？",
+    "date": "2026-02-23",
+    "tags": [
+      "多头注意力",
+      "反面题"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Transformer之多头注意力.md"
+      }
+    ],
+    "answer": "参数更新趋向一致，多个头退化为学习相同的特征模式，产生冗余。这本质上等同于梯度消失——多余的头无法提供新信息。损失函数会通过反向传播产生不同的梯度信号来避免这种情况，对不同类型的错误（如局部关系错误 vs 长程依赖错误）给予不同强度的梯度信号，迫使各头分化。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 27,
+    "question": "头的数量如何选定？每个头的维度通常不低于多少？",
+    "date": "2026-02-23",
+    "tags": [
+      "多头注意力",
+      "模型设计"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Transformer之多头注意力.md"
+      }
+    ],
+    "answer": "头数量是计算效率、特征多样性和维度分配的平衡结果，通常通过实验确定。经验上每个头的维度不低于 64 维，以保证足够的信息捕获能力。典型配置：原始 Transformer 8 头 x 64 维 = 512；BERT-base 12 头 x 64 维 = 768；GPT-3 175B 96 头 x 128 维 = 12288。头数增加可提升并行性，但单头维度过小会损害表征能力。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 28,
+    "question": "split_heads 操作的维度变化过程是什么？",
+    "date": "2026-02-23",
+    "tags": [
+      "多头注意力",
+      "维度变换"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "Transformer之多头注意力.md"
+      }
+    ],
+    "answer": "输入 (batch_size, seq_len, d_model) -> 经 view 变为 (batch_size, seq_len, num_heads, head_dim) -> 经 transpose(1,2) 变为 (batch_size, num_heads, seq_len, head_dim)。合并时反向操作：transpose 回 (batch, seq_len, num_heads, head_dim) -> contiguous().view 为 (batch, seq_len, d_model)。这种 reshape 方式等价于将大矩阵按头数切分，但避免了实际的内存拷贝。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 29,
+    "question": "FFN 的\"扩展-激活-压缩\"路径的作用是什么？",
+    "date": "2026-02-23",
+    "tags": [
+      "FFN",
+      "Transformer"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md"
+      },
+      {
+        "type": "paper",
+        "title": "Vaswani, A., et al. \"Attention Is All You Need\", arXiv:1706.03762, 2017",
+        "url": "https://arxiv.org/abs/1706.03762"
+      }
+    ],
+    "answer": "FFN 采用 d_model -> d_ff -> d_model 的维度路径（如 512->2048->512）。扩展到高维空间是为了在更大的特征空间中捕捉更丰富的信息；激活函数（如 ReLU）在高维空间中进行非线性筛选，选择性地激活或抑制特征；压缩回原维度是为了保持与后续层的维度一致。整个过程可理解为：Attention 负责\"混合\"上下文信息，FFN 负责对混合后的信息进行\"精炼\"和\"转换\"。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 30,
+    "question": "如果 FFN 中没有激活函数会怎样？",
+    "date": "2026-02-23",
+    "tags": [
+      "FFN",
+      "反面题"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md"
+      }
+    ],
+    "answer": "两次线性变换退化为一次：W2(W1*X) = (W2*W1)X，等效于单一线性层，完全无法扩展模型的表达能力。线性变换只能做拉伸、旋转、平移，无论叠加多少次，直线仍是直线，无法产生非线性决策边界。激活函数是 FFN 获得表达能力的关键——它让模型能学习\"阈值\"式的特征组合，比如只有当多个特征同时达到一定强度时才激活。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 31,
+    "question": "Attention 中的 softmax 已经是非线性的，为什么还需要 FFN？",
+    "date": "2026-02-23",
+    "tags": [
+      "FFN",
+      "注意力机制"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md"
+      }
+    ],
+    "answer": "虽然 softmax 在计算注意力权重时引入了非线性，但注意力层的最终输出是 Value 向量的加权求和——这是一个线性组合操作。即使权重本身是非线性计算得到的，聚合结果仍然是输入 V 的线性组合，无法产生新的非线性特征。FFN 通过激活函数对每个 token 的表示进行独立的非线性变换，弥补了这一不足。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 32,
+    "question": "为什么 FFN 通常在 Attention 之后而不是之前？",
+    "date": "2026-02-23",
+    "tags": [
+      "FFN",
+      "Transformer"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md"
+      }
+    ],
+    "answer": "Attention 的核心功能是建模 token 间的依赖关系并进行信息聚合，输出的是包含上下文信息的 token 表示。FFN 对这些已融合上下文的特征进行更深层次的非线性变换和精炼。如果顺序颠倒，FFN 只能处理孤立的、缺乏上下文的 token 信息，后续 Attention 也只能在初级表征上交互，整体性能会下降。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 33,
+    "question": "线性变换的两个核心局限性是什么？",
+    "date": "2026-02-23",
+    "tags": [
+      "线性变换",
+      "深度学习"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md"
+      }
+    ],
+    "answer": "(1) 线性特征不变——无论对数据施加多少次线性变换，直线仍是直线、超平面仍是超平面，无法产生非线性决策边界（如无法解决 XOR 问题）。(2) 多次线性变换等效于一次——W2(W1*X) = (W2*W1)X，多层线性网络在表达能力上等价于单层，无法通过堆叠线性层来增加模型复杂度。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 34,
+    "question": "ReLU 在 FFN 中的作用可以用什么直觉理解？",
+    "date": "2026-02-23",
+    "tags": [
+      "ReLU",
+      "激活函数"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md"
+      }
+    ],
+    "answer": "ReLU(x) = max(0, x) 本质是一个\"开关\"或\"筛选器\"：输入小于 0 的特征被抑制为 0，大于等于 0 的特征直接通过。在高维空间中，这意味着模型可以选择性地激活某些特征组合、抑制其他组合，从而学习到非线性的模式。例如，只有当\"敏捷性\"和\"追逐速度\"特征同时为正时才产生有意义的输出，实现了线性变换无法做到的条件性特征组合。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 35,
+    "question": "激活函数优化的三个主要目标是什么？",
+    "date": "2026-02-23",
+    "tags": [
+      "激活函数",
+      "优化目标"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "前馈神经网络（FFN）详解（二）：从激活函数到MOE.md",
+        "url": "https://blog.phimes.top/posts/2025/前馈神经网络（FFN）详解（二）：从激活函数到MOE.html"
+      }
+    ],
+    "answer": "(1) 训练稳定性——包括避免梯度消失/爆炸、解决神经元死亡、追求零均值输出、减少饱和区域。(2) 计算效率——激活函数本身的数学形式要简洁，导数计算要高效，且要考虑硬件亲和性。(3) 任务适应性——不同任务需要不同特性，如 NLP 中 GELU/Swish 的平滑非单调特性适合理解语义模糊性，而 CNN 中 ReLU 的硬阈值适合提取局部空间特征。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 36,
+    "question": "ReLU 的\"神经元死亡\"问题是什么？为什么会发生？",
+    "date": "2026-02-23",
+    "tags": [
+      "ReLU",
+      "神经元死亡"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "前馈神经网络（FFN）详解（二）：从激活函数到MOE.md",
+        "url": "https://blog.phimes.top/posts/2025/前馈神经网络（FFN）详解（二）：从激活函数到MOE.html"
+      }
+    ],
+    "answer": "当权重更新导致某个神经元对大部分训练样本的加权输入持续为负时，ReLU 输出恒为 0，导数也恒为 0，该神经元的参数无法再通过梯度下降更新，永久失去学习能力。例如权重为 (-0.3, -0.2, -0.4) 时，无论输入是正是负，z 值都为负，ReLU(z)=0。虽然理论上存在能让 z 为正的\"特殊值\"，但这些值不是大规模分布在训练数据中的，神经元在大部分训练时间内无法被激活。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 37,
+    "question": "GELU 相比 ReLU 的核心优势是什么？",
+    "date": "2026-02-23",
+    "tags": [
+      "GELU",
+      "ReLU"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "前馈神经网络（FFN）详解（二）：从激活函数到MOE.md",
+        "url": "https://blog.phimes.top/posts/2025/前馈神经网络（FFN）详解（二）：从激活函数到MOE.html"
+      },
+      {
+        "type": "paper",
+        "title": "Hendrycks, D., Gimpel, K. \"Gaussian Error Linear Units (GELUs)\", arXiv:1606.08415, 2016",
+        "url": "https://arxiv.org/abs/1606.08415"
+      }
+    ],
+    "answer": "三个方面：(1) 全域平滑——ReLU 在 x=0 处不可导，GELU 处处平滑，梯度流动更稳定。(2) 避免神经元死亡——GELU 对负输入的导数不恒为 0，负区域有非零输出。(3) 更强的表达能力——GELU 是非单调的，负区域有轻微的负值输出，能表达\"部分激活\"的语义（如\"尊贵的 X1 车主\"在不同语境下激活程度不同），而 ReLU 只有\"全开/全关\"两种状态。GELU 的公式为 x * Phi(x)，其中 Phi(x) 是标准正态分布的 CDF。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 38,
+    "question": "GLU 门控结构和传统 FFN 的区别是什么？",
+    "date": "2026-02-23",
+    "tags": [
+      "GLU",
+      "FFN"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "前馈神经网络（FFN）详解（二）：从激活函数到MOE.md",
+        "url": "https://blog.phimes.top/posts/2025/前馈神经网络（FFN）详解（二）：从激活函数到MOE.html"
+      },
+      {
+        "type": "paper",
+        "title": "Shazeer, N. \"GLU Variants Improve Transformer\", arXiv:2002.05202, 2020",
+        "url": "https://arxiv.org/abs/2002.05202"
+      }
+    ],
+    "answer": "传统 FFN 是\"升维-激活-降维\"单路径结构。GLU 将第一个升维层替换为两个并行的线性变换：一个作为主路径 (WX+b)，另一个经过激活函数后作为门控信号 Activation(VX+c)，两者逐元素相乘。门控机制允许网络根据输入动态地过滤或增强信息，而非像 ReLU 那样进行静态阈值判断。GLU 的通用公式：GLU(x) = (WX+b) * Activation(VX+c)，其中 Activation 可以是 Sigmoid、GELU、Swish 等。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 39,
+    "question": "为什么非门控时 GELU 更流行，门控结构中 SwiGLU 更优？",
+    "date": "2026-02-23",
+    "tags": [
+      "SwiGLU",
+      "GELU"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "前馈神经网络（FFN）详解（二）：从激活函数到MOE.md",
+        "url": "https://blog.phimes.top/posts/2025/前馈神经网络（FFN）详解（二）：从激活函数到MOE.html"
+      }
+    ],
+    "answer": "GELU 在早期 Transformer 中流行是因为先发优势（2016 年发表，早于 Swish 的 2017 年）和理论动机（基于随机正则化思想）。但在 GLU 门控结构中，门控函数的计算成本极度敏感——Swish(SiLU) 的核心是 Sigmoid，被硬件和软件极度优化，成本远低于 GELU 所需的误差函数计算。同时 Swish 的 x*sigmoid(x) 结构天然契合门控概念，实验中 SwiGLU 平均表现最优（74.56 分）。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 40,
+    "question": "从 ReLU 到 SwiGLU 的演变逻辑是什么？",
+    "date": "2026-02-23",
+    "tags": [
+      "激活函数",
+      "FFN"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "前馈神经网络（FFN）详解（二）：从激活函数到MOE.md",
+        "url": "https://blog.phimes.top/posts/2025/前馈神经网络（FFN）详解（二）：从激活函数到MOE.html"
+      }
+    ],
+    "answer": "激活函数方面：ReLU 解决梯度消失 -> Leaky ReLU/PReLU 解决神经元死亡 -> ELU 尝试零均值输出 -> GELU/Swish 提出基于概率的平滑激活。结构方面：GLU 引入门控机制（两个并行线性变换 + 逐元素相乘）-> SwiGLU/GeGLU 将优秀激活函数与门控结合 -> MoE 将门控思想扩展到专家网络级别。整个演变围绕三个优化目标（训练稳定性、计算效率、任务适应性）和两个优化方向（激活函数优化、结构优化）展开。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 41,
+    "question": "为什么 ELU 理论优势未能转化为实际收益？",
+    "date": "2026-02-23",
+    "tags": [
+      "ELU",
+      "反面题"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "前馈神经网络（FFN）详解（二）：从激活函数到MOE.md",
+        "url": "https://blog.phimes.top/posts/2025/前馈神经网络（FFN）详解（二）：从激活函数到MOE.html"
+      }
+    ],
+    "answer": "ELU 在 CIFAR/ImageNet 上相比 ReLU 只有轻微提升，幅度有限。原因是：(1) 引入了指数运算的额外计算成本；(2) 工程上 Batch Normalization 已经能调整均值分布，削弱了 ELU 零均值输出的优势；(3) 调优复杂度增加（alpha 参数需要选择）。深度学习的组件选择往往是工程权衡的结果，而非单纯的理论最优。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 42,
+    "question": "MoE 和 SwiGLU 的门控思想有什么关系？",
+    "date": "2026-02-23",
+    "tags": [
+      "MoE",
+      "SwiGLU"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "前馈神经网络（FFN）详解（二）：从激活函数到MOE.md",
+        "url": "https://blog.phimes.top/posts/2025/前馈神经网络（FFN）详解（二）：从激活函数到MOE.html"
+      }
+    ],
+    "answer": "SwiGLU 是微观层面的门控——在特征维度上，门控信号动态调节每个特征元素的信息流。MoE 将这种门控思想扩展到模块级别——用一个可学习的路由器（门控网络）决定将每个 token 分配给哪个专家子网络处理。SwiGLU 可视为 MoE 的微观基础单元，两者都实现了\"根据输入动态选择计算路径\"的核心思想，只是作用粒度不同。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 43,
+    "question": "为什么词嵌入和位置编码可以直接相加而不破坏语义？",
+    "date": "2026-02-23",
+    "tags": [
+      "Embedding",
+      "位置编码"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "为什么Embedding加上位置编码后不会破坏语义？.md",
+        "url": "https://blog.phimes.top/posts/2025/为什么Embedding加上位置编码后不会破坏语义？.html"
+      }
+    ],
+    "answer": "核心原因是高维空间的几何特性 + 训练优化。高维向量有方向，不同于标量（100=1+99 还是 50+50 无法区分），向量 [4,3] 可以分解为语义分量 [4,0] 和位置分量 [0,3]。经过训练，模型学会将语义信息和位置信息映射到高维空间中近似正交的子空间内。BERT 实验验证：词嵌入和位置嵌入的平均夹角约 90.57 度，标准差仅 2.03 度，几乎完美正交。注意：正交性不是天然的，训练初期两者确实会混淆，是损失函数和反向传播迫使模型逐步学会分离。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 44,
+    "question": "正余弦位置编码为什么必须同时使用 sin 和 cos？",
+    "date": "2026-02-23",
+    "tags": [
+      "位置编码",
+      "反面题"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "为什么Embedding加上位置编码后不会破坏语义？.md",
+        "url": "https://blog.phimes.top/posts/2025/为什么Embedding加上位置编码后不会破坏语义？.html"
+      }
+    ],
+    "answer": "为了表达相对位置关系。通过三角恒等式，PE(pos+k) 可以表示为 PE(pos) 的线性变换（旋转矩阵）：PE(pos+k) = R(k) * PE(pos)，其中 R(k) 只依赖于偏移量 k，与绝对位置 pos 无关。这个推导需要 sin 和 cos 成对出现才能构成旋转矩阵。如果只用 sin 或只用 cos，无法将 PE 提取为矩阵形式，相对位置关系的线性表达就无从实现。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 45,
+    "question": "频率缩放因子 1/10000^(2i/d_model) 的设计意图是什么？",
+    "date": "2026-02-23",
+    "tags": [
+      "位置编码",
+      "公式"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "为什么Embedding加上位置编码后不会破坏语义？.md",
+        "url": "https://blog.phimes.top/posts/2025/为什么Embedding加上位置编码后不会破坏语义？.html"
+      }
+    ],
+    "answer": "实现从高频到低频的几何级数平滑过渡。i=0 时分母为 1，波长为 2pi（高频，区分相邻位置）；i 接近 d_model/2 时分母接近 10000，波长为 10000*2pi（低频，区分远距离位置）。频率在对数空间中线性变化，不同维度编码从细到粗粒度的位置信息。如果用简单的 1/10, 1/100 递推，后面的值会极小，维度高时缩放太快。10000 是经验性选择。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 46,
+    "question": "语义空间和位置空间的正交性是天然的还是学习得到的？",
+    "date": "2026-02-23",
+    "tags": [
+      "Embedding",
+      "位置编码"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "为什么Embedding加上位置编码后不会破坏语义？.md",
+        "url": "https://blog.phimes.top/posts/2025/为什么Embedding加上位置编码后不会破坏语义？.html"
+      }
+    ],
+    "answer": "是通过训练学习得到的，不是天然的。训练初期，词嵌入和位置编码确实会混淆，破坏语义。损失函数和反向传播迫使模型将位置信息放到语义稀疏的维度上，逐步学会分离两者。语义在高维空间中不是均匀分布的（语义流形），存在语义富集和稀疏的区域，这给位置信息嵌入到稀疏区域提供了可能。BERT 实验证实训练后平均夹角约 90.57 度。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 47,
+    "question": "注意力分数 QK^T 可以分解为哪四个部分？",
+    "date": "2026-02-23",
+    "tags": [
+      "注意力机制",
+      "位置编码"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "为什么Embedding加上位置编码后不会破坏语义？.md",
+        "url": "https://blog.phimes.top/posts/2025/为什么Embedding加上位置编码后不会破坏语义？.html"
+      }
+    ],
+    "answer": "由于 H = E + P（词嵌入 + 位置编码），Q = (E+P)*Wq，K = (E+P)*Wk，展开 QK^T 得到四项：(1) 语义-语义：(E*Wq)(E*Wk)^T，捕捉纯粹词义相关性；(2) 位置-位置：(P*Wq)(P*Wk)^T，捕捉纯粹位置关系；(3) 语义-位置：(E*Wq)(P*Wk)^T，某词对某位置的偏好；(4) 位置-语义：(P*Wq)(E*Wk)^T，某位置对某词的偏好。不同的注意力头可能侧重不同部分，形成语义专家头和位置专家头。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 48,
+    "question": "FFN 为什么叫 Position-wise？这对位置编码有什么启示？",
+    "date": "2026-02-23",
+    "tags": [
+      "FFN",
+      "位置编码"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "为什么Embedding加上位置编码后不会破坏语义？.md",
+        "url": "https://blog.phimes.top/posts/2025/为什么Embedding加上位置编码后不会破坏语义？.html"
+      }
+    ],
+    "answer": "Position-wise 意味着同一组 FFN 权重被独立地应用到序列中每个位置的向量上，FFN 本身是\"位置盲\"的——它不知道正在处理第几个词。这意味着如果模型需要区分不同位置的词，区分能力必须来自输入向量本身（即 E+P 的混合向量）。这从侧面印证了模型必须在向量内部维持语义和位置信息的正交性/可分离性，否则经过 FFN 的\"盲处理\"后信息会彻底混淆。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 49,
+    "question": "正余弦编码的有界性为什么重要？",
+    "date": "2026-02-23",
+    "tags": [
+      "位置编码",
+      "有界性"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "为什么Embedding加上位置编码后不会破坏语义？.md",
+        "url": "https://blog.phimes.top/posts/2025/为什么Embedding加上位置编码后不会破坏语义？.html"
+      }
+    ],
+    "answer": "sin 和 cos 的值域永远在 [-1, 1] 之间，保证位置编码不会因数值过大而\"淹没\"语义信息。如果直接用 0,1,2,3... 表示位置，位置值会很快远大于词嵌入的值，导致语义信息被掩盖。有界性从数学上保证了位置信息的\"体重\"不会无限增长，同时 [-1,1] 的范围与词嵌入的数值量级相当，使得相加后两者能保持合理的比例关系。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 50,
+    "question": "流形假说是什么？它如何帮助理解 Embedding？",
+    "date": "2026-02-24",
+    "tags": [
+      "Embedding",
+      "流形假说"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "流形视角下的Embedding：从理论到RAG实践.md",
+        "url": "https://blog.phimes.top/posts/2025/流形视角下的Embedding：从理论到RAG实践.html"
+      }
+    ],
+    "answer": "流形假说认为高维数据实际上分布在一个内在维度低得多的光滑几何结构（流形）上，而非均匀填充整个高维空间。Embedding 不只是\"向量化\"，而是学习一个映射函数，将离散符号投影到语义流形上。这解释了为什么 768 维空间中并非每个向量都有意义——有意义的向量高度集中在语义流形上，其余区域是语义稀疏的\"无人区\"。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 51,
+    "question": "King-Man+Woman≈Queen 为什么能成立？",
+    "date": "2026-02-24",
+    "tags": [
+      "Embedding",
+      "流形"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "流形视角下的Embedding：从理论到RAG实践.md",
+        "url": "https://blog.phimes.top/posts/2025/流形视角下的Embedding：从理论到RAG实践.html"
+      }
+    ],
+    "answer": "流形的局部同胚欧几里得空间特性。在足够小的语义邻域内，流形近似平坦，向量间的关系近似线性。模型在训练中成功地在局部区域构建了近似线性的结构来表达性别、皇室等语义关系。但这种线性类比并非普遍成立，只在局部有效——当两个概念在流形上距离较远时，直线距离不再是测地距离的良好近似。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 52,
+    "question": "为什么余弦相似度是一种\"有风险的近似\"？",
+    "date": "2026-02-24",
+    "tags": [
+      "Embedding",
+      "RAG"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "流形视角下的Embedding：从理论到RAG实践.md",
+        "url": "https://blog.phimes.top/posts/2025/流形视角下的Embedding：从理论到RAG实践.html"
+      }
+    ],
+    "answer": "余弦相似度衡量的是向量夹角，欧氏距离衡量的是直线距离，但语义流形上的真实距离是测地距离（沿流形表面的最短路径）。两个语义不同的概念可能在高维空间中向量夹角很小（余弦相似度高），但在流形上需要\"翻山越岭\"才能到达。这种\"几何幻象\"是向量搜索的核心困境。余弦相似度在流形局部平坦区域有效，但跨领域或语义路径曲折时会失效。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 53,
+    "question": "从流形视角看，为什么 LoRA 微调只需少量高质量数据？",
+    "date": "2026-02-24",
+    "tags": [
+      "LoRA",
+      "流形"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "流形视角下的Embedding：从理论到RAG实践.md",
+        "url": "https://blog.phimes.top/posts/2025/流形视角下的Embedding：从理论到RAG实践.html"
+      }
+    ],
+    "answer": "基础大模型已学到覆盖通用知识的稳健语义流形。LoRA 微调不是从零学习新流形，而是对特定区域（如法律、医疗）进行局部的、平滑的\"塑形\"。LoRA 的低秩更新在几何上对应低维度的结构化塑形操作。高质量数据提供清晰一致的梯度方向，确保塑形精准有效；低质量数据产生杂乱的高维更新需求，超出低秩假设的能力范围。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 54,
+    "question": "从流形视角看，为什么量化后模型性能基本保持？",
+    "date": "2026-02-24",
+    "tags": [
+      "量化",
+      "流形"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "流形视角下的Embedding：从理论到RAG实践.md",
+        "url": "https://blog.phimes.top/posts/2025/流形视角下的Embedding：从理论到RAG实践.html"
+      }
+    ],
+    "answer": "量化相当于对流形表面的权重坐标进行离散化近似，效果是在光滑表面引入微小\"褶皱\"或\"抖动\"，但不会\"撕裂\"流形或改变其宏观拓扑结构（连通性、区域划分）。模型决策主要依赖流形的整体形状和语义簇的相对位置关系，而非坐标的绝对精度。只要量化扰动不破坏宏观几何结构，语义理解能力就能保持。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 55,
+    "question": "为什么 Embedding 需要 768 维甚至更高的维度？",
+    "date": "2026-02-24",
+    "tags": [
+      "Embedding",
+      "维度"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "流形视角下的Embedding：从理论到RAG实践.md",
+        "url": "https://blog.phimes.top/posts/2025/流形视角下的Embedding：从理论到RAG实践.html"
+      }
+    ],
+    "answer": "高维环境空间不是语义本身所需，而是为保证\"语义保真度\"的计算舞台。就像无法把揉皱的纸（2D 流形）完美压到一条直线（1D）上，但可以放在三维空间中。语义流形虽然内在维度较低，但其复杂的弯曲和折叠需要足够高的环境空间维度才能无冲突地\"展开\"。高维设定是在计算效率与表达丰富性之间的平衡。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 56,
+    "question": "max_position_embeddings 是什么？超过会怎样？",
+    "date": "2026-02-24",
+    "tags": [
+      "上下文长度",
+      "推理框架"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "LLM最长上下文的一些理解.md"
+      }
+    ],
+    "answer": "HuggingFace config.json 中的 max_position_embeddings 定义了位置编码的最大长度，间接限制了模型高质量输出的最长上下文。超过时常规做法是从历史对话开头截断，导致丢失 system prompt 和多轮对话能力。不同框架策略不同：vLLM 通过 max_model_len 限制，超出部分不生成；llama.cpp 有 n_keep 参数可保留前 n 个 token（如 system prompt）。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 57,
+    "question": "如何用 logprob 检测上下文截断？",
+    "date": "2026-02-24",
+    "tags": [
+      "logprob",
+      "推理优化"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "LLM最长上下文的一些理解.md"
+      }
+    ],
+    "answer": "logprob = log(p)，越接近 0 置信度越高。两种检测方法：(1) 绝对阈值——当 top1 token 的 logprob 低于 -3.0 时标记为低质量生成；(2) 断崖式下跌——相邻位置的 logprob 差值超过阈值（如 5.0）时，可能发生了截断。通过 vLLM 的 SamplingParams 设置 logprobs 参数即可获取每个生成 token 的概率分布。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 58,
+    "question": "llama.cpp 的 n_keep 参数如何工作？",
+    "date": "2026-02-24",
+    "tags": [
+      "llama.cpp",
+      "上下文管理"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "LLM最长上下文的一些理解.md"
+      }
+    ],
+    "answer": "n_keep 定义当上下文窗口填满时从开头保留的 token 数量。当生成过程中上下文接近 n_ctx 时，llama.cpp 会丢弃部分中间内容，但保留前 n_keep 个 token。典型用途是保留 system prompt 不被截断。未设置时，新内容会覆盖最早内容，导致初始提示丢失。命令行设置：`./main -m model.gguf --keep 64`。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 59,
+    "question": "从任务角度看，BERT 和 GPT 为什么选择了不同的架构？",
+    "date": "2026-02-24",
+    "tags": [
+      "BERT",
+      "GPT"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "通过下游任务理解BERT和GPT的区别：不只是完形填空和词语接龙.md",
+        "url": "https://blog.phimes.top/posts/2025/通过下游任务理解BERT和GPT的区别：不只是完形填空和词语接龙.html"
+      },
+      {
+        "type": "other",
+        "title": "Devlin, J., et al. \"BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding\", 2018"
+      }
+    ],
+    "answer": "任务驱动设计决策。BERT 的下游任务（句子对分类、单句分类、问答、序列标注）都要求对完整文本进行深度双向理解，因此选择 Encoder（无掩码，双向注意力）+ MLM/NSP 预训练。GPT 的目标是生成（根据前文预测下一个词），因此选择修改版 Decoder（移除编码器-解码器注意力，保留前瞻掩码）+ 自回归预训练。不同的任务需求导致了不同的注意力形态选择。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 60,
+    "question": "为什么 BERT 不能像 GPT 一样做生成任务？",
+    "date": "2026-02-24",
+    "tags": [
+      "BERT",
+      "反面题"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "通过下游任务理解BERT和GPT的区别：不只是完形填空和词语接龙.md",
+        "url": "https://blog.phimes.top/posts/2025/通过下游任务理解BERT和GPT的区别：不只是完形填空和词语接龙.html"
+      }
+    ],
+    "answer": "三个核心问题：(1) 预训练不匹配——BERT 训练时 MASK 随机出现在句子中间，学的是\"信息完整前提下的推断\"，而非从左到右的续写。(2) 无法确定生成长度——不知道该加多少个 MASK；一次性预测多个 MASK 时各位置独立预测，无法保证逻辑连贯。(3) 计算效率极低——BERT 没有 KV cache 机制，每生成一个新词都必须对整个序列从零开始做完整的双向注意力计算，相当于\"每写一个字就把整本书重读一遍\"。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 61,
+    "question": "为什么 [CLS] token 能表示整个序列的信息？",
+    "date": "2026-02-24",
+    "tags": [
+      "BERT",
+      "CLS"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "通过下游任务理解BERT和GPT的区别：不只是完形填空和词语接龙.md",
+        "url": "https://blog.phimes.top/posts/2025/通过下游任务理解BERT和GPT的区别：不只是完形填空和词语接龙.html"
+      }
+    ],
+    "answer": "[CLS] 是一个初始语义空白的 special token，放在序列开头。正因为它没有自身的词义偏向，不会像随机选取的普通 token 那样有语义侧重。在预训练（NSP 任务）和下游任务（分类任务取 [CLS] 的 hidden state）中，反向传播的梯度会迫使模型优化参数，让 [CLS] 的隐藏状态必须聚合足够丰富的全局信息才能完成任务。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 62,
+    "question": "GPT 已经很强了，为什么工业界还需要 BERT？",
+    "date": "2026-02-24",
+    "tags": [
+      "BERT",
+      "工程实践"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "通过下游任务理解BERT和GPT的区别：不只是完形填空和词语接龙.md",
+        "url": "https://blog.phimes.top/posts/2025/通过下游任务理解BERT和GPT的区别：不只是完形填空和词语接龙.html"
+      }
+    ],
+    "answer": "计算效率和任务特化。BERT 的 Encoder 架构可以并行处理整个文本，瞬间完成分析，速度和资源消耗远低于需要逐词生成的 GPT。对于信息抽取、情感分析、文本分类等纯\"理解\"任务，微调多个专精 BERT 模型是高效方案。实际工程中常见做法：用微调 BERT 做垂类初步分类筛选（取 logits 置信度），只有低置信度的才交给大模型处理，兼顾效率和效果。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 63,
+    "question": "Prefill 和 Decoding 阶段在计算模式上的核心区别是什么？",
+    "date": "2026-02-24",
+    "tags": [
+      "KVCache",
+      "推理阶段"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.html"
+      }
+    ],
+    "answer": "Prefill 阶段处理完整输入序列，执行矩阵-矩阵乘法（GEMM），是 Compute Bound；Decoding 阶段每次只处理一个新 token，执行矩阵-向量乘法（GEMV），是 Memory Bound。Prefill 并行计算所有 token 的 Q/K/V 并生成完整的 [b, h, L, L] 注意力分数矩阵，而 Decoding 只需计算当前 token 的 q 向量与历史 K/V 的交互，计算量大幅减少，但瓶颈转移到了数据搬运上。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 64,
+    "question": "为什么 Decoding 阶段只缓存 K 和 V，不缓存 Q？",
+    "date": "2026-02-24",
+    "tags": [
+      "KVCache",
+      "注意力机制"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.html"
+      }
+    ],
+    "answer": "Decoding 阶段的输入是单个 token 的 embedding 向量，经过线性投影后得到的是向量 q（而非矩阵 Q），这个 q 只用于当前步的注意力计算，不参与后续任何步骤的计算。而 K 和 V 需要被所有后续 token 的 q 访问，因此必须缓存。简言之，Q 是\"一次性消费品\"，K/V 是\"持续被引用的资产\"。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 65,
+    "question": "没有 KV Cache 时，生成 N 个 token 的重复计算量为什么是 O(N²) 级别？",
+    "date": "2026-02-24",
+    "tags": [
+      "KVCache",
+      "计算复杂度"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.html"
+      }
+    ],
+    "answer": "生成第 $t$ 个 token 时，需要重新计算前 $t-1$ 个 token 的 K 和 V。总计算量为 $1+2+3+\\dots+(N-1) = \\frac{N(N-1)}{2}$，即 $O(N^2)$。例如生成第 4096 个 token 时，要为这 1 个新 token 重新计算前 4095 个 token 的 K 和 V，而这些值在之前的步骤中已经算过了。KV Cache 通过缓存历史 K/V 将每步的增量计算降为 $O(1)$，总复杂度降为 $O(N)$。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 66,
+    "question": "\"内存墙\"问题的本质是什么？",
+    "date": "2026-02-24",
+    "tags": [
+      "内存墙",
+      "MemoryBound"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.html"
+      }
+    ],
+    "answer": "内存墙是指 Decoding 阶段搬运数据（模型权重 + KV Cache）的时间远大于实际计算时间，GPU 计算单元大部分时间在等数据。以 LlaMA-2-7B 在 A100 上为例，搬运 15GB 数据需要约 7.5ms，而计算只需约 0.04ms，差距约 187 倍。延迟近似公式为 $\\text{Latency} \\approx \\frac{\\text{Model Weights} + \\text{KV Cache Size}}{\\text{Memory Bandwidth}}$，瓶颈完全在带宽而非算力。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 67,
+    "question": "KV Cache 显存占用公式中，为什么优化目标锁定在 n_heads 而非其他参数？",
+    "date": "2026-02-24",
+    "tags": [
+      "KVCache",
+      "Attention优化"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.html"
+      }
+    ],
+    "answer": "用排除法分析公式 $\\text{Size} = 2 \\times n_{layers} \\times n_{heads} \\times d_{head} \\times P_{precision}$：2 是 K/V 两个矩阵的物理定义，不可改；$n_{layers}$ 决定模型深度和推理能力，砍了会降智；$d_{head}$ 决定每个头的特征容量，通常为 128，砍了严重影响质量；$P_{precision}$ 是量化方向，可以叠加但属于另一条优化路线。只有 $n_{heads}$（KV 头数）可以在不根本改变模型架构的前提下大幅减少，这就是 MQA/GQA 的出发点。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 68,
+    "question": "Prefill 阶段为什么是 GEMM，Decoding 阶段为什么退化为 GEMV？",
+    "date": "2026-02-24",
+    "tags": [
+      "GEMM",
+      "GEMV"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.html"
+      }
+    ],
+    "answer": "Prefill 阶段输入是完整序列矩阵 $X \\in \\mathbb{R}^{L \\times d}$，投影后得到 Q/K/V 都是矩阵，$\\text{Score} = Q \\times K^T$ 是矩阵乘矩阵（GEMM），可以充分利用 GPU 并行计算。Decoding 阶段每次只输入一个新 token 的向量 $x_t \\in \\mathbb{R}^{1 \\times d}$，投影后得到的 $q_t$ 是行向量，$\\text{Score} = q_t \\times K_{cache}^T$ 是向量乘矩阵（GEMV），计算量大幅减少，但也意味着 GPU 算力严重闲置，瓶颈转移到数据搬运上。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 69,
+    "question": "MQA 和 GQA 分别如何减少 KV Cache？各自的代价是什么？",
+    "date": "2026-02-24",
+    "tags": [
+      "MQA",
+      "GQA"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.html"
+      }
+    ],
+    "answer": "MQA 让所有 Query Head 共享同一组 KV Head（$n_{kv}=1$），KV Cache 直接减少 $n_h$ 倍（如 32 倍）；GQA 将 Query Head 分组，每组共享一组 KV Head（如 $n_{kv}=8$），KV Cache 减少 $n_h/n_{kv}$ 倍（如 4 倍）。代价是模型质量的有损下降——MQA 压缩最激进但质量损失最大，GQA 在压缩比和质量之间取得平衡，是目前主流方案。本质上都是\"有损压缩\"，通过砍 KV Head 来减少缓存和搬运量。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 70,
+    "question": "从代码角度看，MHA 改为 MQA/GQA 只需修改哪三处？",
+    "date": "2026-02-24",
+    "tags": [
+      "MQA",
+      "GQA",
+      "工程实践"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.html"
+      }
+    ],
+    "answer": "(1) 变量定义：引入 num_kv_heads 参数，MHA 时等于 num_heads，GQA 时小于 num_heads，MQA 时为 1。(2) 线性层维度：K/V 投影的输出维度从 num_heads × head_dim 缩小为 num_kv_heads × head_dim，投影矩阵变小。(3) 前向传播：因为 Q 和 KV 头数不匹配，需要通过 expand + reshape 将 KV 复制/广播到与 Q 相同的头数，才能进行批量矩阵乘法。通过 config.json 中 num_attention_heads 和 num_key_value_heads 的对比即可判断使用的是哪种 Attention。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 71,
+    "question": "GQA-8 将 KV Cache 压缩了 75%，但 BS=1 时搬运时间只从 20.2ms 降到 18.2ms，为什么效果不明显？",
+    "date": "2026-02-24",
+    "tags": [
+      "GQA",
+      "MemoryBound"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.html"
+      }
+    ],
+    "answer": "因为模型权重（约 13.5GB）是搬运量的大头。KV Cache 从 2GB 压到 0.5GB，只减少了 1.5GB，但总搬运量从 15.5GB 降到 14GB，被 13.5GB 的权重\"稀释\"了。这说明在 BS=1 时，单纯压缩 KV Cache 对端到端延迟的改善有限，真正的收益在于：压缩后省下的显存和带宽可以用来增大 Batch Size，从而提高整体吞吐量。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 72,
+    "question": "搬运时间为什么是 BS 的仿射函数而非正比例函数？截距的物理含义是什么？",
+    "date": "2026-02-24",
+    "tags": [
+      "MemoryBound",
+      "推理优化"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.html"
+      }
+    ],
+    "answer": "搬运时间 $T_{memory}(BS) = \\frac{C_{kv}}{BW} \\cdot BS + \\frac{W}{BW}$。截距 $b = \\frac{W}{BW}$（如 $\\frac{13.5\\text{GB}}{768\\text{GB/s}} \\approx 17.6\\text{ms}$）代表模型权重的搬运时间，这部分不随 BS 变化——不管 BS 是 1 还是 100，模型权重只搬一次。而计算时间 $T_{compute}(BS) = t_c \\cdot BS$ 是过原点的正比例函数。BS 越大，权重搬运的固定开销被均摊到每个请求上的份额越小，这就是提升 BS 能缩小计算和搬运差距的原因。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 73,
+    "question": "为什么 MHA 和 GQA 在数学上永远无法翻转到 Compute Bound，而 MQA 理论上可以？",
+    "date": "2026-02-24",
+    "tags": [
+      "ComputeBound",
+      "MemoryBound"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.html"
+      }
+    ],
+    "answer": "关键在于斜率比较。计算时间的斜率 $t_c \\approx 0.09\\text{ms}$，而搬运时间的斜率取决于单请求 KV Cache 大小：MHA 为 $2.604\\text{ms}$，GQA-8 为 $0.667\\text{ms}$，MQA 为 $0.083\\text{ms}$。只有当搬运斜率 < 计算斜率时，两条线才会相交（翻转到 Compute Bound）。MHA 和 GQA 的搬运斜率远大于计算斜率，随 BS 增大两条线是发散的；只有 MQA 的斜率（$0.083\\text{ms}$）低于计算斜率（$0.09\\text{ms}$），理论交叉点约在 $BS \\approx 2500$，但受限于显存容量和上下文长度，实际很难达到。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 74,
+    "question": "MLA 的\"以算换存\"核心思想是什么？",
+    "date": "2026-02-24",
+    "tags": [
+      "MLA",
+      "KVCache"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.html"
+      },
+      {
+        "type": "other",
+        "title": "DeepSeek-AI, \"DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model\", 2024"
+      }
+    ],
+    "answer": "既然 GPU 算力严重闲置（Memory Bound），就主动增加计算量来换取更小的传输量。具体做法：存储时，用 Down-Projection 矩阵 $W_{DKV}$ 将 KV 压缩成低维的 latent vector $c^{KV} \\in \\mathbb{R}^{d_c}$（$d_c \\ll d_{model}$），压缩公式为 $c_t^{KV} = x_t \\cdot W_{DKV}$，维度从 $[1, d_{model}]$ 变为 $[1, d_c]$；推理时，用闲置算力通过 Up-Projection 将 latent vector 解压回完整的 K/V。只要解压计算时间 < 节省的搬运时间，就是净赚。与 MQA/GQA 的\"有损砍头\"不同，MLA 是低秩压缩，保留了全部 head 的表达能力。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 75,
+    "question": "矩阵吸收（Weight Absorption）的关键推导是什么？为什么能跳过 Up-Projection？",
+    "date": "2026-02-24",
+    "tags": [
+      "MLA",
+      "矩阵吸收"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.html"
+      }
+    ],
+    "answer": "原始计算路径（单 head）：$Q \\cdot K^T = (x \\cdot W_Q) \\cdot (c^{KV} \\cdot W_{UK})^T$。展开转置得 $(x \\cdot W_Q) \\cdot W_{UK}^T \\cdot (c^{KV})^T$，利用矩阵结合律重新分组：$x \\cdot (W_Q \\cdot W_{UK}^T) \\cdot (c^{KV})^T$。由于 $W_Q$ 和 $W_{UK}$ 都是固定权重，可以在模型加载时预计算 $W_Q' = W_Q \\cdot W_{UK}^T \\in \\mathbb{R}^{d_{model} \\times d_c}$，推理时直接用 $Q' = x \\cdot W_Q'$ 与 $c^{KV}$ 做点积。V 侧同理，将 $W_{UV}$ 吸收进输出投影 $W_O$。这样 Attention 直接在 $d_c$ 维的 latent space 计算，完全跳过了 Up-Projection。代价是每个 head 的 Attention 维度从 $d_h$（128）变为 $d_c$（512），计算量增大约 4 倍，但搬运量减少 16 倍，净效果是大幅加速。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 76,
+    "question": "MLA 在 LlaMA-2-7B（n_h=32）上仍是 Memory Bound，需要多少个 head 才能翻转到 Compute Bound？",
+    "date": "2026-02-24",
+    "tags": [
+      "MLA",
+      "ComputeBound"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.html"
+      }
+    ],
+    "answer": "矩阵吸收后，MLA 的计算量 $\\text{FLOPs} \\approx 4 \\times n_h \\times L \\times d_c$，搬运量 $\\text{Bytes} \\approx L \\times d_c \\times 2$。令计算时间 > 搬运时间：\n\n$$\\frac{4 \\times n_h \\times L \\times d_c}{\\text{Peak Compute}} > \\frac{d_c \\times L \\times 2}{\\text{Bandwidth}}$$\n\n约掉 $L$ 和 $d_c$，得到：\n\n$$n_h > \\frac{\\text{Peak Compute} \\times 2}{4 \\times \\text{Bandwidth}}$$\n\n代入 A6000 参数：\n\n$$n_h > \\frac{155 \\times 10^{12} \\times 2}{4 \\times 768 \\times 10^9} = \\frac{310T}{3072G} \\approx 101$$\n\nLlaMA-2-7B 的 $n_h=32$ 远不够。DeepSeek-V2 的 $n_h=128$ 超过阈值，其 MLA Attention 层计算时间（6.9μs）首次超过搬运时间（5.2μs），实现了 Compute Bound 翻转。head 数量直接决定了 MLA 能否翻转瓶颈。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 77,
+    "question": "RoPE 为什么会破坏矩阵吸收？Decoupled RoPE 如何解决？",
+    "date": "2026-02-24",
+    "tags": [
+      "RoPE",
+      "MLA"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.html"
+      },
+      {
+        "type": "other",
+        "title": "DeepSeek-AI, \"DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model\", 2024"
+      }
+    ],
+    "answer": "加上 RoPE 后，Score 展开为 $x_m^T \\cdot W_Q \\cdot R_m^T \\cdot R_n \\cdot W_{UK}^T \\cdot c_n^{KV}$。位置相关的 $R_{n-m}$（$= R_m^T \\cdot R_n$）卡在 $W_Q$ 和 $W_{UK}^T$ 中间，由于矩阵乘法不满足交换律，无法将 $R_{n-m}$ 挪开，也就无法合并 $W_Q$ 和 $W_{UK}^T$ 为固定的 $W_Q'$。\n\nDecoupled RoPE 的解决思路：将 Q 和 K 各拆为两部分——Content 部分走 MLA 压缩 + 矩阵吸收（不含位置信息），RoPE 部分单独存储（$d_{rope}=64$，不压缩）。最终 $\\text{Score} = Q_{content} \\cdot K_{content}^T + Q_{rope} \\cdot K_{rope}^T$，向量拼接后内积天然等于分段内积之和，交叉项在数学上直接消失。每 token 每层存储 $d_c + d_{rope}$ 个元素，额外开销仅 12.5%（$\\frac{64}{512}$）。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 78,
+    "question": "分别推导 MHA、GQA-8、MQA、MLA 单层每 token 的 KV Cache 元素数公式，并计算压缩比",
+    "date": "2026-02-24",
+    "tags": [
+      "KVCache",
+      "公式推导"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.html"
+      }
+    ],
+    "answer": "各方案单层每 token 的 KV Cache 元素数推导：\n\n- MHA：K 和 V 各 $n_h \\times d_h = d_{model}$ 维，共 $2 \\times d_{model}$\n- GQA-g：K 和 V 各 $n_{kv} \\times d_h$ 维，共 $2 \\times n_{kv} \\times d_h$\n- MQA：K 和 V 各 $1 \\times d_h$ 维，共 $2 \\times d_h$\n- MLA：只存一个 latent vector，共 $d_c$\n\n代入 LlaMA-2-7B（$n_h=32, d_h=128, d_{model}=4096, d_c=512$）：\n\n- MHA：$2 \\times 4096 = 8192$（基准 1×）\n- GQA-8：$2 \\times 8 \\times 128 = 2048$，压缩比 $= 8192/2048 = 4\\times$\n- MQA：$2 \\times 128 = 256$，压缩比 $= 8192/256 = 32\\times$\n- MLA：$512$，压缩比 $= 8192/512 = 16\\times$\n\nMLA 的 $16\\times$ 介于 GQA-8（$4\\times$）和 MQA（$32\\times$）之间，但不砍 head 数，保留全部表达能力。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 79,
+    "question": "MLA 不做矩阵吸收时，Up-Projection 的 FLOPs 如何计算？为什么\"直接解压\"反而更慢？",
+    "date": "2026-02-24",
+    "tags": [
+      "MLA",
+      "公式推导"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.html"
+      }
+    ],
+    "answer": "Up-Projection 需要将 $L$ 个 latent vector 还原为 K 和 V，各做一次矩阵乘法（$[L, d_c] \\times [d_c, d_{model}]$），每次 $\\text{FLOPs} = 2 \\times L \\times d_c \\times d_{model}$。K 和 V 共两次，总 FLOPs：\n\n$$\\text{FLOPs}_{UP} = 2 \\times (2 \\times L \\times d_c \\times d_{model}) = 4 \\times L \\times d_c \\times d_{model}$$\n\n代入参数（$L=4096, d_c=512, d_{model}=4096$）：\n\n$$4 \\times 4096 \\times 512 \\times 4096 \\approx 34.4 \\text{ GFLOPs}$$\n\n在 A6000（155 TFLOPS）上的计算时间：\n\n$$\\frac{34.4 \\times 10^9}{155 \\times 10^{12}} \\approx 0.222 \\text{ ms}$$\n\n而 MHA 搬运完整 KV Cache（单层 64MB）的时间：\n\n$$\\frac{64 \\times 10^6}{768 \\times 10^9} \\approx 0.083 \\text{ ms}$$\n\n$0.222\\text{ms} > 0.083\\text{ms}$，直接解压反而比 MHA 搬完整 KV 还慢。这就是为什么必须用矩阵吸收跳过 Up-Projection，否则\"以算换存\"是亏的。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 80,
+    "question": "推导 MQA 场景下计算时间追上搬运时间的 BS 交叉点公式",
+    "date": "2026-02-24",
+    "tags": [
+      "MQA",
+      "公式推导"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.html"
+      }
+    ],
+    "answer": "令 $T_{compute}(BS) = T_{memory}(BS)$：\n\n$$t_c \\cdot BS = \\frac{C_{kv}}{BW} \\cdot BS + \\frac{W}{BW}$$\n\n移项，将 BS 提出：\n\n$$BS \\cdot \\left(t_c - \\frac{C_{kv}}{BW}\\right) = \\frac{W}{BW}$$\n\n解出交叉点：\n\n$$BS^* = \\frac{W / BW}{t_c - C_{kv} / BW}$$\n\n前提条件：$t_c > \\frac{C_{kv}}{BW}$（计算斜率 > 搬运斜率），否则两线发散，无交叉点。\n\n代入 MQA + A6000 参数（$C_{kv}=64\\text{MB}, BW=768\\text{GB/s}, W=13.5\\text{GB}, t_c=0.09\\text{ms}$）：\n\n$$a = \\frac{64 \\times 10^{-3}}{768} = 0.083 \\text{ ms}$$\n\n$$t_c - a = 0.09 - 0.083 = 0.007 \\text{ ms}$$\n\n$$b = \\frac{W}{BW} = \\frac{13.5}{768} \\times 1000 = 17.58 \\text{ ms}$$\n\n$$BS^* = \\frac{17.58}{0.007} \\approx 2511$$\n\n即 $BS \\approx 2511$ 时两线交叉。但 seq=4096 时 MQA 单请求 KV Cache 为 64MB，$2511 \\times 64\\text{MB} \\approx 157\\text{GB}$，远超 A6000 的 48GB 显存，所以这个交叉点在当前硬件上不可达。这也说明了为什么 MQA/GQA 路线在实际场景中很难真正翻转到 Compute Bound。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  },
+  {
+    "id": 81,
+    "question": "Decoupled RoPE 引入后，DeepSeek-V2 每 token 每层的存储量和压缩比是多少？",
+    "date": "2026-02-24",
+    "tags": [
+      "DecoupledRoPE",
+      "公式推导"
+    ],
+    "categories": [],
+    "references": [
+      {
+        "type": "blog",
+        "title": "KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.md",
+        "url": "https://blog.phimes.top/posts/2026/KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.html"
+      },
+      {
+        "type": "other",
+        "title": "DeepSeek-AI, \"DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model\", 2024"
+      }
+    ],
+    "answer": "Decoupled RoPE 将 Cache 拆为 content 和 position 两部分：\n\n$$\\text{Cache}_t = [c_t^{KV}, k_t^{rope}]$$\n\n每 token 每层存储元素数 $= d_c + d_{rope}$\n\n代入 DeepSeek-V2 参数（$d_c=512, d_{rope}=64, d_{model}=5120$）：\n\n- 纯 MLA（无 RoPE）：$512$ 元素\n- Decoupled RoPE MLA：$512 + 64 = 576$ 元素\n- 增量：$\\frac{64}{512} = 12.5\\%$\n\n相对 MHA 的压缩比推导：\n\n$$\\text{MHA} = 2 \\times d_{model} = 2 \\times 5120 = 10240 \\text{ 元素}$$\n\n$$\\text{Decoupled RoPE MLA} = 576 \\text{ 元素}$$\n\n$$\\text{压缩比} = \\frac{10240}{576} \\approx 17.8\\times$$\n\n对比纯 MLA 的 $20\\times$（$\\frac{10240}{512}$），引入 RoPE 后压缩比从 $20\\times$ 降到 $17.8\\times$，代价很小，换来了完整的相对位置编码能力。跨所有层（60 层）的每 token 总存储为 $576 \\times 60 \\times 2 \\text{ bytes} = 67.5 \\text{ KB}$，远小于 MHA 的 1.2 MB。",
+    "upvoteCount": 0,
+    "downvoteCount": 0
+  }
+]
