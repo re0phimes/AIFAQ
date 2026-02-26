@@ -1,0 +1,102 @@
+[
+  {
+    "title": "KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解",
+    "url": "https://blog.phimes.top/posts/2026/KV Cache（二）：从如何让GPU不摸鱼开始思考——MQA、GQA到MLA的计算拆解。.html"
+  },
+  {
+    "title": "KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路",
+    "url": "https://blog.phimes.top/posts/2026/KV Cache（一）：从KV Cache看懂Attention（MHA、MQA、GQA、MLA）的优化之路.html"
+  },
+  {
+    "title": "从vibe到spec：可维护性视角下探讨为什么很多人的AI编程依然是小玩具",
+    "url": "https://blog.phimes.top/posts/2025/从vibe到spec：可维护性视角下探讨为什么很多人的AI编程依然是小玩具.html"
+  },
+  {
+    "title": "通过下游任务理解BERT和GPT的区别：不只是完形填空和词语接龙",
+    "url": "https://blog.phimes.top/posts/2025/通过下游任务理解BERT和GPT的区别：不只是完形填空和词语接龙.html"
+  },
+  {
+    "title": "为什么Embedding加上位置编码后不会破坏语义？",
+    "url": "https://blog.phimes.top/posts/2025/为什么Embedding加上位置编码后不会破坏语义？.html"
+  },
+  {
+    "title": "流形视角下的Embedding：从理论到RAG实践",
+    "url": "https://blog.phimes.top/posts/2025/流形视角下的Embedding：从理论到RAG实践.html"
+  },
+  {
+    "title": "Add & Norm（二）：从传统CV到Transformer里的Normalizaiton详解",
+    "url": "https://blog.phimes.top/posts/2025/Add & Norm （二）从传统CV到Transformer里的Normalizaiton详解.html"
+  },
+  {
+    "title": "Add & Norm（一）：对残差连接深入解析",
+    "url": "https://blog.phimes.top/posts/2025/Add & Norm（一）：对残差连接深入解析.html"
+  },
+  {
+    "title": "前馈神经网络（FFN）详解（二）：从激活函数到MOE",
+    "url": "https://blog.phimes.top/posts/2025/前馈神经网络（FFN）详解（二）：从激活函数到MOE.html"
+  },
+  {
+    "title": "前馈神经网络（FFN）详解（一）",
+    "url": "https://blog.phimes.top/posts/2025/为什么前馈神经网络（FFN）对Transformer这么重要（一）.html"
+  },
+  {
+    "title": "注意力机制之多头注意力（Multi-Head Attention）",
+    "url": "https://blog.phimes.top/posts/2025/Transformer之多头注意力.html"
+  },
+  {
+    "title": "Qwen3-8b的变化和能力初探",
+    "url": "https://blog.phimes.top/posts/2025/Qwen3小测.html"
+  },
+  {
+    "title": "工程实现系列：从什么都不会到QLoRA分布式DPO（一）",
+    "url": "https://blog.phimes.top/posts/2025/从什么都不会到QLoRA分布式DPO（一）.html"
+  },
+  {
+    "title": "LLM最长上下文的一些运用和理解",
+    "url": "https://blog.phimes.top/posts/2025/LLM最长上下文的一些理解.html"
+  },
+  {
+    "title": "从什么都不会到QLoRA分布式DPO（二）",
+    "url": "https://blog.phimes.top/posts/2025/从什么都不会到QLoRA分布式DPO（二）- wandb曲线如何看以及QLoRA代码实操.html"
+  },
+  {
+    "title": "从tools use谈谈Deepseek的联网搜索怎么实现",
+    "url": "https://blog.phimes.top/posts/2025/从tools use谈谈Deepseek的\"联网搜索\"怎么实现 2025-02-01.html"
+  },
+  {
+    "title": "Transformer中的Q和K",
+    "url": "https://blog.phimes.top/posts/2025/Transformer中的Q和K 2025-01-29.html"
+  },
+  {
+    "title": "浅谈CoT",
+    "url": "https://blog.phimes.top/posts/2025/浅谈CoT Prompt 2025-01-26.html"
+  },
+  {
+    "title": "更优雅的使用大模型：DeepSeek API+Cherry Studio+激活CoT的Prompt",
+    "url": "https://blog.phimes.top/posts/2025/更优雅的使用大模型：DeepSeek API+Cherry Studio+激活CoT的Prompt.html"
+  },
+  {
+    "title": "大模型训练策略选择",
+    "url": "https://blog.phimes.top/posts/2025/关于大模型训练策略选择的思考.html"
+  },
+  {
+    "title": "agent概述",
+    "url": "https://blog.phimes.top/posts/2025/agent介绍.html"
+  },
+  {
+    "title": "vue语法总结",
+    "url": "https://blog.phimes.top/posts/2024/vue语法总结.html"
+  },
+  {
+    "title": "Transformer之多头注意力",
+    "url": "https://blog.phimes.top/posts/2025/Transformer之多头注意力.html"
+  },
+  {
+    "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）",
+    "url": "https://blog.phimes.top/posts/2025/为什么前馈神经网络（FFN）对Transformer这么重要（一）.html"
+  },
+  {
+    "title": "LLM最长上下文的一些理解",
+    "url": "https://blog.phimes.top/posts/2025/LLM最长上下文的一些理解.html"
+  }
+]

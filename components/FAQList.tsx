@@ -36,15 +36,15 @@ function loadPageSize(): number {
   return Number(localStorage.getItem(LS_PAGESIZE)) || 20;
 }
 
-function loadVotedMap(): Map<number, Set<VoteType>> {
+function loadVotedMap(): Map<number, VoteType> {
   if (typeof window === "undefined") return new Map();
   try {
     const raw = localStorage.getItem(LS_VOTED);
     if (raw) {
-      const obj = JSON.parse(raw) as Record<string, VoteType[]>;
-      const map = new Map<number, Set<VoteType>>();
+      const obj = JSON.parse(raw) as Record<string, VoteType>;
+      const map = new Map<number, VoteType>();
       for (const [k, v] of Object.entries(obj)) {
-        map.set(Number(k), new Set(v));
+        map.set(Number(k), v);
       }
       return map;
     }
@@ -52,9 +52,9 @@ function loadVotedMap(): Map<number, Set<VoteType>> {
   return new Map();
 }
 
-function saveVotedMap(map: Map<number, Set<VoteType>>): void {
-  const obj: Record<string, VoteType[]> = {};
-  for (const [k, v] of map) obj[String(k)] = [...v];
+function saveVotedMap(map: Map<number, VoteType>): void {
+  const obj: Record<string, VoteType> = {};
+  for (const [k, v] of map) obj[String(k)] = v;
   localStorage.setItem(LS_VOTED, JSON.stringify(obj));
 }
 
@@ -69,7 +69,7 @@ export default function FAQList({ items }: FAQListProps) {
   const [compareMode, setCompareMode] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(loadPageSize);
-  const [votedMap, setVotedMap] = useState<Map<number, Set<VoteType>>>(loadVotedMap);
+  const [votedMap, setVotedMap] = useState<Map<number, VoteType>>(loadVotedMap);
   const [fingerprint, setFingerprint] = useState("");
   const [headerVisible, setHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
@@ -82,6 +82,25 @@ export default function FAQList({ items }: FAQListProps) {
       )
     );
   }, []);
+
+  // Restore votes from server when fingerprint is available
+  useEffect(() => {
+    if (!fingerprint) return;
+    fetch(`/api/faq/votes?fingerprint=${fingerprint}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data: Record<string, string> | null) => {
+        if (!data) return;
+        const map = new Map<number, VoteType>();
+        for (const [k, v] of Object.entries(data)) {
+          if (v === "upvote" || v === "downvote") {
+            map.set(Number(k), v as VoteType);
+          }
+        }
+        setVotedMap(map);
+        saveVotedMap(map);
+      })
+      .catch(() => { /* network error, use localStorage fallback */ });
+  }, [fingerprint]);
 
   // Hide header on scroll down, show on scroll up
   useEffect(() => {
@@ -248,57 +267,79 @@ export default function FAQList({ items }: FAQListProps) {
   }
 
   const handleVote = useCallback(
-    async (faqId: number, type: VoteType) => {
+    async (faqId: number, type: VoteType, reason?: string, detail?: string) => {
       if (!fingerprint) return;
-      // Check if already voted locally
-      if (votedMap.get(faqId)?.has(type)) return;
+      const current = votedMap.get(faqId);
+
+      setVotedMap((prev) => {
+        const next = new Map(prev);
+        next.set(faqId, type);
+        saveVotedMap(next);
+        return next;
+      });
+
       try {
         const res = await fetch(`/api/faq/${faqId}/vote`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type, fingerprint }),
+          body: JSON.stringify({ type, fingerprint, reason, detail }),
         });
-        if (res.ok || res.status === 409) {
+        if (!res.ok && res.status !== 409) {
           setVotedMap((prev) => {
             const next = new Map(prev);
-            const types = new Set(next.get(faqId) ?? []);
-            types.add(type);
-            next.set(faqId, types);
+            if (current) next.set(faqId, current);
+            else next.delete(faqId);
             saveVotedMap(next);
             return next;
           });
         }
-      } catch { /* network error, ignore */ }
+      } catch {
+        setVotedMap((prev) => {
+          const next = new Map(prev);
+          if (current) next.set(faqId, current);
+          else next.delete(faqId);
+          saveVotedMap(next);
+          return next;
+        });
+      }
     },
     [fingerprint, votedMap]
   );
 
-  const handleInaccurateVote = useCallback(
-    async (faqId: number, reason: string, detail: string) => {
+  const handleRevokeVote = useCallback(
+    async (faqId: number) => {
       if (!fingerprint) return;
-      if (votedMap.get(faqId)?.has("inaccurate")) return;
+      const current = votedMap.get(faqId);
+
+      setVotedMap((prev) => {
+        const next = new Map(prev);
+        next.delete(faqId);
+        saveVotedMap(next);
+        return next;
+      });
+
       try {
         const res = await fetch(`/api/faq/${faqId}/vote`, {
-          method: "POST",
+          method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "inaccurate",
-            fingerprint,
-            reason,
-            detail,
-          }),
+          body: JSON.stringify({ fingerprint }),
         });
-        if (res.ok || res.status === 409) {
+        if (!res.ok) {
           setVotedMap((prev) => {
             const next = new Map(prev);
-            const types = new Set(next.get(faqId) ?? []);
-            types.add("inaccurate");
-            next.set(faqId, types);
+            if (current) next.set(faqId, current);
             saveVotedMap(next);
             return next;
           });
         }
-      } catch { /* network error */ }
+      } catch {
+        setVotedMap((prev) => {
+          const next = new Map(prev);
+          if (current) next.set(faqId, current);
+          saveVotedMap(next);
+          return next;
+        });
+      }
     },
     [fingerprint, votedMap]
   );
@@ -436,11 +477,9 @@ export default function FAQList({ items }: FAQListProps) {
                     showCheckbox={compareMode}
                     onToggle={() => handleToggleItem(item.id)}
                     onSelect={() => handleToggleSelect(item.id)}
-                    onVote={(type) => handleVote(item.id, type)}
-                    onInaccurateVote={(reason, detail) =>
-                      handleInaccurateVote(item.id, reason, detail)
-                    }
-                    votedTypes={votedMap.get(item.id) ?? new Set()}
+                    onVote={(type, reason, detail) => handleVote(item.id, type, reason, detail)}
+                    onRevokeVote={() => handleRevokeVote(item.id)}
+                    currentVote={votedMap.get(item.id) ?? null}
                   />
                 </div>
               ))}

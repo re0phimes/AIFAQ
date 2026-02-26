@@ -15,8 +15,7 @@ export default async function Home() {
     references: item.references as FAQItem["references"],
     answer: item.answer as string,
     upvoteCount: (item.upvoteCount as number) ?? 0,
-    outdatedCount: (item.outdatedCount as number) ?? 0,
-    inaccurateCount: (item.inaccurateCount as number) ?? 0,
+    downvoteCount: (item.downvoteCount as number) ?? 0,
   }));
 
   let dynamicItems: FAQItem[] = [];
@@ -31,8 +30,7 @@ export default async function Home() {
       references: item.references,
       answer: item.answer ?? item.answer_raw,
       upvoteCount: item.upvote_count,
-      outdatedCount: item.outdated_count,
-      inaccurateCount: item.inaccurate_count,
+      downvoteCount: item.downvote_count,
     }));
   } catch {
     // DB not available (e.g., local dev without Postgres) — graceful fallback

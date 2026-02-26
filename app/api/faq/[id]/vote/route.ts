@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { initDB, castVote } from "@/lib/db";
+import { initDB, castVote, revokeVote } from "@/lib/db";
 
-const VALID_TYPES = new Set(["upvote", "outdated", "inaccurate"]);
+const VALID_TYPES = new Set(["upvote", "downvote"]);
 
 export async function POST(
   request: Request,
@@ -23,15 +23,12 @@ export async function POST(
   const { type, fingerprint, reason, detail } = body;
   if (!type || !VALID_TYPES.has(type)) {
     return NextResponse.json(
-      { error: "type must be one of: upvote, outdated, inaccurate" },
+      { error: "type must be one of: upvote, downvote" },
       { status: 400 }
     );
   }
   if (!fingerprint || typeof fingerprint !== "string") {
-    return NextResponse.json(
-      { error: "fingerprint is required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "fingerprint is required" }, { status: 400 });
   }
 
   const ip =
@@ -41,19 +38,48 @@ export async function POST(
 
   try {
     await initDB();
-    const success = await castVote(faqId, type, fingerprint, ip, reason, detail);
+    const result = await castVote(faqId, type, fingerprint, ip, reason, detail);
+    if (!result.inserted) {
+      return NextResponse.json({ error: "Already voted" }, { status: 409 });
+    }
+    return NextResponse.json({ success: true, switched: result.switched });
+  } catch (err) {
+    console.error("Vote error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const faqId = Number(id);
+  if (!Number.isInteger(faqId) || faqId <= 0) {
+    return NextResponse.json({ error: "Invalid FAQ ID" }, { status: 400 });
+  }
+
+  let body: { fingerprint?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { fingerprint } = body;
+  if (!fingerprint || typeof fingerprint !== "string") {
+    return NextResponse.json({ error: "fingerprint is required" }, { status: 400 });
+  }
+
+  try {
+    await initDB();
+    const success = await revokeVote(faqId, fingerprint);
     if (!success) {
-      return NextResponse.json(
-        { error: "Already voted" },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "No vote found" }, { status: 404 });
     }
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Vote error:", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("Revoke vote error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

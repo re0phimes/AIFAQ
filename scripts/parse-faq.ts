@@ -4,8 +4,33 @@ import type { FAQItem, Reference } from "../src/types/faq";
 
 const MD_PATH = path.resolve(__dirname, "../AI-FAQ.md");
 const OUT_PATH = path.resolve(__dirname, "../data/faq.json");
+const BLOG_INDEX_PATH = path.resolve(__dirname, "../data/blog-index.json");
 
-function parseReferences(lines: string[]): Reference[] {
+interface BlogEntry {
+  title: string;
+  url: string;
+}
+
+function normalize(s: string): string {
+  return s
+    .replace(/\.md$/i, "")
+    .replace(/[（）()：:，,。.、？?！!""''《》\s]/g, "")
+    .toLowerCase();
+}
+
+function matchBlogUrl(title: string, blogIndex: BlogEntry[]): string | undefined {
+  const norm = normalize(title);
+  for (const entry of blogIndex) {
+    if (normalize(entry.title) === norm) return entry.url;
+  }
+  for (const entry of blogIndex) {
+    const entryNorm = normalize(entry.title);
+    if (entryNorm.includes(norm) || norm.includes(entryNorm)) return entry.url;
+  }
+  return undefined;
+}
+
+function parseReferences(lines: string[], blogIndex: BlogEntry[]): Reference[] {
   const refs: Reference[] = [];
   for (const line of lines) {
     const trimmed = line.replace(/^-\s*/, "").trim();
@@ -19,9 +44,12 @@ function parseReferences(lines: string[]): Reference[] {
         url: `https://arxiv.org/abs/${arxivMatch[1]}`,
       });
     } else if (trimmed.startsWith("来源文章:") || trimmed.startsWith("来源文章：")) {
+      const blogTitle = trimmed.replace(/^来源文章[:：]\s*/, "");
+      const url = matchBlogUrl(blogTitle, blogIndex);
       refs.push({
         type: "blog",
-        title: trimmed.replace(/^来源文章[:：]\s*/, ""),
+        title: blogTitle,
+        ...(url ? { url } : {}),
       });
     } else {
       refs.push({ type: "other", title: trimmed });
@@ -30,7 +58,7 @@ function parseReferences(lines: string[]): Reference[] {
   return refs;
 }
 
-function parseFAQ(content: string): FAQItem[] {
+function parseFAQ(content: string, blogIndex: BlogEntry[]): FAQItem[] {
   // Split by --- separator, skip everything before first FAQ entry
   const parts = content.split(/\n---\n/);
 
@@ -67,7 +95,7 @@ function parseFAQ(content: string): FAQItem[] {
     const refLines = refBlockMatch
       ? refBlockMatch[1].split("\n").filter((l) => l.trim().startsWith("-"))
       : [];
-    const references = parseReferences(refLines);
+    const references = parseReferences(refLines, blogIndex);
 
     // Answer: everything after ### 答案\n\n
     const answerMatch = section.match(/### 答案\s*\n\n([\s\S]+)$/);
@@ -82,8 +110,7 @@ function parseFAQ(content: string): FAQItem[] {
       references,
       answer,
       upvoteCount: 0,
-      outdatedCount: 0,
-      inaccurateCount: 0,
+      downvoteCount: 0,
     });
   }
 
@@ -92,7 +119,15 @@ function parseFAQ(content: string): FAQItem[] {
 
 function main(): void {
   const content = fs.readFileSync(MD_PATH, "utf-8");
-  const items = parseFAQ(content);
+
+  let blogIndex: BlogEntry[] = [];
+  try {
+    blogIndex = JSON.parse(fs.readFileSync(BLOG_INDEX_PATH, "utf-8"));
+  } catch {
+    console.warn("Warning: blog-index.json not found, blog URLs will not be matched");
+  }
+
+  const items = parseFAQ(content, blogIndex);
 
   fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true });
   fs.writeFileSync(OUT_PATH, JSON.stringify(items, null, 2), "utf-8");

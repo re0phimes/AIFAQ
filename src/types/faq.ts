@@ -13,8 +13,7 @@ export interface FAQItem {
   references: Reference[];
   answer: string;
   upvoteCount: number;
-  outdatedCount: number;
-  inaccurateCount: number;
+  downvoteCount: number;
 }
 
 export interface TagCategory {
@@ -27,4 +26,4 @@ export interface TagTaxonomy {
   categories: TagCategory[];
 }
 
-export type VoteType = "upvote" | "outdated" | "inaccurate";
+export type VoteType = "upvote" | "downvote";
