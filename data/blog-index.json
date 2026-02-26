@@ -86,5 +86,17 @@
   {
     "title": "vue语法总结",
     "url": "https://blog.phimes.top/posts/2024/vue语法总结.html"
+  },
+  {
+    "title": "Transformer之多头注意力",
+    "url": "https://blog.phimes.top/posts/2025/Transformer之多头注意力.html"
+  },
+  {
+    "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）",
+    "url": "https://blog.phimes.top/posts/2025/为什么前馈神经网络（FFN）对Transformer这么重要（一）.html"
+  },
+  {
+    "title": "LLM最长上下文的一些理解",
+    "url": "https://blog.phimes.top/posts/2025/LLM最长上下文的一些理解.html"
   }
 ]

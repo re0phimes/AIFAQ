@@ -470,7 +470,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "Transformer之多头注意力.md"
+        "title": "Transformer之多头注意力.md",
+        "url": "https://blog.phimes.top/posts/2025/Transformer之多头注意力.html"
       },
       {
         "type": "paper",
@@ -494,7 +495,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "Transformer之多头注意力.md"
+        "title": "Transformer之多头注意力.md",
+        "url": "https://blog.phimes.top/posts/2025/Transformer之多头注意力.html"
       }
     ],
     "answer": "理论上每个头维护独立的小权重矩阵 Wq^i (d_model x d_k)；实际代码中维护一个完整的大矩阵 W_q (d_model x d_model)，一次线性变换后通过 view + transpose 操作将输出 reshape 为 (batch, num_heads, seq_len, head_dim)。这样做的好处是可以利用矩阵乘法的并行性，避免循环遍历每个头，计算效率更高。",
@@ -513,7 +515,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "Transformer之多头注意力.md"
+        "title": "Transformer之多头注意力.md",
+        "url": "https://blog.phimes.top/posts/2025/Transformer之多头注意力.html"
       }
     ],
     "answer": "三个关键机制共同作用：(1) 参数独立——各头的 W 矩阵随机初始化不同，起点就不同；(2) 注意力权重的非线性计算——softmax 的指数运算会放大特定位置、抑制其他位置，使每个头的梯度方向自然分化；(3) 损失函数的隐式正则化——如果多个头梯度高度一致，会出现梯度消失现象，损失函数会驱使它们分化。训练有效时，头的参数矩阵会逐渐展现正交性。",
@@ -532,7 +535,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "Transformer之多头注意力.md"
+        "title": "Transformer之多头注意力.md",
+        "url": "https://blog.phimes.top/posts/2025/Transformer之多头注意力.html"
       }
     ],
     "answer": "参数更新趋向一致，多个头退化为学习相同的特征模式，产生冗余。这本质上等同于梯度消失——多余的头无法提供新信息。损失函数会通过反向传播产生不同的梯度信号来避免这种情况，对不同类型的错误（如局部关系错误 vs 长程依赖错误）给予不同强度的梯度信号，迫使各头分化。",
@@ -551,7 +555,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "Transformer之多头注意力.md"
+        "title": "Transformer之多头注意力.md",
+        "url": "https://blog.phimes.top/posts/2025/Transformer之多头注意力.html"
       }
     ],
     "answer": "头数量是计算效率、特征多样性和维度分配的平衡结果，通常通过实验确定。经验上每个头的维度不低于 64 维，以保证足够的信息捕获能力。典型配置：原始 Transformer 8 头 x 64 维 = 512；BERT-base 12 头 x 64 维 = 768；GPT-3 175B 96 头 x 128 维 = 12288。头数增加可提升并行性，但单头维度过小会损害表征能力。",
@@ -570,7 +575,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "Transformer之多头注意力.md"
+        "title": "Transformer之多头注意力.md",
+        "url": "https://blog.phimes.top/posts/2025/Transformer之多头注意力.html"
       }
     ],
     "answer": "输入 (batch_size, seq_len, d_model) -> 经 view 变为 (batch_size, seq_len, num_heads, head_dim) -> 经 transpose(1,2) 变为 (batch_size, num_heads, seq_len, head_dim)。合并时反向操作：transpose 回 (batch, seq_len, num_heads, head_dim) -> contiguous().view 为 (batch, seq_len, d_model)。这种 reshape 方式等价于将大矩阵按头数切分，但避免了实际的内存拷贝。",
@@ -589,7 +595,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md"
+        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md",
+        "url": "https://blog.phimes.top/posts/2025/为什么前馈神经网络（FFN）对Transformer这么重要（一）.html"
       },
       {
         "type": "paper",
@@ -613,7 +620,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md"
+        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md",
+        "url": "https://blog.phimes.top/posts/2025/为什么前馈神经网络（FFN）对Transformer这么重要（一）.html"
       }
     ],
     "answer": "两次线性变换退化为一次：W2(W1*X) = (W2*W1)X，等效于单一线性层，完全无法扩展模型的表达能力。线性变换只能做拉伸、旋转、平移，无论叠加多少次，直线仍是直线，无法产生非线性决策边界。激活函数是 FFN 获得表达能力的关键——它让模型能学习\"阈值\"式的特征组合，比如只有当多个特征同时达到一定强度时才激活。",
@@ -632,7 +640,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md"
+        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md",
+        "url": "https://blog.phimes.top/posts/2025/为什么前馈神经网络（FFN）对Transformer这么重要（一）.html"
       }
     ],
     "answer": "虽然 softmax 在计算注意力权重时引入了非线性，但注意力层的最终输出是 Value 向量的加权求和——这是一个线性组合操作。即使权重本身是非线性计算得到的，聚合结果仍然是输入 V 的线性组合，无法产生新的非线性特征。FFN 通过激活函数对每个 token 的表示进行独立的非线性变换，弥补了这一不足。",
@@ -651,7 +660,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md"
+        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md",
+        "url": "https://blog.phimes.top/posts/2025/为什么前馈神经网络（FFN）对Transformer这么重要（一）.html"
       }
     ],
     "answer": "Attention 的核心功能是建模 token 间的依赖关系并进行信息聚合，输出的是包含上下文信息的 token 表示。FFN 对这些已融合上下文的特征进行更深层次的非线性变换和精炼。如果顺序颠倒，FFN 只能处理孤立的、缺乏上下文的 token 信息，后续 Attention 也只能在初级表征上交互，整体性能会下降。",
@@ -670,7 +680,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md"
+        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md",
+        "url": "https://blog.phimes.top/posts/2025/为什么前馈神经网络（FFN）对Transformer这么重要（一）.html"
       }
     ],
     "answer": "(1) 线性特征不变——无论对数据施加多少次线性变换，直线仍是直线、超平面仍是超平面，无法产生非线性决策边界（如无法解决 XOR 问题）。(2) 多次线性变换等效于一次——W2(W1*X) = (W2*W1)X，多层线性网络在表达能力上等价于单层，无法通过堆叠线性层来增加模型复杂度。",
@@ -689,7 +700,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md"
+        "title": "为什么前馈神经网络（FFN）对Transformer这么重要（一）.md",
+        "url": "https://blog.phimes.top/posts/2025/为什么前馈神经网络（FFN）对Transformer这么重要（一）.html"
       }
     ],
     "answer": "ReLU(x) = max(0, x) 本质是一个\"开关\"或\"筛选器\"：输入小于 0 的特征被抑制为 0，大于等于 0 的特征直接通过。在高维空间中，这意味着模型可以选择性地激活某些特征组合、抑制其他组合，从而学习到非线性的模式。例如，只有当\"敏捷性\"和\"追逐速度\"特征同时为正时才产生有意义的输出，实现了线性变换无法做到的条件性特征组合。",
@@ -1138,7 +1150,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "LLM最长上下文的一些理解.md"
+        "title": "LLM最长上下文的一些理解.md",
+        "url": "https://blog.phimes.top/posts/2025/LLM最长上下文的一些理解.html"
       }
     ],
     "answer": "HuggingFace config.json 中的 max_position_embeddings 定义了位置编码的最大长度，间接限制了模型高质量输出的最长上下文。超过时常规做法是从历史对话开头截断，导致丢失 system prompt 和多轮对话能力。不同框架策略不同：vLLM 通过 max_model_len 限制，超出部分不生成；llama.cpp 有 n_keep 参数可保留前 n 个 token（如 system prompt）。",
@@ -1157,7 +1170,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "LLM最长上下文的一些理解.md"
+        "title": "LLM最长上下文的一些理解.md",
+        "url": "https://blog.phimes.top/posts/2025/LLM最长上下文的一些理解.html"
       }
     ],
     "answer": "logprob = log(p)，越接近 0 置信度越高。两种检测方法：(1) 绝对阈值——当 top1 token 的 logprob 低于 -3.0 时标记为低质量生成；(2) 断崖式下跌——相邻位置的 logprob 差值超过阈值（如 5.0）时，可能发生了截断。通过 vLLM 的 SamplingParams 设置 logprobs 参数即可获取每个生成 token 的概率分布。",
@@ -1176,7 +1190,8 @@
     "references": [
       {
         "type": "blog",
-        "title": "LLM最长上下文的一些理解.md"
+        "title": "LLM最长上下文的一些理解.md",
+        "url": "https://blog.phimes.top/posts/2025/LLM最长上下文的一些理解.html"
       }
     ],
     "answer": "n_keep 定义当上下文窗口填满时从开头保留的 token 数量。当生成过程中上下文接近 n_ctx 时，llama.cpp 会丢弃部分中间内容，但保留前 n_keep 个 token。典型用途是保留 system prompt 不被截断。未设置时，新内容会覆盖最早内容，导致初始提示丢失。命令行设置：`./main -m model.gguf --keep 64`。",
