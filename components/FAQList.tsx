@@ -398,14 +398,14 @@ export default function FAQList({ items }: FAQListProps) {
   return (
     <>
       <div
-        className={`sticky top-0 z-20 -mx-4 bg-warm-white/95 px-4 pb-3 backdrop-blur-sm
+        className={`sticky top-0 z-20 -mx-4 bg-bg/95 px-4 pb-3 backdrop-blur-sm
           transition-transform duration-300 md:-mx-8 md:px-8 ${
             headerVisible ? "translate-y-0" : "-translate-y-full"
           }`}
       >
         <header className="mb-4 pt-2">
-          <h1 className="font-serif text-3xl font-bold text-deep-ink">AIFAQ</h1>
-          <p className="mt-1 text-sm text-slate-secondary">
+          <h1 className="font-brand text-3xl font-bold text-text">AIFAQ</h1>
+          <p className="mt-1 text-sm text-subtext">
             AI/ML 常见问题知识库
           </p>
         </header>
@@ -441,39 +441,39 @@ export default function FAQList({ items }: FAQListProps) {
           <div className="flex gap-2">
             <button
               onClick={handleToggleCompare}
-              className={`rounded-md px-3 py-1 text-xs font-medium
+              className={`rounded-full px-3 py-1.5 text-xs font-medium
                 transition-colors ${
                   compareMode
-                    ? "bg-copper text-white"
-                    : "border border-gray-200 text-slate-secondary hover:bg-code-bg"
+                    ? "bg-primary text-white"
+                    : "border-[0.5px] border-border text-subtext hover:bg-surface"
                 }`}
             >
               {compareMode ? "退出比较" : "比较"}
             </button>
             <button
               onClick={handleExpandAll}
-              className="rounded-md border border-gray-200 px-3 py-1
-                text-xs text-slate-secondary hover:bg-code-bg"
+              className="rounded-full border-[0.5px] border-border px-3 py-1.5
+                text-xs text-subtext hover:bg-surface"
             >
               全部展开
             </button>
             <button
               onClick={handleCollapseAll}
-              className="rounded-md border border-gray-200 px-3 py-1
-                text-xs text-slate-secondary hover:bg-code-bg"
+              className="rounded-full border-[0.5px] border-border px-3 py-1.5
+                text-xs text-subtext hover:bg-surface"
             >
               全部折叠
             </button>
-            <div className="flex items-center gap-1 ml-2 border-l border-gray-200 pl-2">
-              <span className="text-[11px] text-slate-secondary">排序:</span>
+            <div className="flex items-center gap-1 ml-2 border-l border-border pl-2">
+              <span className="text-[11px] text-subtext">排序:</span>
               {(["default", "date", "difficulty"] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setSortMode(mode)}
-                  className={`rounded-md px-2 py-1 text-xs transition-colors ${
+                  className={`rounded-full px-2 py-1.5 text-xs transition-colors ${
                     sortMode === mode
-                      ? "bg-copper text-white"
-                      : "text-slate-secondary hover:bg-code-bg"
+                      ? "bg-primary text-white"
+                      : "text-subtext hover:bg-surface"
                   }`}
                 >
                   {mode === "default" ? "默认" : mode === "date" ? "时间" : "难度"}
@@ -481,7 +481,7 @@ export default function FAQList({ items }: FAQListProps) {
               ))}
             </div>
           </div>
-          <p className="text-xs text-slate-secondary">
+          <p className="text-xs text-subtext">
             共 {sorted.length} 条，第 {safePage}/{totalPages} 页
           </p>
         </div>
@@ -501,11 +501,11 @@ export default function FAQList({ items }: FAQListProps) {
                 d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <p className="text-slate-secondary">没有找到匹配的问题</p>
+            <p className="text-subtext">没有找到匹配的问题</p>
           </div>
         ) : (
           <>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {paginatedItems.map((item, index) => (
                 <div
                   key={item.id}

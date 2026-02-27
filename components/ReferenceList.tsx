@@ -14,11 +14,11 @@ export default function ReferenceList({ references }: ReferenceListProps) {
 
   // Desktop: show collapsed summary; Mobile: always show full list
   return (
-    <div className="mt-3 rounded border border-gray-200 bg-code-bg/50 px-3 py-2
+    <div className="mt-3 rounded border-[0.5px] border-border bg-surface/50 px-3 py-2
       md:px-4 md:py-3">
       {/* Mobile: always full list */}
       <div className="md:hidden">
-        <p className="mb-1.5 text-xs font-medium text-slate-secondary">
+        <p className="mb-1.5 text-xs font-medium text-subtext">
           参考来源
         </p>
         <RefItems references={references} />
@@ -30,11 +30,11 @@ export default function ReferenceList({ references }: ReferenceListProps) {
           onClick={() => setExpanded((v) => !v)}
           className="flex w-full items-center justify-between text-left"
         >
-          <span className="text-sm font-medium text-slate-secondary">
+          <span className="text-sm font-medium text-subtext">
             参考来源 ({references.length})
           </span>
           <svg
-            className={`h-4 w-4 text-slate-secondary transition-transform
+            className={`h-4 w-4 text-subtext transition-transform
               duration-150 ${expanded ? "rotate-180" : ""}`}
             fill="none"
             stroke="currentColor"
@@ -49,7 +49,7 @@ export default function ReferenceList({ references }: ReferenceListProps) {
           </svg>
         </button>
         {!expanded && (
-          <p className="mt-1 truncate text-xs text-slate-secondary/70">
+          <p className="mt-1 truncate text-xs text-subtext/70">
             {references.map((r) => r.title).join(" · ")}
           </p>
         )}
@@ -74,7 +74,7 @@ function RefItems({ references }: { references: Reference[] }) {
 
         return (
           <li key={i} className="flex items-start gap-2 text-xs md:text-sm">
-            <span className="shrink-0 text-slate-secondary">
+            <span className="shrink-0 text-subtext">
               {ref.type === "paper" ? "📄" : ref.type === "blog" ? "📖" : "📌"}
             </span>
             {ref.url ? (
@@ -85,13 +85,13 @@ function RefItems({ references }: { references: Reference[] }) {
                 className={`break-all underline-offset-2 hover:underline ${
                   isPhimes
                     ? "font-medium text-red-600"
-                    : "text-copper"
+                    : "text-primary"
                 }`}
               >
                 {displayTitle}
               </a>
             ) : (
-              <span className={isPhimes ? "font-medium text-red-600" : "text-slate-secondary"}>
+              <span className={isPhimes ? "font-medium text-red-600" : "text-subtext"}>
                 {displayTitle}
               </span>
             )}

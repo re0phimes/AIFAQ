@@ -56,17 +56,17 @@ export default function TagFilter({
   const hasSelection = selectedCategories.length > 0 || selectedTags.length > 0;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white/60 p-3">
+    <div className="rounded-xl border-[0.5px] border-border bg-panel p-3">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-medium text-slate-secondary">
+        <span className="text-xs font-medium text-subtext">
           标签筛选
         </span>
         {hasSelection && (
           <button
             onClick={onClearAll}
-            className="rounded-full border border-copper px-2.5 py-0.5
-              text-xs text-copper transition-colors
-              hover:bg-copper hover:text-white"
+            className="rounded-full border border-primary px-2.5 py-0.5
+              text-xs text-primary transition-colors
+              hover:bg-primary hover:text-white"
           >
             清除
           </button>
@@ -88,14 +88,14 @@ export default function TagFilter({
                 px-2.5 py-1 text-xs leading-none transition-colors
                 duration-150 ${
                   isSelected
-                    ? "bg-copper text-white"
-                    : "bg-code-bg text-deep-ink hover:bg-gray-200"
+                    ? "bg-primary text-white"
+                    : "bg-surface text-text hover:bg-surface"
                 }`}
             >
               {cat.name}
               <span
                 className={`text-[10px] ${
-                  isSelected ? "text-white/70" : "text-slate-secondary"
+                  isSelected ? "text-white/70" : "text-subtext"
                 }`}
               >
                 {count}
@@ -109,7 +109,7 @@ export default function TagFilter({
       {visibleTags.length > 0 && (
         <div
           className="mt-2 flex max-h-28 flex-wrap gap-1 overflow-y-auto
-            border-t border-gray-100 pt-2 pr-1"
+            border-t border-border/50 pt-2 pr-1"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
           {visibleTags.map((tag) => {
@@ -123,14 +123,14 @@ export default function TagFilter({
                   px-2 py-0.5 font-mono text-[11px] leading-none
                   transition-colors duration-150 ${
                     isSelected
-                      ? "bg-copper/80 text-white"
-                      : "bg-gray-100 text-deep-ink hover:bg-gray-200"
+                      ? "bg-primary/80 text-white"
+                      : "bg-surface text-text hover:bg-surface"
                   }`}
               >
                 {tag}
                 <span
                   className={`text-[9px] ${
-                    isSelected ? "text-white/70" : "text-slate-secondary"
+                    isSelected ? "text-white/70" : "text-subtext"
                   }`}
                 >
                   {count}

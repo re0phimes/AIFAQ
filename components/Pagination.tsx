@@ -37,15 +37,15 @@ export default function Pagination({
     <div className="mt-4 flex flex-col items-center gap-3 sm:flex-row
       sm:justify-between">
       {/* Left: info + page size */}
-      <div className="flex items-center gap-3 text-xs text-slate-secondary">
+      <div className="flex items-center gap-3 text-xs text-subtext">
         <span>
           共 {totalItems} 条，第 {currentPage}/{totalPages} 页
         </span>
         <select
           value={pageSize}
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
-          className="rounded border border-gray-200 bg-white px-2 py-1 text-xs
-            text-deep-ink"
+          className="rounded border border-border bg-panel px-2 py-1 text-xs
+            text-text"
         >
           {PAGE_SIZES.map((s) => (
             <option key={s} value={s}>
@@ -60,14 +60,14 @@ export default function Pagination({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
-          className="rounded px-2 py-1 text-xs text-slate-secondary
-            hover:bg-code-bg disabled:opacity-30 disabled:hover:bg-transparent"
+          className="rounded px-2 py-1 text-xs text-subtext
+            hover:bg-surface disabled:opacity-30 disabled:hover:bg-transparent"
         >
           上一页
         </button>
         {getPageNumbers(currentPage, totalPages).map((p, i) =>
           p === "..." ? (
-            <span key={`ellipsis-${i}`} className="px-1 text-xs text-slate-secondary">
+            <span key={`ellipsis-${i}`} className="px-1 text-xs text-subtext">
               ...
             </span>
           ) : (
@@ -76,8 +76,8 @@ export default function Pagination({
               onClick={() => onPageChange(p)}
               className={`min-w-[28px] rounded px-2 py-1 text-xs transition-colors ${
                 p === currentPage
-                  ? "bg-copper font-medium text-white"
-                  : "text-deep-ink hover:bg-code-bg"
+                  ? "bg-primary font-medium text-white"
+                  : "text-text hover:bg-surface"
               }`}
             >
               {p}
@@ -87,8 +87,8 @@ export default function Pagination({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          className="rounded px-2 py-1 text-xs text-slate-secondary
-            hover:bg-code-bg disabled:opacity-30 disabled:hover:bg-transparent"
+          className="rounded px-2 py-1 text-xs text-subtext
+            hover:bg-surface disabled:opacity-30 disabled:hover:bg-transparent"
         >
           下一页
         </button>

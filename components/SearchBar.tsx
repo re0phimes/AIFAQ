@@ -25,7 +25,7 @@ export default function SearchBar({
     <div>
       <div className="relative">
         <svg
-          className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-secondary"
+          className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-subtext"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -48,15 +48,15 @@ export default function SearchBar({
                 ? "搜索答案内容..."
                 : "搜索问题..."
           }
-          className="w-full rounded-lg border border-gray-200 bg-warm-white
-            py-3 pl-12 pr-16 text-deep-ink placeholder-slate-secondary
-            outline-none transition-shadow focus:border-copper
-            focus:ring-2 focus:ring-copper/30"
+          className="w-full rounded-full border-[0.5px] border-border bg-bg
+            py-3 pl-12 pr-16 text-text placeholder-subtext
+            outline-none transition-shadow focus:border-primary
+            focus:ring-2 focus:ring-primary/30"
         />
         <span
           className="absolute right-3 top-1/2 -translate-y-1/2 rounded
-            border border-gray-300 bg-code-bg px-1.5 py-0.5
-            font-mono text-xs text-slate-secondary"
+            border border-border bg-surface px-1.5 py-0.5
+            font-mono text-xs text-subtext"
         >
           ⌘K
         </span>
@@ -68,8 +68,8 @@ export default function SearchBar({
             onClick={() => onModeChange(m.key)}
             className={`rounded-md px-3 py-1 text-xs transition-colors ${
               mode === m.key
-                ? "bg-copper/10 font-medium text-copper"
-                : "text-slate-secondary hover:bg-code-bg"
+                ? "bg-primary/10 font-medium text-primary"
+                : "text-subtext hover:bg-surface"
             }`}
           >
             {m.label}

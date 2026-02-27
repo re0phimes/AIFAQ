@@ -28,15 +28,15 @@ export default function SelectionSidebar({
         className="hidden shrink-0 md:block"
         style={{ width: 240 }}
       >
-        <div className="sticky top-6 rounded-lg border border-gray-200
-          bg-white p-3 shadow-sm">
+        <div className="sticky top-6 rounded-xl border-[0.5px] border-border
+          bg-panel p-3 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium text-deep-ink">
+            <span className="text-sm font-medium text-text">
               已选 ({selected.length})
             </span>
             <button
               onClick={onClear}
-              className="text-xs text-slate-secondary hover:text-copper"
+              className="text-xs text-subtext hover:text-primary"
             >
               清空
             </button>
@@ -46,17 +46,17 @@ export default function SelectionSidebar({
               <li
                 key={item.id}
                 className="flex items-center gap-1.5 rounded px-2 py-1
-                  text-xs hover:bg-code-bg"
+                  text-xs hover:bg-surface"
               >
-                <span className="shrink-0 font-mono text-copper">
+                <span className="shrink-0 font-mono text-primary">
                   {item.id}.
                 </span>
-                <span className="min-w-0 flex-1 truncate text-deep-ink">
+                <span className="min-w-0 flex-1 truncate text-text">
                   {item.question}
                 </span>
                 <button
                   onClick={() => onRemove(item.id)}
-                  className="shrink-0 text-slate-secondary hover:text-copper"
+                  className="shrink-0 text-subtext hover:text-primary"
                 >
                   ×
                 </button>
@@ -65,8 +65,8 @@ export default function SelectionSidebar({
           </ul>
           <button
             onClick={onCompare}
-            className="mt-3 w-full rounded-md bg-copper py-1.5 text-sm
-              font-medium text-white transition-colors hover:bg-copper-light"
+            className="mt-3 w-full rounded-full bg-primary py-1.5 text-sm
+              font-medium text-white transition-colors hover:bg-primary-hover"
           >
             对比查看
           </button>
@@ -75,24 +75,24 @@ export default function SelectionSidebar({
 
       {/* Mobile: bottom floating bar */}
       <div
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200
-          bg-white/95 px-4 py-3 backdrop-blur-sm md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-border
+          bg-panel/95 px-4 py-3 backdrop-blur-sm md:hidden"
       >
         <div className="flex items-center justify-between">
-          <span className="text-sm text-deep-ink">
+          <span className="text-sm text-text">
             已选 {selected.length} 题
           </span>
           <div className="flex gap-2">
             <button
               onClick={onClear}
-              className="rounded-md border border-gray-300 px-3 py-1
-                text-xs text-slate-secondary"
+              className="rounded-md border border-border px-3 py-1
+                text-xs text-subtext"
             >
               清空
             </button>
             <button
               onClick={onCompare}
-              className="rounded-md bg-copper px-3 py-1 text-xs
+              className="rounded-full bg-primary px-3 py-1 text-xs
                 font-medium text-white"
             >
               对比查看

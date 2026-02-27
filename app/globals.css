@@ -2,20 +2,22 @@
 @import "katex/dist/katex.min.css";
 
 @theme inline {
-  --color-warm-white: #FAF9F6;
-  --color-deep-ink: #1A1A2E;
-  --color-copper: #C45D3E;
-  --color-copper-light: #D4785F;
-  --color-slate-secondary: #64748B;
-  --color-code-bg: #F1F0EB;
-  --font-serif: "Noto Serif SC", serif;
+  --color-bg: #FFFFFF;
+  --color-text: #171717;
+  --color-primary: #9a2036;
+  --color-primary-hover: #6b1626;
+  --color-subtext: #737373;
+  --color-surface: #F5F5F5;
+  --color-border: #E5E5E5;
+  --color-panel: #FFFFFF;
+  --font-brand: "Rubik", sans-serif;
   --font-sans: "Noto Sans SC", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
 
 body {
-  background: var(--color-warm-white);
-  color: var(--color-deep-ink);
+  background: var(--color-bg);
+  color: var(--color-text);
   font-family: var(--font-sans);
 }
 
@@ -68,7 +70,7 @@ body {
 
 .answer-scroll::-webkit-scrollbar-thumb,
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: var(--color-slate-secondary);
+  background: var(--color-subtext);
   border-radius: 2px;
   opacity: 0.4;
 }
@@ -109,7 +111,7 @@ body {
 }
 
 .prose strong {
-  color: var(--color-deep-ink);
+  color: var(--color-text);
 }
 
 /* Mobile: disable stagger animation for performance */

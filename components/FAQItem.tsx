@@ -36,9 +36,9 @@ function DownvotePanel({
   const [reason, setReason] = useState("");
   const [detail, setDetail] = useState("");
   return (
-    <div className="mt-2 rounded-lg border border-gray-200 bg-code-bg/50 p-3"
+    <div className="mt-2 rounded-xl border-[0.5px] border-border bg-surface/50 p-3"
       onClick={(e) => e.stopPropagation()}>
-      <p className="mb-2 text-xs font-medium text-slate-secondary">
+      <p className="mb-2 text-xs font-medium text-subtext">
         请选择反馈原因:
       </p>
       <div className="flex flex-wrap gap-1.5">
@@ -48,8 +48,8 @@ function DownvotePanel({
             onClick={() => setReason(r.value)}
             className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
               reason === r.value
-                ? "bg-copper text-white"
-                : "bg-white border border-gray-200 text-deep-ink hover:bg-gray-100"
+                ? "bg-primary text-white"
+                : "bg-panel border-[0.5px] border-border text-text hover:bg-surface"
             }`}
           >
             {r.label}
@@ -60,24 +60,24 @@ function DownvotePanel({
         value={detail}
         onChange={(e) => setDetail(e.target.value)}
         placeholder="补充说明 (可选)"
-        className="mt-2 w-full rounded border border-gray-200 bg-white px-2 py-1.5
-          text-xs text-deep-ink placeholder:text-slate-secondary/50
-          focus:border-copper focus:outline-none"
+        className="mt-2 w-full rounded border border-border bg-panel px-2 py-1.5
+          text-xs text-text placeholder:text-subtext/50
+          focus:border-primary focus:outline-none"
         rows={2}
       />
       <div className="mt-2 flex gap-2">
         <button
           onClick={() => reason && onSubmit(reason, detail)}
           disabled={!reason}
-          className="rounded-md bg-copper px-3 py-1 text-xs text-white
-            transition-colors hover:bg-copper-light disabled:opacity-40"
+          className="rounded-full bg-primary px-3 py-1 text-xs text-white
+            transition-colors hover:bg-primary-hover disabled:opacity-40"
         >
           提交
         </button>
         <button
           onClick={onCancel}
-          className="rounded-md border border-gray-200 px-3 py-1 text-xs
-            text-slate-secondary hover:bg-gray-100"
+          className="rounded-full border-[0.5px] border-border px-3 py-1 text-xs
+            text-subtext hover:bg-surface"
         >
           取消
         </button>
@@ -102,12 +102,12 @@ export default function FAQItem({
 
   return (
     <article
-      className={`rounded-lg border transition-colors duration-200 ${
+      className={`rounded-xl border-[0.5px] transition-all duration-200 ${
         isOpen
-          ? "border-copper/40 bg-white shadow-sm"
+          ? "border-primary/30 bg-panel shadow-sm"
           : isSelected
-            ? "border-copper/20 bg-copper/5"
-            : "border-gray-200 bg-white/60"
+            ? "border-primary/20 bg-primary/5"
+            : "border-border bg-panel"
       }`}
     >
       <div className="flex items-start">
@@ -122,8 +122,8 @@ export default function FAQItem({
               type="checkbox"
               checked={isSelected}
               onChange={onSelect}
-              className="h-4 w-4 cursor-pointer rounded border-gray-300
-                accent-copper"
+              className="h-4 w-4 cursor-pointer rounded border-border
+                accent-primary"
             />
           </label>
         )}
@@ -132,17 +132,17 @@ export default function FAQItem({
         <button
           onClick={onToggle}
           className={`flex min-w-0 flex-1 items-start gap-3 py-3 pr-4
-            text-left hover:bg-code-bg/30 md:gap-4 md:py-4 md:pr-5 ${
+            text-left hover:bg-surface/30 md:gap-4 md:py-4 md:pr-5 ${
               showCheckbox ? "" : "pl-4 md:pl-5"
             }`}
         >
-          <span className="shrink-0 font-serif text-xl font-bold
-            text-copper md:text-2xl">
+          <span className="shrink-0 font-brand text-xl font-bold
+            text-primary md:text-2xl">
             {item.id}
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="text-sm font-medium leading-snug
-              text-deep-ink md:text-base">
+              text-text md:text-base">
               {item.question}
               {hasTimelinessWarning && (
                 <span className="ml-1.5 inline-block rounded bg-amber-100
@@ -153,15 +153,15 @@ export default function FAQItem({
               )}
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-slate-secondary md:text-xs">
+              <span className="text-[11px] text-subtext md:text-xs">
                 {item.date}
               </span>
               {item.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="hidden rounded-full bg-code-bg px-2 py-0.5
-                    font-mono text-[10px] text-slate-secondary
-                    md:inline-block md:text-xs"
+                  className="hidden rounded-full border-[0.5px] border-border bg-panel px-1.5 py-0.5
+                    text-xs font-medium text-primary
+                    md:inline-block"
                 >
                   {tag}
                 </span>
@@ -169,7 +169,7 @@ export default function FAQItem({
             </div>
           </div>
           <svg
-            className={`mt-1 h-4 w-4 shrink-0 text-slate-secondary
+            className={`mt-1 h-4 w-4 shrink-0 text-subtext
               transition-transform duration-200 md:h-5 md:w-5 ${
                 isOpen ? "rotate-180" : ""
               }`}
@@ -192,10 +192,10 @@ export default function FAQItem({
           <div className={`answer-scroll px-4 pb-4 ${
             showCheckbox ? "pl-10 md:pl-14" : "pl-4 md:pl-5"
           }`}>
-            <div className="prose prose-sm max-w-none text-deep-ink
-              [&_code]:rounded [&_code]:bg-code-bg [&_code]:px-1.5
+            <div className="prose prose-sm max-w-none text-text
+              [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5
               [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm
-              [&_pre]:rounded-lg [&_pre]:bg-code-bg [&_pre]:p-4
+              [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:p-4
               [&_pre_code]:bg-transparent [&_pre_code]:p-0
               [&_.katex-display]:overflow-x-auto
               [&_.katex-display]:py-2"
@@ -209,7 +209,7 @@ export default function FAQItem({
             </div>
             <ReferenceList references={item.references} />
             {/* Vote buttons — up/down 互斥 */}
-            <div className="mt-3 flex items-center gap-3 border-t border-gray-100 pt-3">
+            <div className="mt-3 flex items-center gap-3 border-t border-border/50 pt-3">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -222,8 +222,8 @@ export default function FAQItem({
                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1
                   text-xs transition-colors ${
                     currentVote === "upvote"
-                      ? "bg-green-100 text-green-700"
-                      : "text-slate-secondary hover:bg-code-bg"
+                      ? "bg-green-50 text-green-700"
+                      : "text-subtext hover:bg-surface"
                   }`}
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor"
@@ -250,8 +250,8 @@ export default function FAQItem({
                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1
                   text-xs transition-colors ${
                     currentVote === "downvote"
-                      ? "bg-red-100 text-red-600"
-                      : "text-slate-secondary hover:bg-code-bg"
+                      ? "bg-red-50 text-red-600"
+                      : "text-subtext hover:bg-surface"
                   }`}
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor"
