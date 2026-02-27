@@ -81,6 +81,7 @@ export default function FAQList({ items }: FAQListProps) {
   const [votedMap, setVotedMap] = useState<Map<number, VoteType>>(loadVotedMap);
   const [fingerprint, setFingerprint] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("default");
+  const [lang, setLang] = useState<"zh" | "en">("zh");
   const [headerVisible, setHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
 
@@ -389,6 +390,7 @@ export default function FAQList({ items }: FAQListProps) {
     return (
       <ReadingView
         items={readingItems}
+        lang={lang}
         onBack={() => setView("list")}
         onRemove={handleRemoveFromReading}
       />
@@ -403,11 +405,31 @@ export default function FAQList({ items }: FAQListProps) {
             headerVisible ? "translate-y-0" : "-translate-y-full"
           }`}
       >
-        <header className="mb-4 pt-2">
-          <h1 className="font-brand text-3xl font-bold text-text">AIFAQ</h1>
-          <p className="mt-1 text-sm text-subtext">
-            AI/ML 常见问题知识库
-          </p>
+        <header className="mb-4 flex items-center justify-between pt-2">
+          <div>
+            <h1 className="font-brand text-3xl font-bold text-text">AIFAQ</h1>
+            <p className="mt-1 text-sm text-subtext">
+              {lang === "zh" ? "AI/ML 常见问题知识库" : "AI/ML FAQ Knowledge Base"}
+            </p>
+          </div>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setLang("zh")}
+              className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                lang === "zh" ? "bg-primary text-white" : "text-subtext hover:bg-surface"
+              }`}
+            >
+              中文
+            </button>
+            <button
+              onClick={() => setLang("en")}
+              className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                lang === "en" ? "bg-primary text-white" : "text-subtext hover:bg-surface"
+              }`}
+            >
+              EN
+            </button>
+          </div>
         </header>
         <SearchBar
           value={searchQuery}
@@ -514,6 +536,7 @@ export default function FAQList({ items }: FAQListProps) {
                 >
                   <FAQItem
                     item={item}
+                    lang={lang}
                     isOpen={openItems.has(item.id)}
                     isSelected={selectedItems.has(item.id)}
                     showCheckbox={compareMode}

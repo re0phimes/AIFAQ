@@ -10,7 +10,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "npx tsx scripts/seed-faq.ts",
-    "analyze-difficulty": "npx tsx scripts/analyze-difficulty.ts"
+    "analyze-difficulty": "npx tsx scripts/analyze-difficulty.ts",
+    "migrate-content": "npx tsx scripts/migrate-content.ts"
   },
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^5.0.1",

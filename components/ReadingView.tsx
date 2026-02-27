@@ -9,16 +9,24 @@ import type { FAQItem } from "@/src/types/faq";
 
 interface ReadingViewProps {
   items: FAQItem[];
+  lang?: "zh" | "en";
   onBack: () => void;
   onRemove: (id: number) => void;
 }
 
 export default function ReadingView({
   items,
+  lang = "zh",
   onBack,
   onRemove,
 }: ReadingViewProps) {
   const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set());
+  const [globalDetailed, setGlobalDetailed] = useState(false);
+  const [itemDetailOverrides, setItemDetailOverrides] = useState<Map<number, boolean>>(new Map());
+
+  function isDetailed(id: number): boolean {
+    return itemDetailOverrides.get(id) ?? globalDetailed;
+  }
 
   function handlePrint(): void {
     window.print();
@@ -84,6 +92,22 @@ export default function ReadingView({
             全部折叠
           </button>
           <button
+            onClick={() => { setGlobalDetailed(false); setItemDetailOverrides(new Map()); }}
+            className={`rounded-full border-[0.5px] border-border px-2 py-1 text-xs ${
+              !globalDetailed ? "bg-primary text-white border-primary" : "text-subtext hover:bg-surface"
+            }`}
+          >
+            全部精简
+          </button>
+          <button
+            onClick={() => { setGlobalDetailed(true); setItemDetailOverrides(new Map()); }}
+            className={`rounded-full border-[0.5px] border-border px-2 py-1 text-xs ${
+              globalDetailed ? "bg-primary text-white border-primary" : "text-subtext hover:bg-surface"
+            }`}
+          >
+            全部详细
+          </button>
+          <button
             onClick={handlePrint}
             className="flex items-center gap-1.5 rounded-full bg-primary px-3
               py-1.5 text-sm font-medium text-white transition-colors
@@ -129,7 +153,7 @@ export default function ReadingView({
                   <div>
                     <h2 className="text-sm font-medium text-text
                       md:text-base">
-                      {item.question}
+                      {lang === "en" && item.questionEn ? item.questionEn : item.question}
                     </h2>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       <span className="text-[11px] text-subtext">
@@ -190,6 +214,36 @@ export default function ReadingView({
 
               {!isCollapsed && (
                 <div className="mt-3">
+                  {item.answerBrief && (
+                    <div className="mb-3 flex gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setItemDetailOverrides(prev => { const n = new Map(prev); n.set(item.id, false); return n; });
+                        }}
+                        className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                          !isDetailed(item.id)
+                            ? "bg-primary text-white"
+                            : "border-[0.5px] border-border text-subtext hover:bg-surface"
+                        }`}
+                      >
+                        精简
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setItemDetailOverrides(prev => { const n = new Map(prev); n.set(item.id, true); return n; });
+                        }}
+                        className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                          isDetailed(item.id)
+                            ? "bg-primary text-white"
+                            : "border-[0.5px] border-border text-subtext hover:bg-surface"
+                        }`}
+                      >
+                        详细
+                      </button>
+                    </div>
+                  )}
                   <div className="prose prose-sm max-w-none text-text
                     [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5
                     [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm
@@ -202,9 +256,30 @@ export default function ReadingView({
                       remarkPlugins={[[remarkMath, { singleDollarTextMath: true }]]}
                       rehypePlugins={[rehypeKatex]}
                     >
-                      {item.answer}
+                      {isDetailed(item.id)
+                        ? (lang === "en" && item.answerEn ? item.answerEn : item.answer)
+                        : (lang === "en" && item.answerBriefEn
+                            ? item.answerBriefEn
+                            : (item.answerBrief ?? item.answer))}
                     </ReactMarkdown>
                   </div>
+                  {isDetailed(item.id) && item.images && item.images.length > 0 && (
+                    <div className="mt-4 space-y-3 print:hidden">
+                      {item.images.map((img, i) => (
+                        <figure key={i} className="overflow-hidden rounded-lg border-[0.5px] border-border">
+                          <a href={img.url} target="_blank" rel="noopener noreferrer">
+                            <img src={img.url} alt={img.caption} className="w-full object-contain" loading="lazy" />
+                          </a>
+                          <figcaption className="bg-surface/50 px-3 py-2 text-xs text-subtext">
+                            {img.caption}
+                            <span className="ml-2 text-[10px] text-subtext/60">
+                              [{img.source === "blog" ? "博客" : "论文"}]
+                            </span>
+                          </figcaption>
+                        </figure>
+                      ))}
+                    </div>
+                  )}
                   <ReferenceList references={item.references} />
                 </div>
               )}

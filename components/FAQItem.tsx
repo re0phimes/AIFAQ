@@ -9,6 +9,7 @@ import type { FAQItem as FAQItemType, VoteType } from "@/src/types/faq";
 
 interface FAQItemProps {
   item: FAQItemType;
+  lang?: "zh" | "en";
   isOpen: boolean;
   isSelected: boolean;
   showCheckbox: boolean;
@@ -88,6 +89,7 @@ function DownvotePanel({
 
 export default function FAQItem({
   item,
+  lang = "zh",
   isOpen,
   isSelected,
   showCheckbox,
@@ -144,7 +146,7 @@ export default function FAQItem({
           <div className="min-w-0 flex-1">
             <h2 className="text-sm font-medium leading-snug
               text-text md:text-base">
-              {item.question}
+              {lang === "en" && item.questionEn ? item.questionEn : item.question}
               {hasTimelinessWarning && (
                 <span className="ml-1.5 inline-block rounded bg-amber-100
                   px-1.5 py-0.5 align-middle text-[10px] text-amber-700"
@@ -229,7 +231,11 @@ export default function FAQItem({
                 remarkPlugins={[[remarkMath, { singleDollarTextMath: true }]]}
                 rehypePlugins={[rehypeKatex]}
               >
-                {detailed ? item.answer : (item.answerBrief ?? item.answer)}
+                {detailed
+                  ? (lang === "en" && item.answerEn ? item.answerEn : item.answer)
+                  : (lang === "en" && item.answerBriefEn
+                      ? item.answerBriefEn
+                      : (item.answerBrief ?? item.answer))}
               </ReactMarkdown>
             </div>
             {detailed && item.images && item.images.length > 0 && (
@@ -278,7 +284,7 @@ export default function FAQItem({
                   <path strokeLinecap="round" strokeLinejoin="round"
                     d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z M2 13h2v9H2z" />
                 </svg>
-                有用
+                {lang === "en" ? "Helpful" : "有用"}
                 {(item.upvoteCount ?? 0) > 0 && (
                   <span className="font-mono text-[10px]">{item.upvoteCount}</span>
                 )}
@@ -306,7 +312,7 @@ export default function FAQItem({
                   <path strokeLinecap="round" strokeLinejoin="round"
                     d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z M22 2h-2v9h2z" />
                 </svg>
-                反馈
+                {lang === "en" ? "Report" : "反馈"}
                 {(item.downvoteCount ?? 0) > 0 && (
                   <span className="font-mono text-[10px]">{item.downvoteCount}</span>
                 )}
