@@ -98,6 +98,7 @@ export default function FAQItem({
   currentVote,
 }: FAQItemProps) {
   const [showDownvotePanel, setShowDownvotePanel] = useState(false);
+  const [detailed, setDetailed] = useState(false);
   const hasTimelinessWarning = (item.downvoteCount ?? 0) >= 3;
 
   return (
@@ -192,6 +193,30 @@ export default function FAQItem({
           <div className={`answer-scroll px-4 pb-4 ${
             showCheckbox ? "pl-10 md:pl-14" : "pl-4 md:pl-5"
           }`}>
+            {item.answerBrief && (
+              <div className="mb-3 flex gap-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setDetailed(false); }}
+                  className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                    !detailed
+                      ? "bg-primary text-white"
+                      : "border-[0.5px] border-border text-subtext hover:bg-surface"
+                  }`}
+                >
+                  精简
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setDetailed(true); }}
+                  className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                    detailed
+                      ? "bg-primary text-white"
+                      : "border-[0.5px] border-border text-subtext hover:bg-surface"
+                  }`}
+                >
+                  详细
+                </button>
+              </div>
+            )}
             <div className="prose prose-sm max-w-none text-text
               [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5
               [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm
@@ -204,9 +229,31 @@ export default function FAQItem({
                 remarkPlugins={[[remarkMath, { singleDollarTextMath: true }]]}
                 rehypePlugins={[rehypeKatex]}
               >
-                {item.answer}
+                {detailed ? item.answer : (item.answerBrief ?? item.answer)}
               </ReactMarkdown>
             </div>
+            {detailed && item.images && item.images.length > 0 && (
+              <div className="mt-4 space-y-3">
+                {item.images.map((img, i) => (
+                  <figure key={i} className="overflow-hidden rounded-lg border-[0.5px] border-border">
+                    <a href={img.url} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={img.url}
+                        alt={img.caption}
+                        className="w-full object-contain"
+                        loading="lazy"
+                      />
+                    </a>
+                    <figcaption className="bg-surface/50 px-3 py-2 text-xs text-subtext">
+                      {img.caption}
+                      <span className="ml-2 text-[10px] text-subtext/60">
+                        [{img.source === "blog" ? "博客" : "论文"}]
+                      </span>
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            )}
             <ReferenceList references={item.references} />
             {/* Vote buttons — up/down 互斥 */}
             <div className="mt-3 flex items-center gap-3 border-t border-border/50 pt-3">
