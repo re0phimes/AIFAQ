@@ -41,9 +41,14 @@ async function processAIAnalysis(id: number, question: string, answerRaw: string
 
     await updateFaqStatus(id, "review", {
       answer: result.answer,
+      answer_brief: result.answer_brief,
+      answer_en: result.answer_en,
+      answer_brief_en: result.answer_brief_en,
+      question_en: result.question_en,
       tags: result.tags,
       categories: result.categories,
       references: result.references,
+      images: result.images,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

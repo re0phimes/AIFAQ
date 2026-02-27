@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthStatus } from "@/lib/auth";
 import { getFaqItemById, updateFaqStatus, getPublishedFaqItems } from "@/lib/db";
 import { analyzeFAQ } from "@/lib/ai";
+import { extractCandidateImages } from "@/lib/image-extractor";
 import { waitUntil } from "@vercel/functions";
 
 export async function PATCH(
@@ -58,12 +59,24 @@ async function retryAnalysis(id: number, question: string, answerRaw: string): P
     await updateFaqStatus(id, "processing");
     const readyItems = await getPublishedFaqItems();
     const existingTags = [...new Set(readyItems.flatMap((i) => i.tags))];
-    const result = await analyzeFAQ(question, answerRaw, existingTags);
+
+    // Extract candidate images from existing references (available on retry)
+    const item = await getFaqItemById(id);
+    const candidateImages = item?.references?.length
+      ? await extractCandidateImages(item.references.map(r => ({ type: r.type, url: r.url })))
+      : [];
+
+    const result = await analyzeFAQ(question, answerRaw, existingTags, candidateImages);
     await updateFaqStatus(id, "review", {
       answer: result.answer,
+      answer_brief: result.answer_brief,
+      answer_en: result.answer_en,
+      answer_brief_en: result.answer_brief_en,
+      question_en: result.question_en,
       tags: result.tags,
       categories: result.categories,
       references: result.references,
+      images: result.images,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
