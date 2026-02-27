@@ -1,6 +1,15 @@
 import { sql } from "@vercel/postgres";
 import type { Reference, FAQImage } from "@/src/types/faq";
 
+let schemaReady = false;
+
+/** Ensure DB schema is up-to-date. Runs once per cold start. */
+async function ensureSchema(): Promise<void> {
+  if (schemaReady) return;
+  await initDB();
+  schemaReady = true;
+}
+
 export interface DBFaqItem {
   id: number;
   question: string;
@@ -112,6 +121,7 @@ export async function createFaqItem(
   question: string,
   answerRaw: string
 ): Promise<DBFaqItem> {
+  await ensureSchema();
   const result = await sql`
     INSERT INTO faq_items (question, answer_raw)
     VALUES (${question}, ${answerRaw})
@@ -167,6 +177,7 @@ export async function updateFaqStatus(
 }
 
 export async function getAllFaqItems(): Promise<DBFaqItem[]> {
+  await ensureSchema();
   const result = await sql`
     SELECT * FROM faq_items ORDER BY created_at DESC
   `;
@@ -174,6 +185,7 @@ export async function getAllFaqItems(): Promise<DBFaqItem[]> {
 }
 
 export async function getPublishedFaqItems(): Promise<DBFaqItem[]> {
+  await ensureSchema();
   const result = await sql`
     SELECT * FROM faq_items WHERE status IN ('published', 'ready') ORDER BY created_at DESC
   `;
@@ -181,6 +193,7 @@ export async function getPublishedFaqItems(): Promise<DBFaqItem[]> {
 }
 
 export async function getFaqItemById(id: number): Promise<DBFaqItem | null> {
+  await ensureSchema();
   const result = await sql`
     SELECT * FROM faq_items WHERE id = ${id}
   `;
