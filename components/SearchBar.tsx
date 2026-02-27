@@ -1,5 +1,7 @@
 "use client";
 
+import { t } from "@/lib/i18n";
+
 export type SearchMode = "combined" | "tag" | "content";
 
 interface SearchBarProps {
@@ -7,19 +9,29 @@ interface SearchBarProps {
   onChange: (value: string) => void;
   mode: SearchMode;
   onModeChange: (mode: SearchMode) => void;
+  lang?: "zh" | "en";
 }
 
-const MODES: { key: SearchMode; label: string }[] = [
-  { key: "combined", label: "组合" },
-  { key: "tag", label: "标签" },
-  { key: "content", label: "全文" },
-];
+const MODE_KEYS: SearchMode[] = ["combined", "tag", "content"];
+
+const MODE_LABEL_KEYS = {
+  combined: "searchCombined",
+  tag: "searchTag",
+  content: "searchContent",
+} as const;
+
+const PLACEHOLDER_KEYS = {
+  combined: "searchPlaceholderCombined",
+  tag: "searchPlaceholderTag",
+  content: "searchPlaceholderContent",
+} as const;
 
 export default function SearchBar({
   value,
   onChange,
   mode,
   onModeChange,
+  lang = "zh",
 }: SearchBarProps) {
   return (
     <div>
@@ -41,13 +53,7 @@ export default function SearchBar({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={
-            mode === "tag"
-              ? "输入标签名..."
-              : mode === "content"
-                ? "搜索答案内容..."
-                : "搜索问题..."
-          }
+          placeholder={t(PLACEHOLDER_KEYS[mode], lang)}
           className="w-full rounded-full border-[0.5px] border-border bg-bg
             py-3 pl-12 pr-16 text-text placeholder-subtext
             outline-none transition-shadow focus:border-primary
@@ -62,17 +68,17 @@ export default function SearchBar({
         </span>
       </div>
       <div className="mt-2 flex gap-1">
-        {MODES.map((m) => (
+        {MODE_KEYS.map((m) => (
           <button
-            key={m.key}
-            onClick={() => onModeChange(m.key)}
+            key={m}
+            onClick={() => onModeChange(m)}
             className={`rounded-md px-3 py-1 text-xs transition-colors ${
-              mode === m.key
+              mode === m
                 ? "bg-primary/10 font-medium text-primary"
                 : "text-subtext hover:bg-surface"
             }`}
           >
-            {m.label}
+            {t(MODE_LABEL_KEYS[m], lang)}
           </button>
         ))}
       </div>

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { TagTaxonomy } from "@/src/types/faq";
+import { t, translateCategory, translateTag } from "@/lib/i18n";
 
 interface TagFilterProps {
   taxonomy: TagTaxonomy;
@@ -12,6 +13,7 @@ interface TagFilterProps {
   onToggleCategory: (cat: string) => void;
   onToggleTag: (tag: string) => void;
   onClearAll: () => void;
+  lang?: "zh" | "en";
 }
 
 export default function TagFilter({
@@ -23,6 +25,7 @@ export default function TagFilter({
   onToggleCategory,
   onToggleTag,
   onClearAll,
+  lang = "zh",
 }: TagFilterProps) {
   // Count FAQs per category
   const categoryCounts = useMemo(() => {
@@ -59,7 +62,7 @@ export default function TagFilter({
     <div className="rounded-xl border-[0.5px] border-border bg-panel p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-medium text-subtext">
-          标签筛选
+          {t("tagFilter", lang)}
         </span>
         {hasSelection && (
           <button
@@ -68,7 +71,7 @@ export default function TagFilter({
               text-xs text-primary transition-colors
               hover:bg-primary hover:text-white"
           >
-            清除
+            {t("clearFilter", lang)}
           </button>
         )}
       </div>
@@ -92,7 +95,7 @@ export default function TagFilter({
                     : "bg-surface text-text hover:bg-surface"
                 }`}
             >
-              {cat.name}
+              {translateCategory(cat.name, lang)}
               <span
                 className={`text-[10px] ${
                   isSelected ? "text-white/70" : "text-subtext"
@@ -127,7 +130,7 @@ export default function TagFilter({
                       : "bg-surface text-text hover:bg-surface"
                   }`}
               >
-                {tag}
+                {translateTag(tag, lang)}
                 <span
                   className={`text-[9px] ${
                     isSelected ? "text-white/70" : "text-subtext"

@@ -6,6 +6,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import ReferenceList from "./ReferenceList";
 import type { FAQItem } from "@/src/types/faq";
+import { t, translateTag, itemsCount } from "@/lib/i18n";
 
 interface ReadingViewProps {
   items: FAQItem[];
@@ -71,25 +72,25 @@ export default function ReadingView({
               d="M15 19l-7-7 7-7"
             />
           </svg>
-          返回列表
+          {t("backToList", lang)}
         </button>
         <div className="flex items-center gap-3">
           <span className="text-xs text-subtext">
-            {items.length} 题
+            {itemsCount(items.length, lang)}
           </span>
           <button
             onClick={handleExpandAll}
             className="rounded-full border-[0.5px] border-border px-2 py-1
               text-xs text-subtext hover:bg-surface"
           >
-            全部展开
+            {t("expandAll", lang)}
           </button>
           <button
             onClick={handleCollapseAll}
             className="rounded-full border-[0.5px] border-border px-2 py-1
               text-xs text-subtext hover:bg-surface"
           >
-            全部折叠
+            {t("collapseAll", lang)}
           </button>
           <button
             onClick={() => { setGlobalDetailed(false); setItemDetailOverrides(new Map()); }}
@@ -97,7 +98,7 @@ export default function ReadingView({
               !globalDetailed ? "bg-primary text-white border-primary" : "text-subtext hover:bg-surface"
             }`}
           >
-            全部精简
+            {t("allBrief", lang)}
           </button>
           <button
             onClick={() => { setGlobalDetailed(true); setItemDetailOverrides(new Map()); }}
@@ -105,7 +106,7 @@ export default function ReadingView({
               globalDetailed ? "bg-primary text-white border-primary" : "text-subtext hover:bg-surface"
             }`}
           >
-            全部详细
+            {t("allDetailed", lang)}
           </button>
           <button
             onClick={handlePrint}
@@ -126,7 +127,7 @@ export default function ReadingView({
                 d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
-            导出 PDF
+            {t("exportPdf", lang)}
           </button>
         </div>
       </div>
@@ -165,7 +166,7 @@ export default function ReadingView({
                           className="rounded-full border-[0.5px] border-border bg-panel px-2 py-0.5
                             font-medium text-xs text-primary"
                         >
-                          {tag}
+                          {translateTag(tag, lang)}
                         </span>
                       ))}
                     </div>
@@ -193,7 +194,7 @@ export default function ReadingView({
                     }}
                     className="rounded p-1 text-subtext
                       hover:bg-surface hover:text-primary"
-                    title="移除"
+                    title={t("remove", lang)}
                   >
                     <svg
                       className="h-4 w-4"
@@ -227,7 +228,7 @@ export default function ReadingView({
                             : "border-[0.5px] border-border text-subtext hover:bg-surface"
                         }`}
                       >
-                        精简
+                        {t("brief", lang)}
                       </button>
                       <button
                         onClick={(e) => {
@@ -240,7 +241,7 @@ export default function ReadingView({
                             : "border-[0.5px] border-border text-subtext hover:bg-surface"
                         }`}
                       >
-                        详细
+                        {t("detailed", lang)}
                       </button>
                     </div>
                   )}
@@ -273,14 +274,14 @@ export default function ReadingView({
                           <figcaption className="bg-surface/50 px-3 py-2 text-xs text-subtext">
                             {img.caption}
                             <span className="ml-2 text-[10px] text-subtext/60">
-                              [{img.source === "blog" ? "博客" : "论文"}]
+                              [{img.source === "blog" ? t("blog", lang) : t("paper", lang)}]
                             </span>
                           </figcaption>
                         </figure>
                       ))}
                     </div>
                   )}
-                  <ReferenceList references={item.references} />
+                  <ReferenceList references={item.references} lang={lang} />
                 </div>
               )}
             </article>

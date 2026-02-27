@@ -1,5 +1,7 @@
 "use client";
 
+import { t, paginationInfo, perPageLabel } from "@/lib/i18n";
+
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
@@ -7,6 +9,7 @@ interface PaginationProps {
   totalItems: number;
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
+  lang?: "zh" | "en";
 }
 
 const PAGE_SIZES = [10, 20, 50];
@@ -30,16 +33,16 @@ export default function Pagination({
   totalItems,
   onPageChange,
   onPageSizeChange,
+  lang = "zh",
 }: PaginationProps) {
   if (totalPages <= 1) return null;
 
   return (
     <div className="mt-4 flex flex-col items-center gap-3 sm:flex-row
       sm:justify-between">
-      {/* Left: info + page size */}
       <div className="flex items-center gap-3 text-xs text-subtext">
         <span>
-          共 {totalItems} 条，第 {currentPage}/{totalPages} 页
+          {paginationInfo(totalItems, currentPage, totalPages, lang)}
         </span>
         <select
           value={pageSize}
@@ -49,13 +52,12 @@ export default function Pagination({
         >
           {PAGE_SIZES.map((s) => (
             <option key={s} value={s}>
-              每页 {s} 条
+              {perPageLabel(s, lang)}
             </option>
           ))}
         </select>
       </div>
 
-      {/* Right: page navigation */}
       <div className="flex items-center gap-1">
         <button
           onClick={() => onPageChange(currentPage - 1)}
@@ -63,7 +65,7 @@ export default function Pagination({
           className="rounded px-2 py-1 text-xs text-subtext
             hover:bg-surface disabled:opacity-30 disabled:hover:bg-transparent"
         >
-          上一页
+          {t("prevPage", lang)}
         </button>
         {getPageNumbers(currentPage, totalPages).map((p, i) =>
           p === "..." ? (
@@ -90,7 +92,7 @@ export default function Pagination({
           className="rounded px-2 py-1 text-xs text-subtext
             hover:bg-surface disabled:opacity-30 disabled:hover:bg-transparent"
         >
-          下一页
+          {t("nextPage", lang)}
         </button>
       </div>
     </div>

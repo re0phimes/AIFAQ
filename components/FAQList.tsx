@@ -9,6 +9,7 @@ import ReadingView from "./ReadingView";
 import Pagination from "./Pagination";
 import BackToTop from "./BackToTop";
 import taxonomy from "@/data/tag-taxonomy.json";
+import { t, paginationInfo } from "@/lib/i18n";
 import type {
   FAQItem as FAQItemType,
   TagTaxonomy,
@@ -30,6 +31,7 @@ interface FAQListProps {
 const LS_KEY = "aifaq-selected";
 const LS_PAGESIZE = "aifaq-pagesize";
 const LS_VOTED = "aifaq-voted";
+const LS_GLOBAL_DETAILED = "aifaq-global-detailed";
 
 function loadSelected(): Set<number> {
   if (typeof window === "undefined") return new Set();
@@ -82,6 +84,10 @@ export default function FAQList({ items }: FAQListProps) {
   const [fingerprint, setFingerprint] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("default");
   const [lang, setLang] = useState<"zh" | "en">("zh");
+  const [globalDetailed, setGlobalDetailed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(LS_GLOBAL_DETAILED) === "true";
+  });
   const [headerVisible, setHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
 
@@ -135,6 +141,11 @@ export default function FAQList({ items }: FAQListProps) {
   useEffect(() => {
     localStorage.setItem(LS_PAGESIZE, String(pageSize));
   }, [pageSize]);
+
+  // Persist globalDetailed
+  useEffect(() => {
+    localStorage.setItem(LS_GLOBAL_DETAILED, String(globalDetailed));
+  }, [globalDetailed]);
 
   const { allTags, tagCounts } = useMemo(() => {
     const freq = new Map<string, number>();
@@ -436,6 +447,7 @@ export default function FAQList({ items }: FAQListProps) {
           onChange={setSearchQuery}
           mode={searchMode}
           onModeChange={setSearchMode}
+          lang={lang}
         />
         <div className="mt-3">
           <TagFilter
@@ -446,6 +458,7 @@ export default function FAQList({ items }: FAQListProps) {
             selectedTags={selectedTags}
             onToggleCategory={handleToggleCategory}
             onToggleTag={handleToggleTag}
+            lang={lang}
             onClearAll={() => {
               setSelectedTags([]);
               setSelectedCategories([]);
@@ -470,24 +483,46 @@ export default function FAQList({ items }: FAQListProps) {
                     : "border-[0.5px] border-border text-subtext hover:bg-surface"
                 }`}
             >
-              {compareMode ? "退出比较" : "比较"}
+              {compareMode ? t("exitCompare", lang) : t("compare", lang)}
             </button>
             <button
               onClick={handleExpandAll}
               className="rounded-full border-[0.5px] border-border px-3 py-1.5
                 text-xs text-subtext hover:bg-surface"
             >
-              全部展开
+              {t("expandAll", lang)}
             </button>
             <button
               onClick={handleCollapseAll}
               className="rounded-full border-[0.5px] border-border px-3 py-1.5
                 text-xs text-subtext hover:bg-surface"
             >
-              全部折叠
+              {t("collapseAll", lang)}
             </button>
             <div className="flex items-center gap-1 ml-2 border-l border-border pl-2">
-              <span className="text-[11px] text-subtext">排序:</span>
+              <button
+                onClick={() => setGlobalDetailed(false)}
+                className={`rounded-full px-2.5 py-1.5 text-xs transition-colors ${
+                  !globalDetailed
+                    ? "bg-primary text-white"
+                    : "text-subtext hover:bg-surface"
+                }`}
+              >
+                {t("brief", lang)}
+              </button>
+              <button
+                onClick={() => setGlobalDetailed(true)}
+                className={`rounded-full px-2.5 py-1.5 text-xs transition-colors ${
+                  globalDetailed
+                    ? "bg-primary text-white"
+                    : "text-subtext hover:bg-surface"
+                }`}
+              >
+                {t("detailed", lang)}
+              </button>
+            </div>
+            <div className="flex items-center gap-1 ml-2 border-l border-border pl-2">
+              <span className="text-[11px] text-subtext">{t("sort", lang)}</span>
               {(["default", "date", "difficulty"] as const).map((mode) => (
                 <button
                   key={mode}
@@ -498,13 +533,13 @@ export default function FAQList({ items }: FAQListProps) {
                       : "text-subtext hover:bg-surface"
                   }`}
                 >
-                  {mode === "default" ? "默认" : mode === "date" ? "时间" : "难度"}
+                  {mode === "default" ? t("sortDefault", lang) : mode === "date" ? t("sortDate", lang) : t("sortDifficulty", lang)}
                 </button>
               ))}
             </div>
           </div>
           <p className="text-xs text-subtext">
-            共 {sorted.length} 条，第 {safePage}/{totalPages} 页
+            {paginationInfo(sorted.length, safePage, totalPages, lang)}
           </p>
         </div>
 
@@ -523,7 +558,7 @@ export default function FAQList({ items }: FAQListProps) {
                 d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <p className="text-subtext">没有找到匹配的问题</p>
+            <p className="text-subtext">{t("noResults", lang)}</p>
           </div>
         ) : (
           <>
@@ -537,6 +572,7 @@ export default function FAQList({ items }: FAQListProps) {
                   <FAQItem
                     item={item}
                     lang={lang}
+                    globalDetailed={globalDetailed}
                     isOpen={openItems.has(item.id)}
                     isSelected={selectedItems.has(item.id)}
                     showCheckbox={compareMode}
@@ -556,6 +592,7 @@ export default function FAQList({ items }: FAQListProps) {
               totalItems={sorted.length}
               onPageChange={handlePageChange}
               onPageSizeChange={handlePageSizeChange}
+              lang={lang}
             />
           </>
         )}
@@ -573,6 +610,7 @@ export default function FAQList({ items }: FAQListProps) {
           onRemove={(id) => handleToggleSelect(id)}
           onClear={() => setSelectedItems(new Set())}
           onCompare={() => setView("reading")}
+          lang={lang}
         />
       )}
     </div>

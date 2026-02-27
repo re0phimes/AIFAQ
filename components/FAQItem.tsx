@@ -6,10 +6,12 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import ReferenceList from "./ReferenceList";
 import type { FAQItem as FAQItemType, VoteType } from "@/src/types/faq";
+import { t, getDownvoteReasons, translateTag } from "@/lib/i18n";
 
 interface FAQItemProps {
   item: FAQItemType;
   lang?: "zh" | "en";
+  globalDetailed?: boolean;
   isOpen: boolean;
   isSelected: boolean;
   showCheckbox: boolean;
@@ -20,30 +22,26 @@ interface FAQItemProps {
   currentVote: VoteType | null;
 }
 
-const DOWNVOTE_REASONS = [
-  { value: "outdated", label: "过时" },
-  { value: "factual_error", label: "不准确" },
-  { value: "unclear", label: "表述不清" },
-  { value: "other", label: "其他" },
-] as const;
-
 function DownvotePanel({
   onSubmit,
   onCancel,
+  lang = "zh",
 }: {
   onSubmit: (reason: string, detail: string) => void;
   onCancel: () => void;
+  lang?: "zh" | "en";
 }) {
   const [reason, setReason] = useState("");
   const [detail, setDetail] = useState("");
+  const reasons = getDownvoteReasons(lang);
   return (
     <div className="mt-2 rounded-xl border-[0.5px] border-border bg-surface/50 p-3"
       onClick={(e) => e.stopPropagation()}>
       <p className="mb-2 text-xs font-medium text-subtext">
-        请选择反馈原因:
+        {t("feedbackPrompt", lang)}
       </p>
       <div className="flex flex-wrap gap-1.5">
-        {DOWNVOTE_REASONS.map((r) => (
+        {reasons.map((r) => (
           <button
             key={r.value}
             onClick={() => setReason(r.value)}
@@ -60,7 +58,7 @@ function DownvotePanel({
       <textarea
         value={detail}
         onChange={(e) => setDetail(e.target.value)}
-        placeholder="补充说明 (可选)"
+        placeholder={t("detailPlaceholder", lang)}
         className="mt-2 w-full rounded border border-border bg-panel px-2 py-1.5
           text-xs text-text placeholder:text-subtext/50
           focus:border-primary focus:outline-none"
@@ -73,14 +71,14 @@ function DownvotePanel({
           className="rounded-full bg-primary px-3 py-1 text-xs text-white
             transition-colors hover:bg-primary-hover disabled:opacity-40"
         >
-          提交
+          {t("submit", lang)}
         </button>
         <button
           onClick={onCancel}
           className="rounded-full border-[0.5px] border-border px-3 py-1 text-xs
             text-subtext hover:bg-surface"
         >
-          取消
+          {t("cancel", lang)}
         </button>
       </div>
     </div>
@@ -90,6 +88,7 @@ function DownvotePanel({
 export default function FAQItem({
   item,
   lang = "zh",
+  globalDetailed = false,
   isOpen,
   isSelected,
   showCheckbox,
@@ -100,7 +99,8 @@ export default function FAQItem({
   currentVote,
 }: FAQItemProps) {
   const [showDownvotePanel, setShowDownvotePanel] = useState(false);
-  const [detailed, setDetailed] = useState(false);
+  const [detailedOverride, setDetailedOverride] = useState<boolean | null>(null);
+  const detailed = detailedOverride ?? globalDetailed;
   const hasTimelinessWarning = (item.downvoteCount ?? 0) >= 3;
 
   return (
@@ -150,8 +150,8 @@ export default function FAQItem({
               {hasTimelinessWarning && (
                 <span className="ml-1.5 inline-block rounded bg-amber-100
                   px-1.5 py-0.5 align-middle text-[10px] text-amber-700"
-                  title="多人反馈此内容可能过期或不准确">
-                  待更新
+                  title={lang === "en" ? "Multiple reports of outdated/inaccurate content" : "多人反馈此内容可能过期或不准确"}>
+                  {t("pendingUpdate", lang)}
                 </span>
               )}
             </h2>
@@ -166,7 +166,7 @@ export default function FAQItem({
                     text-xs font-medium text-primary
                     md:inline-block"
                 >
-                  {tag}
+                  {translateTag(tag, lang)}
                 </span>
               ))}
             </div>
@@ -198,24 +198,24 @@ export default function FAQItem({
             {item.answerBrief && (
               <div className="mb-3 flex gap-1">
                 <button
-                  onClick={(e) => { e.stopPropagation(); setDetailed(false); }}
+                  onClick={(e) => { e.stopPropagation(); setDetailedOverride(false); }}
                   className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
                     !detailed
                       ? "bg-primary text-white"
                       : "border-[0.5px] border-border text-subtext hover:bg-surface"
                   }`}
                 >
-                  精简
+                  {t("brief", lang)}
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setDetailed(true); }}
+                  onClick={(e) => { e.stopPropagation(); setDetailedOverride(true); }}
                   className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
                     detailed
                       ? "bg-primary text-white"
                       : "border-[0.5px] border-border text-subtext hover:bg-surface"
                   }`}
                 >
-                  详细
+                  {t("detailed", lang)}
                 </button>
               </div>
             )}
@@ -253,14 +253,14 @@ export default function FAQItem({
                     <figcaption className="bg-surface/50 px-3 py-2 text-xs text-subtext">
                       {img.caption}
                       <span className="ml-2 text-[10px] text-subtext/60">
-                        [{img.source === "blog" ? "博客" : "论文"}]
+                            [{img.source === "blog" ? t("blog", lang) : t("paper", lang)}]
                       </span>
                     </figcaption>
                   </figure>
                 ))}
               </div>
             )}
-            <ReferenceList references={item.references} />
+            <ReferenceList references={item.references} lang={lang} />
             {/* Vote buttons — up/down 互斥 */}
             <div className="mt-3 flex items-center gap-3 border-t border-border/50 pt-3">
               <button
@@ -284,7 +284,7 @@ export default function FAQItem({
                   <path strokeLinecap="round" strokeLinejoin="round"
                     d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z M2 13h2v9H2z" />
                 </svg>
-                {lang === "en" ? "Helpful" : "有用"}
+                                {t("helpful", lang)}
                 {(item.upvoteCount ?? 0) > 0 && (
                   <span className="font-mono text-[10px]">{item.upvoteCount}</span>
                 )}
@@ -312,7 +312,7 @@ export default function FAQItem({
                   <path strokeLinecap="round" strokeLinejoin="round"
                     d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z M22 2h-2v9h2z" />
                 </svg>
-                {lang === "en" ? "Report" : "反馈"}
+                                {t("report", lang)}
                 {(item.downvoteCount ?? 0) > 0 && (
                   <span className="font-mono text-[10px]">{item.downvoteCount}</span>
                 )}
@@ -320,6 +320,7 @@ export default function FAQItem({
             </div>
             {showDownvotePanel && currentVote !== "downvote" && (
               <DownvotePanel
+                lang={lang}
                 onSubmit={(reason, detail) => {
                   onVote("downvote", reason, detail);
                   setShowDownvotePanel(false);

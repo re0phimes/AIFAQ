@@ -1,6 +1,7 @@
 "use client";
 
 import type { FAQItem } from "@/src/types/faq";
+import { t, selectedCount } from "@/lib/i18n";
 
 interface SelectionSidebarProps {
   items: FAQItem[];
@@ -8,6 +9,7 @@ interface SelectionSidebarProps {
   onRemove: (id: number) => void;
   onClear: () => void;
   onCompare: () => void;
+  lang?: "zh" | "en";
 }
 
 export default function SelectionSidebar({
@@ -16,6 +18,7 @@ export default function SelectionSidebar({
   onRemove,
   onClear,
   onCompare,
+  lang = "zh",
 }: SelectionSidebarProps) {
   const selected = items.filter((item) => selectedIds.has(item.id));
 
@@ -32,13 +35,13 @@ export default function SelectionSidebar({
           bg-panel p-3 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium text-text">
-              已选 ({selected.length})
+              {t("selected", lang)} ({selected.length})
             </span>
             <button
               onClick={onClear}
               className="text-xs text-subtext hover:text-primary"
             >
-              清空
+              {t("clearAll", lang)}
             </button>
           </div>
           <ul className="max-h-64 space-y-1 overflow-y-auto">
@@ -52,7 +55,7 @@ export default function SelectionSidebar({
                   {item.id}.
                 </span>
                 <span className="min-w-0 flex-1 truncate text-text">
-                  {item.question}
+                  {lang === "en" && item.questionEn ? item.questionEn : item.question}
                 </span>
                 <button
                   onClick={() => onRemove(item.id)}
@@ -68,7 +71,7 @@ export default function SelectionSidebar({
             className="mt-3 w-full rounded-full bg-primary py-1.5 text-sm
               font-medium text-white transition-colors hover:bg-primary-hover"
           >
-            对比查看
+            {t("compareView", lang)}
           </button>
         </div>
       </aside>
@@ -80,7 +83,7 @@ export default function SelectionSidebar({
       >
         <div className="flex items-center justify-between">
           <span className="text-sm text-text">
-            已选 {selected.length} 题
+            {selectedCount(selected.length, lang)}
           </span>
           <div className="flex gap-2">
             <button
@@ -88,14 +91,14 @@ export default function SelectionSidebar({
               className="rounded-md border border-border px-3 py-1
                 text-xs text-subtext"
             >
-              清空
+              {t("clearAll", lang)}
             </button>
             <button
               onClick={onCompare}
               className="rounded-full bg-primary px-3 py-1 text-xs
                 font-medium text-white"
             >
-              对比查看
+              {t("compareView", lang)}
             </button>
           </div>
         </div>

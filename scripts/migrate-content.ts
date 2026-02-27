@@ -6,6 +6,11 @@ import type { Reference } from "../src/types/faq";
 
 const CONCURRENCY = parseInt(process.argv[2] || "10", 10);
 const LIMIT = parseInt(process.argv[3] || "0", 10); // 0 = no limit
+// --ids=9,19,27 to force re-process specific IDs (even if already done)
+const idsArg = process.argv.find((a) => a.startsWith("--ids="));
+const forceIds = idsArg
+  ? new Set(idsArg.replace("--ids=", "").split(",").map(Number))
+  : null;
 
 let processed = 0;
 let skipped = 0;
@@ -67,7 +72,9 @@ async function migrate(): Promise<void> {
   `;
 
   // Filter to items needing migration
-  const pending = rows.filter((r) => !r.answer_brief || !r.answer_en);
+  const pending = forceIds
+    ? rows.filter((r) => forceIds.has(r.id as number))
+    : rows.filter((r) => !r.answer_brief || !r.answer_en);
   skipped = rows.length - pending.length;
   const toProcess = LIMIT > 0 ? pending.slice(0, LIMIT) : pending;
   total = rows.length;

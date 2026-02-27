@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import type { Reference } from "@/src/types/faq";
+import { t } from "@/lib/i18n";
 
 interface ReferenceListProps {
   references: Reference[];
+  lang?: "zh" | "en";
 }
 
-export default function ReferenceList({ references }: ReferenceListProps) {
+export default function ReferenceList({ references, lang = "zh" }: ReferenceListProps) {
   const [expanded, setExpanded] = useState(true);
 
   if (references.length === 0) return null;
@@ -19,7 +21,7 @@ export default function ReferenceList({ references }: ReferenceListProps) {
       {/* Mobile: always full list */}
       <div className="md:hidden">
         <p className="mb-1.5 text-xs font-medium text-subtext">
-          参考来源
+          {t("references", lang)}
         </p>
         <RefItems references={references} />
       </div>
@@ -31,7 +33,7 @@ export default function ReferenceList({ references }: ReferenceListProps) {
           className="flex w-full items-center justify-between text-left"
         >
           <span className="text-sm font-medium text-subtext">
-            参考来源 ({references.length})
+            {t("references", lang)} ({references.length})
           </span>
           <svg
             className={`h-4 w-4 text-subtext transition-transform
