@@ -34,7 +34,7 @@ export async function POST(): Promise<NextResponse> {
           ${tagsLiteral}::text[],
           ${categoriesLiteral}::text[],
           ${refsJson}::jsonb,
-          'ready',
+          'published',
           ${item.date},
           ${item.upvoteCount},
           ${item.downvoteCount}

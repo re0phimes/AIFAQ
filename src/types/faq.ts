@@ -6,14 +6,25 @@ export interface Reference {
   platform?: string;
 }
 
+export interface FAQImage {
+  url: string;
+  caption: string;
+  source: "blog" | "paper";
+}
+
 export interface FAQItem {
   id: number;
   question: string;
+  questionEn?: string;
   date: string;
   tags: string[];
   categories: string[];
   references: Reference[];
   answer: string;
+  answerBrief?: string;
+  answerEn?: string;
+  answerBriefEn?: string;
+  images?: FAQImage[];
   upvoteCount: number;
   downvoteCount: number;
   difficulty?: "beginner" | "intermediate" | "advanced" | null;

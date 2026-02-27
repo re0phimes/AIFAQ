@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthStatus } from "@/lib/auth";
-import { getFaqItemById, updateFaqStatus, getReadyFaqItems } from "@/lib/db";
+import { getFaqItemById, updateFaqStatus, getPublishedFaqItems } from "@/lib/db";
 import { analyzeFAQ } from "@/lib/ai";
 import { waitUntil } from "@vercel/functions";
 
@@ -25,6 +25,20 @@ export async function PATCH(
     return NextResponse.json({ ok: true });
   }
 
+  // Review workflow actions
+  if (body.action === "publish") {
+    await updateFaqStatus(numId, "published");
+    return NextResponse.json({ ok: true });
+  }
+  if (body.action === "reject") {
+    await updateFaqStatus(numId, "rejected");
+    return NextResponse.json({ ok: true });
+  }
+  if (body.action === "unpublish") {
+    await updateFaqStatus(numId, "review");
+    return NextResponse.json({ ok: true });
+  }
+
   // Manual edit
   if (body.question || body.answer || body.tags || body.references) {
     await updateFaqStatus(numId, body.status ?? item.status, {
@@ -42,10 +56,10 @@ export async function PATCH(
 async function retryAnalysis(id: number, question: string, answerRaw: string): Promise<void> {
   try {
     await updateFaqStatus(id, "processing");
-    const readyItems = await getReadyFaqItems();
+    const readyItems = await getPublishedFaqItems();
     const existingTags = [...new Set(readyItems.flatMap((i) => i.tags))];
     const result = await analyzeFAQ(question, answerRaw, existingTags);
-    await updateFaqStatus(id, "ready", {
+    await updateFaqStatus(id, "review", {
       answer: result.answer,
       tags: result.tags,
       categories: result.categories,

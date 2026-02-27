@@ -1,19 +1,24 @@
 import { sql } from "@vercel/postgres";
-import type { Reference } from "@/src/types/faq";
+import type { Reference, FAQImage } from "@/src/types/faq";
 
 export interface DBFaqItem {
   id: number;
   question: string;
+  question_en: string | null;
   answer_raw: string;
   answer: string | null;
+  answer_brief: string | null;
+  answer_en: string | null;
+  answer_brief_en: string | null;
   tags: string[];
   categories: string[];
   references: Reference[];
+  images: FAQImage[];
   upvote_count: number;
   downvote_count: number;
   date: string;
   difficulty: "beginner" | "intermediate" | "advanced" | null;
-  status: "pending" | "processing" | "ready" | "failed";
+  status: "pending" | "processing" | "review" | "published" | "rejected" | "ready" | "failed";
   error_message: string | null;
   created_at: Date;
   updated_at: Date;
@@ -40,6 +45,16 @@ export async function initDB(): Promise<void> {
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS downvote_count INTEGER DEFAULT 0`;
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS date VARCHAR(10) DEFAULT ''`;
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS difficulty VARCHAR(20)`;
+
+  // Bilingual + image columns
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS answer_brief TEXT`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS answer_en TEXT`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS answer_brief_en TEXT`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS question_en TEXT`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'`;
+
+  // Migrate legacy 'ready' status to 'published'
+  await sql`UPDATE faq_items SET status = 'published' WHERE status = 'ready'`;
 
   await sql`
     UPDATE faq_items
@@ -108,7 +123,18 @@ export async function createFaqItem(
 export async function updateFaqStatus(
   id: number,
   status: string,
-  data?: { answer?: string; tags?: string[]; categories?: string[]; references?: Reference[]; error_message?: string }
+  data?: {
+    answer?: string;
+    tags?: string[];
+    categories?: string[];
+    references?: Reference[];
+    error_message?: string;
+    answer_brief?: string;
+    answer_en?: string;
+    answer_brief_en?: string;
+    question_en?: string;
+    images?: FAQImage[];
+  }
 ): Promise<void> {
   if (data?.answer !== undefined) {
     const tagsLiteral = `{${(data.tags ?? []).map((t) => `"${t}"`).join(",")}}`;
@@ -120,6 +146,11 @@ export async function updateFaqStatus(
           tags = ${tagsLiteral}::text[],
           categories = ${categoriesLiteral}::text[],
           "references" = ${JSON.stringify(data.references ?? [])}::jsonb,
+          answer_brief = ${data.answer_brief ?? null},
+          answer_en = ${data.answer_en ?? null},
+          answer_brief_en = ${data.answer_brief_en ?? null},
+          question_en = ${data.question_en ?? null},
+          images = ${JSON.stringify(data.images ?? [])}::jsonb,
           error_message = NULL,
           updated_at = NOW()
       WHERE id = ${id}
@@ -142,9 +173,9 @@ export async function getAllFaqItems(): Promise<DBFaqItem[]> {
   return result.rows.map(rowToFaqItem);
 }
 
-export async function getReadyFaqItems(): Promise<DBFaqItem[]> {
+export async function getPublishedFaqItems(): Promise<DBFaqItem[]> {
   const result = await sql`
-    SELECT * FROM faq_items WHERE status = 'ready' ORDER BY created_at DESC
+    SELECT * FROM faq_items WHERE status IN ('published', 'ready') ORDER BY created_at DESC
   `;
   return result.rows.map(rowToFaqItem);
 }
@@ -161,13 +192,20 @@ function rowToFaqItem(row: Record<string, unknown>): DBFaqItem {
   return {
     id: row.id as number,
     question: row.question as string,
+    question_en: (row.question_en as string | null) ?? null,
     answer_raw: row.answer_raw as string,
     answer: row.answer as string | null,
+    answer_brief: (row.answer_brief as string | null) ?? null,
+    answer_en: (row.answer_en as string | null) ?? null,
+    answer_brief_en: (row.answer_brief_en as string | null) ?? null,
     tags: (row.tags as string[]) ?? [],
     categories: (row.categories as string[]) ?? [],
     references: (typeof row.references === "string"
       ? JSON.parse(row.references)
       : row.references) as Reference[],
+    images: (typeof row.images === "string"
+      ? JSON.parse(row.images)
+      : row.images ?? []) as FAQImage[],
     upvote_count: (row.upvote_count as number) ?? 0,
     downvote_count: (row.downvote_count as number) ?? 0,
     date: (row.date as string) ?? "",

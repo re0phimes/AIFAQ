@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthStatus } from "@/lib/auth";
-import { createFaqItem, getAllFaqItems, getReadyFaqItems, updateFaqStatus } from "@/lib/db";
+import { createFaqItem, getAllFaqItems, getPublishedFaqItems, updateFaqStatus } from "@/lib/db";
 import { analyzeFAQ } from "@/lib/ai";
 import { waitUntil } from "@vercel/functions";
 
@@ -34,12 +34,12 @@ async function processAIAnalysis(id: number, question: string, answerRaw: string
     await updateFaqStatus(id, "processing");
 
     // Get existing tags for consistency
-    const readyItems = await getReadyFaqItems();
+    const readyItems = await getPublishedFaqItems();
     const existingTags = [...new Set(readyItems.flatMap((item) => item.tags))];
 
     const result = await analyzeFAQ(question, answerRaw, existingTags);
 
-    await updateFaqStatus(id, "ready", {
+    await updateFaqStatus(id, "review", {
       answer: result.answer,
       tags: result.tags,
       categories: result.categories,

@@ -42,7 +42,7 @@ async function seedFaq(): Promise<void> {
         ${tagsLiteral}::text[],
         ${categoriesLiteral}::text[],
         ${refsJson}::jsonb,
-        'ready',
+        'published',
         ${item.date},
         ${item.upvoteCount},
         ${item.downvoteCount}
