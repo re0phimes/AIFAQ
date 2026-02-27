@@ -119,16 +119,31 @@ function parseFAQ(content: string, blogIndex: BlogEntry[]): FAQItem[] {
   return items;
 }
 
-function main(): void {
-  const content = fs.readFileSync(MD_PATH, "utf-8");
+const REMOTE_BLOG_INDEX_URL = "https://blog.phimes.top/index.json";
 
-  let blogIndex: BlogEntry[] = [];
+async function fetchBlogIndex(): Promise<BlogEntry[]> {
   try {
-    blogIndex = JSON.parse(fs.readFileSync(BLOG_INDEX_PATH, "utf-8"));
-  } catch {
-    console.warn("Warning: blog-index.json not found, blog URLs will not be matched");
+    const res = await fetch(REMOTE_BLOG_INDEX_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = (await res.json()) as BlogEntry[];
+    console.log(`Fetched ${data.length} entries from ${REMOTE_BLOG_INDEX_URL}`);
+    // 同步更新本地缓存，方便离线开发
+    fs.writeFileSync(BLOG_INDEX_PATH, JSON.stringify(data, null, 2), "utf-8");
+    return data;
+  } catch (err) {
+    console.warn(`Warning: failed to fetch remote blog index (${err}), falling back to local`);
+    try {
+      return JSON.parse(fs.readFileSync(BLOG_INDEX_PATH, "utf-8"));
+    } catch {
+      console.warn("Warning: local blog-index.json also unavailable, blog URLs will not be matched");
+      return [];
+    }
   }
+}
 
+async function main(): Promise<void> {
+  const content = fs.readFileSync(MD_PATH, "utf-8");
+  const blogIndex = await fetchBlogIndex();
   const items = parseFAQ(content, blogIndex);
 
   fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true });
