@@ -182,6 +182,17 @@ export async function initDB(): Promise<void> {
 
   // Version tracking on votes
   await sql`ALTER TABLE faq_votes ADD COLUMN IF NOT EXISTS version_id INTEGER`;
+
+  // Users table for tier persistence
+  await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id          TEXT PRIMARY KEY,
+      login       TEXT,
+      tier        VARCHAR(20) DEFAULT 'free',
+      created_at  TIMESTAMPTZ DEFAULT NOW(),
+      updated_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
 }
 
 export async function createFaqItem(
@@ -579,4 +590,25 @@ function rowToImport(row: Record<string, unknown>): DBImportRecord {
     created_at: new Date(row.created_at as string),
     updated_at: new Date(row.updated_at as string),
   };
+}
+
+export async function upsertUser(id: string, login: string): Promise<string> {
+  await ensureSchema();
+  const result = await sql`
+    INSERT INTO users (id, login) VALUES (${id}, ${login})
+    ON CONFLICT (id) DO UPDATE SET login = ${login}, updated_at = NOW()
+    RETURNING tier
+  `;
+  return result.rows[0].tier as string;
+}
+
+export async function getUserTier(userId: string): Promise<string> {
+  await ensureSchema();
+  const result = await sql`SELECT tier FROM users WHERE id = ${userId}`;
+  return (result.rows[0]?.tier as string) ?? "free";
+}
+
+export async function setUserTier(userId: string, tier: string): Promise<void> {
+  await ensureSchema();
+  await sql`UPDATE users SET tier = ${tier}, updated_at = NOW() WHERE id = ${userId}`;
 }
