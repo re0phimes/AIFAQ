@@ -154,7 +154,7 @@ export default function ReviewPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-5rem-3rem)] flex-col">
+    <div className="flex h-full flex-col">
       {/* Stats bar */}
       <div className="mb-4 flex gap-2">
         {FILTER_TABS.map((tab) => (

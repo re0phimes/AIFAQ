@@ -48,8 +48,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface)]">
-      <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-panel)] backdrop-blur-sm">
+    <div className="flex h-screen flex-col bg-[var(--color-surface)]">
+      <header className="shrink-0 border-b border-[var(--color-border)] bg-[var(--color-panel)]">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
           <div className="flex items-center gap-6">
             <Link href="/admin" className="font-serif text-lg font-bold text-[var(--color-text)]">
@@ -79,7 +79,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 overflow-hidden px-4 py-4">
         {children}
       </main>
     </div>

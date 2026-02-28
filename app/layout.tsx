@@ -26,9 +26,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <main className="mx-auto max-w-2xl px-4 py-6 md:max-w-4xl md:px-8 md:py-8">
-          {children}
-        </main>
+        {children}
       </body>
     </html>
   );
