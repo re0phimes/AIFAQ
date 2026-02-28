@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, memo } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 
 interface AsyncMarkdownContentProps {
@@ -13,21 +14,9 @@ interface AsyncMarkdownContentProps {
 
 const customComponents: Components = {
   table: ({ children }) => (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm">
-        {children}
-      </table>
+    <div className="table-wrapper overflow-x-auto">
+      <table>{children}</table>
     </div>
-  ),
-  th: ({ children }) => (
-    <th className="border border-border bg-surface px-3 py-2 text-left font-medium text-text">
-      {children}
-    </th>
-  ),
-  td: ({ children }) => (
-    <td className="border border-border px-3 py-2 text-text align-top">
-      {children}
-    </td>
   ),
 };
 
@@ -57,7 +46,7 @@ function AsyncMarkdownContent({ content, className }: AsyncMarkdownContentProps)
         // 分段渲染：先显示纯文本，再异步渲染 Markdown
         setRenderedContent(
           <ReactMarkdown
-            remarkPlugins={[[remarkMath, { singleDollarTextMath: true }]]}
+            remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
             rehypePlugins={[rehypeKatex]}
             components={customComponents}
           >

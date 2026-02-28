@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, useRef, useTransition } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import SearchBar, { type SearchMode } from "./SearchBar";
 import TagFilter from "./TagFilter";
 import FAQItem from "./FAQItem";
@@ -26,12 +26,16 @@ const DIFFICULTY_ORDER: Record<string, number> = {
 
 interface FAQListProps {
   items: FAQItemType[];
+  lang: "zh" | "en";
+  onLangChange: (lang: "zh" | "en") => void;
+  votedMap: Map<number, VoteType>;
+  onVote: (faqId: number, type: VoteType, reason?: string, detail?: string) => void;
+  onRevokeVote: (faqId: number) => void;
   onOpenItem?: (item: FAQItemType) => void;
 }
 
 const LS_KEY = "aifaq-selected";
 const LS_PAGESIZE = "aifaq-pagesize";
-const LS_VOTED = "aifaq-voted";
 const LS_GLOBAL_DETAILED = "aifaq-global-detailed";
 
 function loadSelected(): Set<number> {
@@ -48,29 +52,7 @@ function loadPageSize(): number {
   return Number(localStorage.getItem(LS_PAGESIZE)) || 20;
 }
 
-function loadVotedMap(): Map<number, VoteType> {
-  if (typeof window === "undefined") return new Map();
-  try {
-    const raw = localStorage.getItem(LS_VOTED);
-    if (raw) {
-      const obj = JSON.parse(raw) as Record<string, VoteType>;
-      const map = new Map<number, VoteType>();
-      for (const [k, v] of Object.entries(obj)) {
-        map.set(Number(k), v);
-      }
-      return map;
-    }
-  } catch { /* ignore */ }
-  return new Map();
-}
-
-function saveVotedMap(map: Map<number, VoteType>): void {
-  const obj: Record<string, VoteType> = {};
-  for (const [k, v] of map) obj[String(k)] = v;
-  localStorage.setItem(LS_VOTED, JSON.stringify(obj));
-}
-
-export default function FAQList({ items, onOpenItem }: FAQListProps) {
+export default function FAQList({ items, lang, onLangChange, votedMap, onVote, onRevokeVote, onOpenItem }: FAQListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMode, setSearchMode] = useState<SearchMode>("combined");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -81,60 +63,27 @@ export default function FAQList({ items, onOpenItem }: FAQListProps) {
   const [compareMode, setCompareMode] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(loadPageSize);
-  const [votedMap, setVotedMap] = useState<Map<number, VoteType>>(loadVotedMap);
-  const [fingerprint, setFingerprint] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("default");
-  const [lang, setLang] = useState<"zh" | "en">("zh");
   const [globalDetailed, setGlobalDetailed] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
   // Modal state removed - now managed by parent (FAQPage)
-  const [isPending, startTransition] = useTransition();
   const lastScrollY = useRef(0);
 
   // Refs for stable callbacks - avoid re-creating functions on every render
   const itemsRef = useRef(items);
-  const votedMapRef = useRef(votedMap);
-  const fingerprintRef = useRef(fingerprint);
   const globalDetailedRef = useRef(globalDetailed);
 
   // Sync refs with state
   useEffect(() => { itemsRef.current = items; }, [items]);
-  useEffect(() => { votedMapRef.current = votedMap; }, [votedMap]);
-  useEffect(() => { fingerprintRef.current = fingerprint; }, [fingerprint]);
   useEffect(() => { globalDetailedRef.current = globalDetailed; }, [globalDetailed]);
 
-  // Load fingerprint and globalDetailed from localStorage on client
+  // Load globalDetailed from localStorage on client
   useEffect(() => {
-    import("@fingerprintjs/fingerprintjs").then((FP) =>
-      FP.load().then((fp) =>
-        fp.get().then((r) => setFingerprint(r.visitorId))
-      )
-    );
-    // Load globalDetailed from localStorage
     const saved = localStorage.getItem(LS_GLOBAL_DETAILED);
     if (saved !== null) {
       setGlobalDetailed(saved === "true");
     }
   }, []);
-
-  // Restore votes from server when fingerprint is available
-  useEffect(() => {
-    if (!fingerprint) return;
-    fetch(`/api/faq/votes?fingerprint=${fingerprint}`)
-      .then((res) => res.ok ? res.json() : null)
-      .then((data: Record<string, string> | null) => {
-        if (!data) return;
-        const map = new Map<number, VoteType>();
-        for (const [k, v] of Object.entries(data)) {
-          if (v === "upvote" || v === "downvote") {
-            map.set(Number(k), v as VoteType);
-          }
-        }
-        setVotedMap(map);
-        saveVotedMap(map);
-      })
-      .catch(() => { /* network error, use localStorage fallback */ });
-  }, [fingerprint]);
 
   // Hide header on scroll down, show on scroll up, or when tab is open
   // 使用 ref 避免频繁重新订阅 scroll 事件
@@ -278,8 +227,10 @@ export default function FAQList({ items, onOpenItem }: FAQListProps) {
   );
 
   function handlePageChange(page: number): void {
+    window.scrollTo({ top: 0 });
+    setOpenItems(new Set());
+    setHeaderVisible(true);
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function handlePageSizeChange(size: number): void {
@@ -343,86 +294,6 @@ export default function FAQList({ items, onOpenItem }: FAQListProps) {
     }
   }
 
-  const handleVote = useCallback(
-    async (faqId: number, type: VoteType, reason?: string, detail?: string) => {
-      const fp = fingerprintRef.current;
-      if (!fp) return;
-      const current = votedMapRef.current.get(faqId);
-
-      setVotedMap((prev) => {
-        const next = new Map(prev);
-        next.set(faqId, type);
-        saveVotedMap(next);
-        return next;
-      });
-
-      try {
-        const res = await fetch(`/api/faq/${faqId}/vote`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type, fingerprint: fp, reason, detail }),
-        });
-        if (!res.ok && res.status !== 409) {
-          setVotedMap((prev) => {
-            const next = new Map(prev);
-            if (current) next.set(faqId, current);
-            else next.delete(faqId);
-            saveVotedMap(next);
-            return next;
-          });
-        }
-      } catch {
-        setVotedMap((prev) => {
-          const next = new Map(prev);
-          if (current) next.set(faqId, current);
-          else next.delete(faqId);
-          saveVotedMap(next);
-          return next;
-        });
-      }
-    },
-    [] // Stable reference - uses refs internally
-  );
-
-  const handleRevokeVote = useCallback(
-    async (faqId: number) => {
-      const fp = fingerprintRef.current;
-      if (!fp) return;
-      const current = votedMapRef.current.get(faqId);
-
-      setVotedMap((prev) => {
-        const next = new Map(prev);
-        next.delete(faqId);
-        saveVotedMap(next);
-        return next;
-      });
-
-      try {
-        const res = await fetch(`/api/faq/${faqId}/vote`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fingerprint: fp }),
-        });
-        if (!res.ok) {
-          setVotedMap((prev) => {
-            const next = new Map(prev);
-            if (current) next.set(faqId, current);
-            saveVotedMap(next);
-            return next;
-          });
-        }
-      } catch {
-        setVotedMap((prev) => {
-          const next = new Map(prev);
-          if (current) next.set(faqId, current);
-          saveVotedMap(next);
-          return next;
-        });
-      }
-    },
-    [] // Stable reference - uses refs internally
-  );
-
   const handleRemoveFromReading = useCallback((id: number) => {
     setSelectedItems((prev) => {
       const next = new Set(prev);
@@ -466,7 +337,7 @@ export default function FAQList({ items, onOpenItem }: FAQListProps) {
           </div>
           <div className="flex gap-1">
             <button
-              onClick={() => setLang("zh")}
+              onClick={() => onLangChange("zh")}
               className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
                 lang === "zh" ? "bg-primary text-white" : "text-subtext hover:bg-surface"
               }`}
@@ -474,7 +345,7 @@ export default function FAQList({ items, onOpenItem }: FAQListProps) {
               中文
             </button>
             <button
-              onClick={() => setLang("en")}
+              onClick={() => onLangChange("en")}
               className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
                 lang === "en" ? "bg-primary text-white" : "text-subtext hover:bg-surface"
               }`}
@@ -619,8 +490,8 @@ export default function FAQList({ items, onOpenItem }: FAQListProps) {
                     showCheckbox={compareMode}
                     onToggle={handleToggleItem}
                     onSelect={handleToggleSelect}
-                    onVote={handleVote}
-                    onRevokeVote={handleRevokeVote}
+                    onVote={onVote}
+                    onRevokeVote={onRevokeVote}
                     currentVote={votedMap.get(item.id) ?? null}
                     onOpenModal={onOpenItem}
                   />

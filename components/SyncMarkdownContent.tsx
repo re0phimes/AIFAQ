@@ -4,6 +4,7 @@ import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 
 interface SyncMarkdownContentProps {
@@ -13,21 +14,9 @@ interface SyncMarkdownContentProps {
 
 const customComponents: Components = {
   table: ({ children }) => (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm">
-        {children}
-      </table>
+    <div className="table-wrapper overflow-x-auto">
+      <table>{children}</table>
     </div>
-  ),
-  th: ({ children }) => (
-    <th className="border border-border bg-surface px-3 py-2 text-left font-medium text-text">
-      {children}
-    </th>
-  ),
-  td: ({ children }) => (
-    <td className="border border-border px-3 py-2 text-text align-top">
-      {children}
-    </td>
   ),
 };
 
@@ -42,7 +31,7 @@ function SyncMarkdownContent({
   return (
     <div className={className}>
       <ReactMarkdown
-        remarkPlugins={[[remarkMath, { singleDollarTextMath: true }]]}
+        remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
         rehypePlugins={[rehypeKatex]}
         components={customComponents}
       >

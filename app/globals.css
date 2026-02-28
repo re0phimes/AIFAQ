@@ -49,11 +49,11 @@ body {
 
 .answer-wrapper > div {
   overflow: hidden;
+  min-height: 0;
 }
 
-/* Expanded answer: independent scroll on long content */
+/* Expanded answer: independent scroll only for very long content */
 .answer-scroll {
-  max-height: 60vh;
   overflow-y: auto;
 }
 
@@ -144,7 +144,6 @@ body {
   padding: 0.5em 0.75em !important;
   text-align: left !important;
   vertical-align: top !important;
-  min-width: 120px;
 }
 
 .prose th {
@@ -198,10 +197,6 @@ body {
 @media (max-width: 767px) {
   .faq-item-enter {
     animation-delay: 0ms !important;
-  }
-
-  .answer-scroll {
-    max-height: 50vh;
   }
 }
 

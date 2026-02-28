@@ -101,12 +101,23 @@ function FAQItem({
   const [showDownvotePanel, setShowDownvotePanel] = useState(false);
   const [detailedOverride, setDetailedOverride] = useState<boolean | null>(null);
   const [mounted, setMounted] = useState(false);
+  // Lazy render: mount content on open, unmount after collapse animation
+  const [shouldRender, setShouldRender] = useState(isOpen);
   const detailed = detailedOverride ?? globalDetailed;
   const hasTimelinessWarning = (item.downvoteCount ?? 0) >= 3;
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+    } else {
+      const timer = setTimeout(() => setShouldRender(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   return (
     <article
@@ -197,6 +208,7 @@ function FAQItem({
 
       <div className={`answer-wrapper ${isOpen ? "open" : ""}`}>
         <div>
+          {shouldRender && (
           <div className={`answer-scroll px-4 pb-4 ${
             showCheckbox ? "pl-10 md:pl-14" : "pl-4 md:pl-5"
           }`}>
@@ -336,6 +348,7 @@ function FAQItem({
               />
             )}
           </div>
+          )}
         </div>
       </div>
     </article>
