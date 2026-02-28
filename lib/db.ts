@@ -208,6 +208,65 @@ export async function createFaqItem(
   return rowToFaqItem(result.rows[0]);
 }
 
+export interface DBFaqVersion {
+  id: number;
+  faq_id: number;
+  version: number;
+  answer: string;
+  answer_brief: string | null;
+  answer_en: string | null;
+  answer_brief_en: string | null;
+  change_reason: string | null;
+  created_at: Date;
+}
+
+export async function createVersion(
+  faqId: number,
+  version: number,
+  data: { answer: string; answer_brief?: string | null; answer_en?: string | null; answer_brief_en?: string | null; change_reason?: string | null }
+): Promise<number> {
+  await ensureSchema();
+  const result = await sql`
+    INSERT INTO faq_versions (faq_id, version, answer, answer_brief, answer_en, answer_brief_en, change_reason)
+    VALUES (${faqId}, ${version}, ${data.answer}, ${data.answer_brief ?? null}, ${data.answer_en ?? null}, ${data.answer_brief_en ?? null}, ${data.change_reason ?? null})
+    RETURNING id
+  `;
+  return result.rows[0].id as number;
+}
+
+export async function getVersionsByFaqId(faqId: number): Promise<DBFaqVersion[]> {
+  await ensureSchema();
+  const result = await sql`
+    SELECT * FROM faq_versions WHERE faq_id = ${faqId} ORDER BY version DESC
+  `;
+  return result.rows.map(row => ({
+    id: row.id as number,
+    faq_id: row.faq_id as number,
+    version: row.version as number,
+    answer: row.answer as string,
+    answer_brief: (row.answer_brief as string | null) ?? null,
+    answer_en: (row.answer_en as string | null) ?? null,
+    answer_brief_en: (row.answer_brief_en as string | null) ?? null,
+    change_reason: (row.change_reason as string | null) ?? null,
+    created_at: new Date(row.created_at as string),
+  }));
+}
+
+export async function getVersionVoteCounts(versionId: number): Promise<{ upvote_count: number; downvote_count: number }> {
+  await ensureSchema();
+  const result = await sql`
+    SELECT
+      COALESCE(SUM(CASE WHEN vote_type = 'upvote' THEN weight ELSE 0 END), 0) as upvote_count,
+      COALESCE(SUM(CASE WHEN vote_type = 'downvote' THEN weight ELSE 0 END), 0) as downvote_count
+    FROM faq_votes
+    WHERE version_id = ${versionId}
+  `;
+  return {
+    upvote_count: Number(result.rows[0].upvote_count),
+    downvote_count: Number(result.rows[0].downvote_count),
+  };
+}
+
 export async function updateFaqStatus(
   id: number,
   status: string,
@@ -224,9 +283,21 @@ export async function updateFaqStatus(
     images?: FAQImage[];
     reviewed_at?: Date;
     reviewed_by?: string;
+    change_reason?: string;
   }
 ): Promise<void> {
   if (data?.answer !== undefined) {
+    const current = await getFaqItemById(id);
+    if (current?.answer) {
+      await createVersion(id, current.current_version, {
+        answer: current.answer,
+        answer_brief: current.answer_brief,
+        answer_en: current.answer_en,
+        answer_brief_en: current.answer_brief_en,
+        change_reason: data.change_reason,
+      });
+    }
+    const newVersion = (current?.current_version ?? 1) + 1;
     const tagsLiteral = `{${(data.tags ?? []).map((t) => `"${t}"`).join(",")}}`;
     const categoriesLiteral = `{${(data.categories ?? []).map((c) => `"${c}"`).join(",")}}`;
     await sql`
@@ -242,6 +313,8 @@ export async function updateFaqStatus(
           question_en = ${data.question_en ?? null},
           images = ${JSON.stringify(data.images ?? [])}::jsonb,
           error_message = NULL,
+          current_version = ${newVersion},
+          last_updated_at = NOW(),
           updated_at = NOW()
       WHERE id = ${id}
     `;

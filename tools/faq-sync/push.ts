@@ -83,7 +83,7 @@ async function push(): Promise<void> {
     }
 
     // Archive old version
-    const oldVersion = (dbItem as Record<string, unknown>).current_version as number ?? 1;
+    const oldVersion = dbItem.current_version ?? 1;
     const newVersion = oldVersion + 1;
 
     if (DRY_RUN) {
