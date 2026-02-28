@@ -24,6 +24,8 @@ export default async function Home() {
       upvoteCount: item.upvote_count,
       downvoteCount: item.downvote_count,
       difficulty: item.difficulty,
+      currentVersion: item.current_version,
+      lastUpdatedAt: item.last_updated_at?.toISOString(),
     }));
   } catch {
     // DB not available — empty list fallback

@@ -50,6 +50,8 @@ const labels = {
   unfavorite: { zh: "取消收藏", en: "Unfavorite" },
   myFavorites: { zh: "我的收藏", en: "My Favorites" },
   verifiedVote: { zh: "已认证用户投票", en: "Verified user vote" },
+  updated: { zh: "已更新", en: "Updated" },
+  viewHistory: { zh: "查看历史版本", en: "View answer history" },
 } as const;
 
 export function t(key: keyof typeof labels, lang: Lang): string {

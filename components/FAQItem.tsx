@@ -111,6 +111,8 @@ function FAQItem({
   const [shouldRender, setShouldRender] = useState(isOpen);
   const detailed = detailedOverride ?? globalDetailed;
   const hasTimelinessWarning = (item.downvoteCount ?? 0) >= 3;
+  const isRecentlyUpdated = item.currentVersion && item.currentVersion > 1 && item.lastUpdatedAt &&
+    (Date.now() - new Date(item.lastUpdatedAt).getTime()) < 30 * 24 * 60 * 60 * 1000;
 
   useEffect(() => {
     setMounted(true);
@@ -176,11 +178,30 @@ function FAQItem({
                   {t("pendingUpdate", lang)}
                 </span>
               )}
+              {isRecentlyUpdated && (
+                <span className="ml-1.5 inline-block rounded bg-blue-100
+                  px-1.5 py-0.5 align-middle text-[10px] text-blue-700
+                  dark:bg-blue-900/30 dark:text-blue-300">
+                  {t("updated", lang)}
+                </span>
+              )}
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <span className="text-[11px] text-subtext md:text-xs">
                 {item.date}
               </span>
+              {item.currentVersion && item.currentVersion > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // TODO: implement version history modal
+                  }}
+                  className="text-[11px] text-subtext hover:text-primary md:text-xs"
+                  title={t("viewHistory", lang)}
+                >
+                  v{item.currentVersion}
+                </button>
+              )}
               {item.tags.map((tag) => (
                 <span
                   key={tag}
