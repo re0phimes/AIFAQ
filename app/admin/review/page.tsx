@@ -48,6 +48,16 @@ const STATUS_COLORS: Record<FaqStatus, string> = {
   failed: "bg-red-500",
 };
 
+const STATUS_BADGE_STYLES: Record<FaqStatus, string> = {
+  published: "bg-green-100 text-green-700",
+  ready: "bg-green-100 text-green-700",
+  review: "bg-amber-100 text-amber-700",
+  rejected: "bg-red-50 text-red-500",
+  failed: "bg-red-100 text-red-600",
+  processing: "bg-blue-100 text-blue-600 animate-pulse",
+  pending: "bg-gray-100 text-gray-600",
+};
+
 const FILTER_TABS = [
   { key: "all", label: "全部" },
   { key: "review", label: "待审核" },
@@ -62,6 +72,8 @@ export default function ReviewPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [previewTab, setPreviewTab] = useState<"raw" | "brief" | "detailed" | "en">("detailed");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchItems = useCallback(async () => {
     const res = await fetch("/api/admin/faq");
@@ -69,18 +81,20 @@ export default function ReviewPage() {
       const data = await res.json();
       setItems(data);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
 
+  const shouldPoll = items.some((i) => i.status === "pending" || i.status === "processing");
+
   useEffect(() => {
-    const hasPending = items.some((i) => i.status === "pending" || i.status === "processing");
-    if (!hasPending) return;
+    if (!shouldPoll) return;
     const timer = setInterval(fetchItems, 5000);
     return () => clearInterval(timer);
-  }, [items, fetchItems]);
+  }, [shouldPoll, fetchItems]);
 
   const stats = useMemo(() => {
     const counts: Record<string, number> = { all: items.length };
@@ -115,12 +129,23 @@ export default function ReviewPage() {
   );
 
   async function handleAction(id: number, action: "publish" | "reject" | "unpublish" | "retry") {
-    await fetch(`/api/admin/faq/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
-    });
-    fetchItems();
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/admin/faq/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert(body.error ?? `操作失败 (${res.status})`);
+      }
+    } catch {
+      alert("网络错误，请重试");
+    } finally {
+      setActionLoading(false);
+      fetchItems();
+    }
   }
 
   function formatDate(dateStr: string) {
@@ -161,7 +186,10 @@ export default function ReviewPage() {
             />
           </div>
           <div className="flex-1 overflow-y-auto">
-            {filteredItems.length === 0 && (
+            {loading && (
+              <p className="p-4 text-center text-sm text-[var(--color-subtext)]">加载中...</p>
+            )}
+            {!loading && filteredItems.length === 0 && (
               <p className="p-4 text-center text-sm text-[var(--color-subtext)]">暂无匹配项</p>
             )}
             {filteredItems.map((item) => (
@@ -212,43 +240,31 @@ export default function ReviewPage() {
                       </p>
                     )}
                   </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    selectedItem.status === "published" || selectedItem.status === "ready"
-                      ? "bg-green-100 text-green-700"
-                      : selectedItem.status === "review"
-                      ? "bg-amber-100 text-amber-700"
-                      : selectedItem.status === "rejected"
-                      ? "bg-red-50 text-red-500"
-                      : selectedItem.status === "failed"
-                      ? "bg-red-100 text-red-600"
-                      : selectedItem.status === "processing"
-                      ? "bg-blue-100 text-blue-600 animate-pulse"
-                      : "bg-gray-100 text-gray-600"
-                  }`}>
+                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE_STYLES[selectedItem.status]}`}>
                     {STATUS_LABELS[selectedItem.status]}
                   </span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {selectedItem.status === "review" && (
                     <>
-                      <button onClick={() => handleAction(selectedItem.id, "publish")}
+                      <button onClick={() => handleAction(selectedItem.id, "publish")} disabled={actionLoading}
                         className="rounded-lg bg-green-600 px-3 py-1.5 text-xs text-white hover:bg-green-700">
                         发布
                       </button>
-                      <button onClick={() => handleAction(selectedItem.id, "reject")}
+                      <button onClick={() => handleAction(selectedItem.id, "reject")} disabled={actionLoading}
                         className="rounded-lg bg-red-50 px-3 py-1.5 text-xs text-red-600 hover:bg-red-100">
                         退回
                       </button>
                     </>
                   )}
                   {(selectedItem.status === "published" || selectedItem.status === "ready") && (
-                    <button onClick={() => handleAction(selectedItem.id, "unpublish")}
+                    <button onClick={() => handleAction(selectedItem.id, "unpublish")} disabled={actionLoading}
                       className="rounded-lg bg-amber-50 px-3 py-1.5 text-xs text-amber-700 hover:bg-amber-100">
                       下架
                     </button>
                   )}
                   {(selectedItem.status === "failed" || selectedItem.status === "rejected") && (
-                    <button onClick={() => handleAction(selectedItem.id, "retry")}
+                    <button onClick={() => handleAction(selectedItem.id, "retry")} disabled={actionLoading}
                       className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs text-blue-600 hover:bg-blue-100">
                       重新分析
                     </button>
