@@ -28,15 +28,24 @@ export async function PATCH(
 
   // Review workflow actions
   if (body.action === "publish") {
-    await updateFaqStatus(numId, "published");
+    await updateFaqStatus(numId, "published", {
+      reviewed_at: new Date(),
+      reviewed_by: "admin",
+    });
     return NextResponse.json({ ok: true });
   }
   if (body.action === "reject") {
-    await updateFaqStatus(numId, "rejected");
+    await updateFaqStatus(numId, "rejected", {
+      reviewed_at: new Date(),
+      reviewed_by: "admin",
+    });
     return NextResponse.json({ ok: true });
   }
   if (body.action === "unpublish") {
-    await updateFaqStatus(numId, "review");
+    await updateFaqStatus(numId, "review", {
+      reviewed_at: new Date(),
+      reviewed_by: "admin",
+    });
     return NextResponse.json({ ok: true });
   }
 

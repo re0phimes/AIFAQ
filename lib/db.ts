@@ -150,6 +150,8 @@ export async function updateFaqStatus(
     answer_brief_en?: string;
     question_en?: string;
     images?: FAQImage[];
+    reviewed_at?: Date;
+    reviewed_by?: string;
   }
 ): Promise<void> {
   if (data?.answer !== undefined) {
@@ -168,6 +170,16 @@ export async function updateFaqStatus(
           question_en = ${data.question_en ?? null},
           images = ${JSON.stringify(data.images ?? [])}::jsonb,
           error_message = NULL,
+          updated_at = NOW()
+      WHERE id = ${id}
+    `;
+  } else if (data?.reviewed_at) {
+    await sql`
+      UPDATE faq_items
+      SET status = ${status},
+          reviewed_at = ${data.reviewed_at.toISOString()},
+          reviewed_by = ${data.reviewed_by ?? null},
+          error_message = ${data?.error_message ?? null},
           updated_at = NOW()
       WHERE id = ${id}
     `;
