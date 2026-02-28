@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { sql } from "@vercel/postgres";
 import { initDB } from "@/lib/db";
+import { verifyAdmin } from "@/lib/auth";
 import faqData from "@/data/faq.json";
 import type { FAQItem } from "@/src/types/faq";
 
 export async function POST(): Promise<NextResponse> {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     await initDB();
 
