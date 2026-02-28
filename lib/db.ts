@@ -122,6 +122,33 @@ export async function initDB(): Promise<void> {
   await sql`ALTER TABLE faq_votes ADD COLUMN IF NOT EXISTS reason VARCHAR(50)`;
   await sql`ALTER TABLE faq_votes ADD COLUMN IF NOT EXISTS detail TEXT`;
 
+  // Auth: weight and user_id for logged-in user votes
+  await sql`ALTER TABLE faq_votes ADD COLUMN IF NOT EXISTS weight INTEGER DEFAULT 1`;
+  await sql`ALTER TABLE faq_votes ADD COLUMN IF NOT EXISTS user_id TEXT`;
+
+  // Partial unique: one vote per GitHub user per FAQ
+  await sql`
+    DO $$ BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'faq_votes_user_faq_unique'
+      ) THEN
+        CREATE UNIQUE INDEX faq_votes_user_faq_unique
+        ON faq_votes (faq_id, user_id) WHERE user_id IS NOT NULL;
+      END IF;
+    END $$
+  `;
+
+  // Favorites table
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_favorites (
+      id         SERIAL PRIMARY KEY,
+      user_id    TEXT NOT NULL,
+      faq_id     INTEGER NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, faq_id)
+    )
+  `;
+
   await sql`
     CREATE TABLE IF NOT EXISTS faq_imports (
       id          TEXT PRIMARY KEY,
@@ -312,6 +339,46 @@ export async function castVote(
   return { inserted: true, switched: existing.rows.length > 0 };
 }
 
+export async function castVoteAuth(
+  faqId: number,
+  voteType: string,
+  userId: string,
+  weight: number
+): Promise<{ inserted: boolean; switched: boolean }> {
+  const column = VALID_VOTE_COLUMNS[voteType];
+  if (!column) throw new Error(`Invalid vote type: ${voteType}`);
+
+  const existing = await sql`
+    SELECT vote_type, weight FROM faq_votes
+    WHERE faq_id = ${faqId} AND user_id = ${userId}
+  `;
+
+  if (existing.rows.length > 0) {
+    const oldType = existing.rows[0].vote_type as string;
+    if (oldType === voteType) return { inserted: false, switched: false };
+    const oldColumn = VALID_VOTE_COLUMNS[oldType];
+    const oldWeight = existing.rows[0].weight as number;
+    if (oldColumn) {
+      await sql.query(
+        `UPDATE faq_items SET ${oldColumn} = GREATEST(${oldColumn} - $1, 0) WHERE id = $2`,
+        [oldWeight, faqId]
+      );
+    }
+    await sql`DELETE FROM faq_votes WHERE faq_id = ${faqId} AND user_id = ${userId}`;
+  }
+
+  await sql`
+    INSERT INTO faq_votes (faq_id, vote_type, fingerprint, user_id, weight)
+    VALUES (${faqId}, ${voteType}, ${userId}, ${userId}, ${weight})
+  `;
+  await sql.query(
+    `UPDATE faq_items SET ${column} = ${column} + $1 WHERE id = $2`,
+    [weight, faqId]
+  );
+
+  return { inserted: true, switched: existing.rows.length > 0 };
+}
+
 export async function revokeVote(
   faqId: number,
   fingerprint: string
@@ -330,6 +397,30 @@ export async function revokeVote(
     await sql.query(
       `UPDATE faq_items SET ${column} = GREATEST(${column} - 1, 0) WHERE id = $1`,
       [faqId]
+    );
+  }
+  return true;
+}
+
+export async function revokeVoteAuth(
+  faqId: number,
+  userId: string
+): Promise<boolean> {
+  const existing = await sql`
+    SELECT vote_type, weight FROM faq_votes
+    WHERE faq_id = ${faqId} AND user_id = ${userId}
+  `;
+  if (existing.rows.length === 0) return false;
+
+  const voteType = existing.rows[0].vote_type as string;
+  const weight = existing.rows[0].weight as number;
+  const column = VALID_VOTE_COLUMNS[voteType];
+
+  await sql`DELETE FROM faq_votes WHERE faq_id = ${faqId} AND user_id = ${userId}`;
+  if (column) {
+    await sql.query(
+      `UPDATE faq_items SET ${column} = GREATEST(${column} - $1, 0) WHERE id = $2`,
+      [weight, faqId]
     );
   }
   return true;
@@ -369,6 +460,30 @@ export async function getVoteCounts(
     else if (type === "downvote") entry.downvote = row.count as number;
   }
   return map;
+}
+
+export async function toggleFavorite(
+  userId: string,
+  faqId: number
+): Promise<boolean> {
+  await ensureSchema();
+  const existing = await sql`
+    SELECT id FROM user_favorites WHERE user_id = ${userId} AND faq_id = ${faqId}
+  `;
+  if (existing.rows.length > 0) {
+    await sql`DELETE FROM user_favorites WHERE user_id = ${userId} AND faq_id = ${faqId}`;
+    return false;
+  }
+  await sql`INSERT INTO user_favorites (user_id, faq_id) VALUES (${userId}, ${faqId})`;
+  return true;
+}
+
+export async function getUserFavorites(userId: string): Promise<number[]> {
+  await ensureSchema();
+  const result = await sql`
+    SELECT faq_id FROM user_favorites WHERE user_id = ${userId} ORDER BY created_at DESC
+  `;
+  return result.rows.map((r) => r.faq_id as number);
 }
 
 export interface DBImportRecord {
