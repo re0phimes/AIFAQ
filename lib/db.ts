@@ -121,6 +121,20 @@ export async function initDB(): Promise<void> {
 
   await sql`ALTER TABLE faq_votes ADD COLUMN IF NOT EXISTS reason VARCHAR(50)`;
   await sql`ALTER TABLE faq_votes ADD COLUMN IF NOT EXISTS detail TEXT`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS faq_imports (
+      id          TEXT PRIMARY KEY,
+      filename    TEXT NOT NULL,
+      file_type   VARCHAR(10) NOT NULL,
+      status      VARCHAR(20) DEFAULT 'pending',
+      total_qa    INTEGER DEFAULT 0,
+      passed_qa   INTEGER DEFAULT 0,
+      error_msg   TEXT,
+      created_at  TIMESTAMPTZ DEFAULT NOW(),
+      updated_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
 }
 
 export async function createFaqItem(
@@ -355,4 +369,77 @@ export async function getVoteCounts(
     else if (type === "downvote") entry.downvote = row.count as number;
   }
   return map;
+}
+
+export interface DBImportRecord {
+  id: string;
+  filename: string;
+  file_type: string;
+  status: string;
+  total_qa: number;
+  passed_qa: number;
+  error_msg: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export async function createImportRecord(
+  id: string,
+  filename: string,
+  fileType: string
+): Promise<DBImportRecord> {
+  await ensureSchema();
+  const result = await sql`
+    INSERT INTO faq_imports (id, filename, file_type)
+    VALUES (${id}, ${filename}, ${fileType})
+    RETURNING *
+  `;
+  return rowToImport(result.rows[0]);
+}
+
+export async function updateImportStatus(
+  id: string,
+  status: string,
+  data?: { total_qa?: number; passed_qa?: number; error_msg?: string }
+): Promise<void> {
+  if (data?.total_qa !== undefined || data?.passed_qa !== undefined) {
+    await sql`
+      UPDATE faq_imports
+      SET status = ${status},
+          total_qa = ${data.total_qa ?? 0},
+          passed_qa = ${data.passed_qa ?? 0},
+          error_msg = ${data.error_msg ?? null},
+          updated_at = NOW()
+      WHERE id = ${id}
+    `;
+  } else {
+    await sql`
+      UPDATE faq_imports
+      SET status = ${status},
+          error_msg = ${data?.error_msg ?? null},
+          updated_at = NOW()
+      WHERE id = ${id}
+    `;
+  }
+}
+
+export async function getImportRecord(id: string): Promise<DBImportRecord | null> {
+  await ensureSchema();
+  const result = await sql`SELECT * FROM faq_imports WHERE id = ${id}`;
+  if (result.rows.length === 0) return null;
+  return rowToImport(result.rows[0]);
+}
+
+function rowToImport(row: Record<string, unknown>): DBImportRecord {
+  return {
+    id: row.id as string,
+    filename: row.filename as string,
+    file_type: row.file_type as string,
+    status: row.status as string,
+    total_qa: (row.total_qa as number) ?? 0,
+    passed_qa: (row.passed_qa as number) ?? 0,
+    error_msg: row.error_msg as string | null,
+    created_at: new Date(row.created_at as string),
+    updated_at: new Date(row.updated_at as string),
+  };
 }
