@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthStatus } from "@/lib/auth";
+import { verifyAdmin } from "@/lib/auth";
 import { getFaqItemById, updateFaqStatus, getPublishedFaqItems } from "@/lib/db";
 import { analyzeFAQ } from "@/lib/ai";
 import { extractCandidateImages } from "@/lib/image-extractor";
@@ -9,7 +9,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  const authed = await getAuthStatus();
+  const authed = await verifyAdmin(request);
   if (!authed) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;

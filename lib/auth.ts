@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { NextRequest } from "next/server";
 
 const COOKIE_NAME = "admin_token";
 
@@ -37,6 +38,19 @@ export function verifyPassword(password: string): boolean {
   const expected = process.env.ADMIN_PASSWORD;
   if (!expected) throw new Error("ADMIN_PASSWORD is not set");
   return password === expected;
+}
+
+export async function verifyAdmin(request: NextRequest): Promise<boolean> {
+  // Method 1: Bearer API Key
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const key = authHeader.slice(7);
+    const expected = process.env.ADMIN_API_KEY;
+    if (!expected) return false;
+    return key === expected;
+  }
+  // Method 2: Cookie JWT (existing)
+  return getAuthStatus();
 }
 
 export { COOKIE_NAME };
