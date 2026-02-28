@@ -31,6 +31,8 @@ export interface DBFaqItem {
   error_message: string | null;
   created_at: Date;
   updated_at: Date;
+  reviewed_at: Date | null;
+  reviewed_by: string | null;
 }
 
 export async function initDB(): Promise<void> {
@@ -61,6 +63,10 @@ export async function initDB(): Promise<void> {
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS answer_brief_en TEXT`;
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS question_en TEXT`;
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'`;
+
+  // Review tracking columns
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS reviewed_by TEXT`;
 
   // Migrate legacy 'ready' status to 'published'
   await sql`UPDATE faq_items SET status = 'published' WHERE status = 'ready'`;
@@ -227,6 +233,8 @@ function rowToFaqItem(row: Record<string, unknown>): DBFaqItem {
     error_message: row.error_message as string | null,
     created_at: new Date(row.created_at as string),
     updated_at: new Date(row.updated_at as string),
+    reviewed_at: row.reviewed_at ? new Date(row.reviewed_at as string) : null,
+    reviewed_by: (row.reviewed_by as string | null) ?? null,
   };
 }
 
