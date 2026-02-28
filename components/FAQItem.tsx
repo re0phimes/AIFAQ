@@ -314,8 +314,8 @@ function FAQItem({
                   <span className="font-mono text-[10px]">{item.upvoteCount}</span>
                 )}
                 {isAuthenticated && currentVote === "upvote" && (
-                  <svg className="h-3 w-3 text-green-600" fill="currentColor" viewBox="0 0 20 20"
-                    title="已认证用户投票">
+                  <svg className="h-3 w-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <title>已认证用户投票</title>
                     <path fillRule="evenodd" d="M16.403 12.652a3 3 0 010-5.304 3 3 0 00-2.108-2.108 3 3 0 01-5.304 0 3 3 0 00-2.108 2.108 3 3 0 010 5.304 3 3 0 002.108 2.108 3 3 0 015.304 0 3 3 0 002.108-2.108zM11 12.5l-2-2 1-1 1 1 3-3 1 1-4 4z" clipRule="evenodd" />
                   </svg>
                 )}
