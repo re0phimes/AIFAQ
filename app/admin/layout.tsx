@@ -3,7 +3,6 @@
 import { SessionProvider, useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 
 const NAV_ITEMS = [
   { href: "/admin/review", label: "审批管理" },
@@ -40,12 +39,10 @@ function AdminNav({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-3">
             {session?.user?.image && (
-              <Image
+              <img
                 src={session.user.image}
                 alt=""
-                width={28}
-                height={28}
-                className="rounded-full"
+                className="h-7 w-7 rounded-full"
               />
             )}
             <span className="text-sm text-[var(--color-subtext)]">
