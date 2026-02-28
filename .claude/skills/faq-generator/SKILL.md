@@ -55,7 +55,8 @@ QA 对列表，每个包含：
 1. 读取指定 JSON 文件，获取当前 `question` 和 `answer`
 2. 读取 `_report.json` 中该条目的评分和改进建议
 3. 根据建议改进内容，重点修复低分维度
-4. 将改进后的内容写回同一 JSON 文件
+4. **不要直接用 Write 工具写 JSON 文件**——必须通过 Node.js 脚本构建 JS 对象，用 `JSON.stringify` 序列化后写入，确保 LaTeX 公式中的 `$`、`\` 等字符被正确转义
+5. 写入后用 `node -e "JSON.parse(require('fs').readFileSync('path','utf-8'))"` 验证 JSON 有效性
 
 ### 改写规则
 
