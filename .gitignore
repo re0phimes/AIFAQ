@@ -46,4 +46,5 @@ next-env.d.ts
 
 # generated data
 data/faq.json
+data/faq-sync/
 .env*.local
