@@ -70,6 +70,7 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
   const [pageSize, setPageSize] = useState(loadPageSize);
   const [sortMode, setSortMode] = useState<SortMode>("default");
   const [globalDetailed, setGlobalDetailed] = useState(false);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
   // Modal state removed - now managed by parent (FAQPage)
   const lastScrollY = useRef(0);
@@ -156,6 +157,12 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
   // Filter logic
   const filtered = useMemo(() => {
     let result = items;
+
+    // Favorites filter
+    if (showFavoritesOnly && favorites) {
+      result = result.filter((item) => favorites.has(item.id));
+    }
+
     const q = searchQuery.trim().toLowerCase();
 
     if (q) {
@@ -200,7 +207,7 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
     }
 
     return result;
-  }, [items, searchQuery, searchMode, selectedTags, selectedCategories, categoryTagsMap]);
+  }, [items, searchQuery, searchMode, selectedTags, selectedCategories, categoryTagsMap, showFavoritesOnly, favorites]);
 
   // Sort logic
   const sorted = useMemo(() => {
@@ -221,7 +228,7 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
   // Reset page on filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, searchMode, selectedTags, selectedCategories, sortMode]);
+  }, [searchQuery, searchMode, selectedTags, selectedCategories, sortMode, showFavoritesOnly]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
@@ -425,6 +432,20 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
             >
               {compareMode ? t("exitCompare", lang) : t("compare", lang)}
             </button>
+            {session?.user && (
+              <button
+                onClick={() => setShowFavoritesOnly((v) => !v)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium
+                  transition-colors ${
+                    showFavoritesOnly
+                      ? "bg-amber-500 text-white"
+                      : "border-[0.5px] border-border text-subtext hover:bg-surface"
+                  }`}
+              >
+                <span className="mr-1">★</span>
+                {t("myFavorites", lang)}
+              </button>
+            )}
             <button
               onClick={handleExpandAll}
               className="rounded-full border-[0.5px] border-border px-3 py-1.5
