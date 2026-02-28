@@ -1,4 +1,4 @@
-import FAQList from "@/components/FAQList";
+import FAQPage from "./FAQPage";
 import { getPublishedFaqItems } from "@/lib/db";
 import type { FAQItem } from "@/src/types/faq";
 
@@ -29,5 +29,5 @@ export default async function Home() {
     // DB not available — empty list fallback
   }
 
-  return <FAQList items={items} />;
+  return <FAQPage items={items} />;
 }

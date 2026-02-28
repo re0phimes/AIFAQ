@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
+import { useState, useEffect, memo } from "react";
+import MarkdownContent from "./MarkdownContent";
 import ReferenceList from "./ReferenceList";
 import type { FAQItem as FAQItemType, VoteType } from "@/src/types/faq";
 import { t, getDownvoteReasons, translateTag } from "@/lib/i18n";
@@ -15,11 +13,12 @@ interface FAQItemProps {
   isOpen: boolean;
   isSelected: boolean;
   showCheckbox: boolean;
-  onToggle: () => void;
-  onSelect: () => void;
-  onVote: (type: VoteType, reason?: string, detail?: string) => void;
-  onRevokeVote: () => void;
+  onToggle: (id: number) => void;
+  onSelect: (id: number) => void;
+  onVote: (id: number, type: VoteType, reason?: string, detail?: string) => void;
+  onRevokeVote: (id: number) => void;
   currentVote: VoteType | null;
+  onOpenModal?: (item: FAQItemType) => void;
 }
 
 function DownvotePanel({
@@ -85,7 +84,7 @@ function DownvotePanel({
   );
 }
 
-export default function FAQItem({
+function FAQItem({
   item,
   lang = "zh",
   globalDetailed = false,
@@ -97,11 +96,17 @@ export default function FAQItem({
   onVote,
   onRevokeVote,
   currentVote,
+  onOpenModal,
 }: FAQItemProps) {
   const [showDownvotePanel, setShowDownvotePanel] = useState(false);
   const [detailedOverride, setDetailedOverride] = useState<boolean | null>(null);
+  const [mounted, setMounted] = useState(false);
   const detailed = detailedOverride ?? globalDetailed;
   const hasTimelinessWarning = (item.downvoteCount ?? 0) >= 3;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <article
@@ -124,7 +129,7 @@ export default function FAQItem({
             <input
               type="checkbox"
               checked={isSelected}
-              onChange={onSelect}
+              onChange={() => onSelect(item.id)}
               className="h-4 w-4 cursor-pointer rounded border-border
                 accent-primary"
             />
@@ -133,7 +138,7 @@ export default function FAQItem({
 
         {/* Question button */}
         <button
-          onClick={onToggle}
+          onClick={() => onToggle(item.id)}
           className={`flex min-w-0 flex-1 items-start gap-3 py-3 pr-4
             text-left hover:bg-surface/30 md:gap-4 md:py-4 md:pr-5 ${
               showCheckbox ? "" : "pl-4 md:pl-5"
@@ -208,7 +213,14 @@ export default function FAQItem({
                   {t("brief", lang)}
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setDetailedOverride(true); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onOpenModal) {
+                      onOpenModal(item);
+                    } else {
+                      setDetailedOverride(true);
+                    }
+                  }}
                   className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
                     detailed
                       ? "bg-primary text-white"
@@ -219,26 +231,21 @@ export default function FAQItem({
                 </button>
               </div>
             )}
-            <div className="prose prose-sm max-w-none text-text
-              [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5
-              [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm
-              [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:p-4
-              [&_pre_code]:bg-transparent [&_pre_code]:p-0
-              [&_.katex-display]:overflow-x-auto
-              [&_.katex-display]:py-2"
-            >
-              <ReactMarkdown
-                remarkPlugins={[[remarkMath, { singleDollarTextMath: true }]]}
-                rehypePlugins={[rehypeKatex]}
-              >
-                {detailed
-                  ? (lang === "en" && item.answerEn ? item.answerEn : item.answer)
-                  : (lang === "en" && item.answerBriefEn
-                      ? item.answerBriefEn
-                      : (item.answerBrief ?? item.answer))}
-              </ReactMarkdown>
-            </div>
-            {detailed && item.images && item.images.length > 0 && (
+            <MarkdownContent
+              className="prose prose-sm max-w-none text-text
+                [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5
+                [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm
+                [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:p-4
+                [&_pre_code]:bg-transparent [&_pre_code]:p-0
+                [&_.katex-display]:overflow-x-auto
+                [&_.katex-display]:py-2"
+              content={detailed
+                ? (lang === "en" && item.answerEn ? item.answerEn : item.answer)
+                : (lang === "en" && item.answerBriefEn
+                    ? item.answerBriefEn
+                    : (item.answerBrief ?? item.answer))}
+            />
+            {mounted && detailed && item.images && item.images.length > 0 && (
               <div className="mt-4 space-y-3">
                 {item.images.map((img, i) => (
                   <figure key={i} className="overflow-hidden rounded-lg border-[0.5px] border-border">
@@ -267,9 +274,9 @@ export default function FAQItem({
                 onClick={(e) => {
                   e.stopPropagation();
                   if (currentVote === "upvote") {
-                    onRevokeVote();
+                    onRevokeVote(item.id);
                   } else {
-                    onVote("upvote");
+                    onVote(item.id, "upvote");
                   }
                 }}
                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1
@@ -294,7 +301,7 @@ export default function FAQItem({
                 onClick={(e) => {
                   e.stopPropagation();
                   if (currentVote === "downvote") {
-                    onRevokeVote();
+                    onRevokeVote(item.id);
                     setShowDownvotePanel(false);
                   } else {
                     setShowDownvotePanel((v) => !v);
@@ -322,7 +329,7 @@ export default function FAQItem({
               <DownvotePanel
                 lang={lang}
                 onSubmit={(reason, detail) => {
-                  onVote("downvote", reason, detail);
+                  onVote(item.id, "downvote", reason, detail);
                   setShowDownvotePanel(false);
                 }}
                 onCancel={() => setShowDownvotePanel(false)}
@@ -334,3 +341,5 @@ export default function FAQItem({
     </article>
   );
 }
+
+export default memo(FAQItem);

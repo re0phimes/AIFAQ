@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
+import MarkdownContent from "./MarkdownContent";
 import ReferenceList from "./ReferenceList";
 import type { FAQItem } from "@/src/types/faq";
 import { t, translateTag, itemsCount } from "@/lib/i18n";
@@ -245,25 +243,20 @@ export default function ReadingView({
                       </button>
                     </div>
                   )}
-                  <div className="prose prose-sm max-w-none text-text
-                    [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5
-                    [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm
-                    [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:p-4
-                    [&_pre_code]:bg-transparent [&_pre_code]:p-0
-                    [&_.katex-display]:overflow-x-auto
-                    [&_.katex-display]:py-2"
-                  >
-                    <ReactMarkdown
-                      remarkPlugins={[[remarkMath, { singleDollarTextMath: true }]]}
-                      rehypePlugins={[rehypeKatex]}
-                    >
-                      {isDetailed(item.id)
-                        ? (lang === "en" && item.answerEn ? item.answerEn : item.answer)
-                        : (lang === "en" && item.answerBriefEn
-                            ? item.answerBriefEn
-                            : (item.answerBrief ?? item.answer))}
-                    </ReactMarkdown>
-                  </div>
+                  <MarkdownContent
+                    className="prose prose-sm max-w-none text-text
+                      [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5
+                      [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm
+                      [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:p-4
+                      [&_pre_code]:bg-transparent [&_pre_code]:p-0
+                      [&_.katex-display]:overflow-x-auto
+                      [&_.katex-display]:py-2"
+                    content={isDetailed(item.id)
+                      ? (lang === "en" && item.answerEn ? item.answerEn : item.answer)
+                      : (lang === "en" && item.answerBriefEn
+                          ? item.answerBriefEn
+                          : (item.answerBrief ?? item.answer))}
+                  />
                   {isDetailed(item.id) && item.images && item.images.length > 0 && (
                     <div className="mt-4 space-y-3 print:hidden">
                       {item.images.map((img, i) => (

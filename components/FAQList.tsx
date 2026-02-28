@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef, useTransition } from "react";
 import SearchBar, { type SearchMode } from "./SearchBar";
 import TagFilter from "./TagFilter";
 import FAQItem from "./FAQItem";
@@ -26,6 +26,7 @@ const DIFFICULTY_ORDER: Record<string, number> = {
 
 interface FAQListProps {
   items: FAQItemType[];
+  onOpenItem?: (item: FAQItemType) => void;
 }
 
 const LS_KEY = "aifaq-selected";
@@ -69,7 +70,7 @@ function saveVotedMap(map: Map<number, VoteType>): void {
   localStorage.setItem(LS_VOTED, JSON.stringify(obj));
 }
 
-export default function FAQList({ items }: FAQListProps) {
+export default function FAQList({ items, onOpenItem }: FAQListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMode, setSearchMode] = useState<SearchMode>("combined");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -84,20 +85,36 @@ export default function FAQList({ items }: FAQListProps) {
   const [fingerprint, setFingerprint] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("default");
   const [lang, setLang] = useState<"zh" | "en">("zh");
-  const [globalDetailed, setGlobalDetailed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem(LS_GLOBAL_DETAILED) === "true";
-  });
+  const [globalDetailed, setGlobalDetailed] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
+  // Modal state removed - now managed by parent (FAQPage)
+  const [isPending, startTransition] = useTransition();
   const lastScrollY = useRef(0);
 
-  // Load fingerprint
+  // Refs for stable callbacks - avoid re-creating functions on every render
+  const itemsRef = useRef(items);
+  const votedMapRef = useRef(votedMap);
+  const fingerprintRef = useRef(fingerprint);
+  const globalDetailedRef = useRef(globalDetailed);
+
+  // Sync refs with state
+  useEffect(() => { itemsRef.current = items; }, [items]);
+  useEffect(() => { votedMapRef.current = votedMap; }, [votedMap]);
+  useEffect(() => { fingerprintRef.current = fingerprint; }, [fingerprint]);
+  useEffect(() => { globalDetailedRef.current = globalDetailed; }, [globalDetailed]);
+
+  // Load fingerprint and globalDetailed from localStorage on client
   useEffect(() => {
     import("@fingerprintjs/fingerprintjs").then((FP) =>
       FP.load().then((fp) =>
         fp.get().then((r) => setFingerprint(r.visitorId))
       )
     );
+    // Load globalDetailed from localStorage
+    const saved = localStorage.getItem(LS_GLOBAL_DETAILED);
+    if (saved !== null) {
+      setGlobalDetailed(saved === "true");
+    }
   }, []);
 
   // Restore votes from server when fingerprint is available
@@ -119,16 +136,29 @@ export default function FAQList({ items }: FAQListProps) {
       .catch(() => { /* network error, use localStorage fallback */ });
   }, [fingerprint]);
 
-  // Hide header on scroll down, show on scroll up
+  // Hide header on scroll down, show on scroll up, or when tab is open
+  // 使用 ref 避免频繁重新订阅 scroll 事件
+  const openItemsSizeRef = useRef(openItems.size);
+
+  useEffect(() => {
+    openItemsSizeRef.current = openItems.size;
+  }, [openItems.size]);
+
   useEffect(() => {
     const THRESHOLD = 10;
     function handleScroll() {
       const currentY = window.scrollY;
       if (Math.abs(currentY - lastScrollY.current) < THRESHOLD) return;
-      setHeaderVisible(currentY < lastScrollY.current || currentY < 80);
+      // Hide header if: scrolling down, or any tab is open
+      const shouldHide =
+        (currentY > lastScrollY.current && currentY > 80) ||
+        openItemsSizeRef.current > 0;
+      setHeaderVisible(!shouldHide);
       lastScrollY.current = currentY;
     }
     window.addEventListener("scroll", handleScroll, { passive: true });
+    // Initial check
+    handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -269,23 +299,32 @@ export default function FAQList({ items }: FAQListProps) {
     );
   }
 
-  function handleToggleItem(id: number): void {
+  const handleToggleItem = useCallback((id: number): void => {
+    // Detailed mode: directly open modal, don't expand tab
+    if (globalDetailedRef.current) {
+      const item = itemsRef.current.find((i) => i.id === id);
+      if (item && onOpenItem) {
+        onOpenItem(item);
+      }
+      return;
+    }
+    // Brief mode: toggle tab expansion
     setOpenItems((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  }
+  }, [onOpenItem]);
 
-  function handleToggleSelect(id: number): void {
+  const handleToggleSelect = useCallback((id: number): void => {
     setSelectedItems((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  }
+  }, []);
 
   function handleExpandAll(): void {
     setOpenItems(new Set(paginatedItems.map((item) => item.id)));
@@ -306,8 +345,9 @@ export default function FAQList({ items }: FAQListProps) {
 
   const handleVote = useCallback(
     async (faqId: number, type: VoteType, reason?: string, detail?: string) => {
-      if (!fingerprint) return;
-      const current = votedMap.get(faqId);
+      const fp = fingerprintRef.current;
+      if (!fp) return;
+      const current = votedMapRef.current.get(faqId);
 
       setVotedMap((prev) => {
         const next = new Map(prev);
@@ -320,7 +360,7 @@ export default function FAQList({ items }: FAQListProps) {
         const res = await fetch(`/api/faq/${faqId}/vote`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type, fingerprint, reason, detail }),
+          body: JSON.stringify({ type, fingerprint: fp, reason, detail }),
         });
         if (!res.ok && res.status !== 409) {
           setVotedMap((prev) => {
@@ -341,13 +381,14 @@ export default function FAQList({ items }: FAQListProps) {
         });
       }
     },
-    [fingerprint, votedMap]
+    [] // Stable reference - uses refs internally
   );
 
   const handleRevokeVote = useCallback(
     async (faqId: number) => {
-      if (!fingerprint) return;
-      const current = votedMap.get(faqId);
+      const fp = fingerprintRef.current;
+      if (!fp) return;
+      const current = votedMapRef.current.get(faqId);
 
       setVotedMap((prev) => {
         const next = new Map(prev);
@@ -360,7 +401,7 @@ export default function FAQList({ items }: FAQListProps) {
         const res = await fetch(`/api/faq/${faqId}/vote`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fingerprint }),
+          body: JSON.stringify({ fingerprint: fp }),
         });
         if (!res.ok) {
           setVotedMap((prev) => {
@@ -379,7 +420,7 @@ export default function FAQList({ items }: FAQListProps) {
         });
       }
     },
-    [fingerprint, votedMap]
+    [] // Stable reference - uses refs internally
   );
 
   const handleRemoveFromReading = useCallback((id: number) => {
@@ -576,11 +617,12 @@ export default function FAQList({ items }: FAQListProps) {
                     isOpen={openItems.has(item.id)}
                     isSelected={selectedItems.has(item.id)}
                     showCheckbox={compareMode}
-                    onToggle={() => handleToggleItem(item.id)}
-                    onSelect={() => handleToggleSelect(item.id)}
-                    onVote={(type, reason, detail) => handleVote(item.id, type, reason, detail)}
-                    onRevokeVote={() => handleRevokeVote(item.id)}
+                    onToggle={handleToggleItem}
+                    onSelect={handleToggleSelect}
+                    onVote={handleVote}
+                    onRevokeVote={handleRevokeVote}
                     currentVote={votedMap.get(item.id) ?? null}
+                    onOpenModal={onOpenItem}
                   />
                 </div>
               ))}

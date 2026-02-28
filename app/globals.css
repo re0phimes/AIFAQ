@@ -114,6 +114,86 @@ body {
   color: var(--color-text);
 }
 
+/* Markdown table styles - override prose defaults */
+.prose table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 1em 0 !important;
+  font-size: 0.875rem !important;
+  table-layout: auto !important;
+  display: table !important;
+}
+
+.prose thead {
+  display: table-header-group !important;
+}
+
+.prose tbody {
+  display: table-row-group !important;
+}
+
+.prose tr {
+  display: table-row !important;
+  border: none !important;
+}
+
+.prose th,
+.prose td {
+  display: table-cell !important;
+  border: 1px solid var(--color-border) !important;
+  padding: 0.5em 0.75em !important;
+  text-align: left !important;
+  vertical-align: top !important;
+  min-width: 120px;
+}
+
+.prose th {
+  background: var(--color-surface) !important;
+  font-weight: 500 !important;
+  color: var(--color-text) !important;
+}
+
+.prose tr:nth-child(even) {
+  background: var(--color-surface);
+}
+
+.prose tbody tr:hover {
+  background: var(--color-surface);
+}
+
+/* Prevent inline math from breaking table layout */
+.prose table .katex {
+  font-size: 0.9em;
+  white-space: nowrap;
+  display: inline !important;
+}
+
+.prose table .katex-display {
+  display: inline !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.prose table .katex-html {
+  display: inline !important;
+}
+
+.prose table code {
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+/* Table wrapper for horizontal scroll */
+.prose .table-wrapper {
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.prose .table-wrapper table {
+  margin: 0;
+  min-width: 100%;
+}
+
 /* Mobile: disable stagger animation for performance */
 @media (max-width: 767px) {
   .faq-item-enter {
@@ -122,6 +202,47 @@ body {
 
   .answer-scroll {
     max-height: 50vh;
+  }
+}
+
+/* Modal animations - GPU accelerated */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 150ms ease-out forwards;
+  will-change: opacity;
+}
+
+@keyframes modal-in-fast {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-modal-in-fast {
+  animation: modal-in-fast 150ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+  /* GPU acceleration */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-modal-in-fast,
+  .faq-item-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
