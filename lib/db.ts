@@ -128,14 +128,8 @@ export async function initDB(): Promise<void> {
 
   // Partial unique: one vote per GitHub user per FAQ
   await sql`
-    DO $$ BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'faq_votes_user_faq_unique'
-      ) THEN
-        CREATE UNIQUE INDEX faq_votes_user_faq_unique
-        ON faq_votes (faq_id, user_id) WHERE user_id IS NOT NULL;
-      END IF;
-    END $$
+    CREATE UNIQUE INDEX IF NOT EXISTS faq_votes_user_faq_unique
+    ON faq_votes (faq_id, user_id) WHERE user_id IS NOT NULL
   `;
 
   // Favorites table
