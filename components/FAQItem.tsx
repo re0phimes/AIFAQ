@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import MarkdownContent from "./MarkdownContent";
 import ReferenceList from "./ReferenceList";
 import type { FAQItem as FAQItemType, VoteType } from "@/src/types/faq";
@@ -22,6 +22,117 @@ interface FAQItemProps {
   isFavorited?: boolean;
   onToggleFavorite?: (id: number) => void;
   isAuthenticated?: boolean;
+  userTier?: "free" | "premium";
+}
+
+interface VersionEntry {
+  id: number;
+  version: number;
+  answer: string | null;
+  answer_brief: string | null;
+  change_reason: string | null;
+  votes: { upvote_count: number; downvote_count: number };
+  created_at: string;
+}
+
+function VersionPopover({
+  faqId,
+  lang = "zh",
+  onClose,
+}: {
+  faqId: number;
+  lang?: "zh" | "en";
+  onClose: () => void;
+}) {
+  const [versions, setVersions] = useState<VersionEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch(`/api/faq/${faqId}/versions`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.versions) setVersions(data.versions.slice(0, 3));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [faqId]);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      onClick={(e) => e.stopPropagation()}
+      className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-border bg-panel p-3 shadow-lg md:w-80"
+    >
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs font-medium text-text">
+          {lang === "en" ? "Version History" : "版本历史"}
+        </span>
+        <button onClick={onClose} className="text-subtext hover:text-text">
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      {loading && (
+        <p className="py-2 text-center text-xs text-subtext">
+          {lang === "en" ? "Loading..." : "加载中..."}
+        </p>
+      )}
+      {!loading && versions.length === 0 && (
+        <p className="py-2 text-center text-xs text-subtext">
+          {lang === "en" ? "No version history" : "暂无版本记录"}
+        </p>
+      )}
+      <div className="max-h-60 space-y-1.5 overflow-y-auto">
+        {versions.map((ver) => (
+          <div key={ver.id} className="rounded-lg border border-border bg-surface/50 p-2">
+            <button
+              type="button"
+              onClick={() => setExpanded(expanded === ver.id ? null : ver.id)}
+              className="flex w-full items-center justify-between text-left"
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="rounded bg-panel px-1.5 py-0.5 font-mono text-[10px] text-text">
+                  v{ver.version}
+                </span>
+                <span className="text-[10px] text-subtext">
+                  {new Date(ver.created_at).toLocaleDateString("zh-CN")}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-green-600">+{ver.votes.upvote_count}</span>
+                <span className="text-[10px] text-red-500">-{ver.votes.downvote_count}</span>
+                <svg
+                  className={`h-3 w-3 text-subtext transition-transform ${expanded === ver.id ? "rotate-180" : ""}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+            {expanded === ver.id && ver.answer && (
+              <div className="mt-1.5 max-h-40 overflow-y-auto border-t border-border pt-1.5">
+                <MarkdownContent
+                  content={ver.answer}
+                  className="prose prose-xs max-w-none text-text"
+                />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function DownvotePanel({
@@ -103,10 +214,12 @@ function FAQItem({
   isFavorited,
   onToggleFavorite,
   isAuthenticated,
+  userTier,
 }: FAQItemProps) {
   const [showDownvotePanel, setShowDownvotePanel] = useState(false);
   const [detailedOverride, setDetailedOverride] = useState<boolean | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
   // Lazy render: mount content on open, unmount after collapse animation
   const [shouldRender, setShouldRender] = useState(isOpen);
   const detailed = detailedOverride ?? globalDetailed;
@@ -190,17 +303,26 @@ function FAQItem({
               <span className="text-[11px] text-subtext md:text-xs">
                 {item.date}
               </span>
-              {item.currentVersion && item.currentVersion > 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // TODO: implement version history modal
-                  }}
-                  className="text-[11px] text-subtext hover:text-primary md:text-xs"
-                  title={t("viewHistory", lang)}
-                >
-                  v{item.currentVersion}
-                </button>
+              {item.currentVersion && item.currentVersion > 1 && userTier === "premium" && (
+                <span className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowVersions((v) => !v);
+                    }}
+                    className="text-[11px] text-subtext hover:text-primary md:text-xs"
+                    title={t("viewHistory", lang)}
+                  >
+                    v{item.currentVersion}
+                  </button>
+                  {showVersions && (
+                    <VersionPopover
+                      faqId={item.id}
+                      lang={lang}
+                      onClose={() => setShowVersions(false)}
+                    />
+                  )}
+                </span>
               )}
               {item.tags.map((tag) => (
                 <span

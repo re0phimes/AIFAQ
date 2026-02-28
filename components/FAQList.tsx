@@ -32,7 +32,7 @@ interface FAQListProps {
   onVote: (faqId: number, type: VoteType, reason?: string, detail?: string) => void;
   onRevokeVote: (faqId: number) => void;
   onOpenItem?: (item: FAQItemType) => void;
-  session?: { user?: { id?: string; name?: string | null; image?: string | null } } | null;
+  session?: { user?: { id?: string; name?: string | null; image?: string | null; tier?: string } } | null;
   onSignIn?: () => void;
   onSignOut?: () => void;
   favorites?: Set<number>;
@@ -550,6 +550,7 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
                     isFavorited={favorites?.has(item.id)}
                     onToggleFavorite={onToggleFavorite}
                     isAuthenticated={!!session?.user}
+                    userTier={session?.user?.tier as "free" | "premium" | undefined}
                   />
                 </div>
               ))}
