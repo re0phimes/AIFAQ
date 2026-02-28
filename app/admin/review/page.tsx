@@ -70,13 +70,12 @@ const FILTER_TABS = [
 interface VersionItem {
   id: number;
   faq_id: number;
-  version_number: number;
+  version: number;
   answer: string | null;
   answer_brief: string | null;
   answer_en: string | null;
   change_reason: string | null;
-  upvote_count: number;
-  downvote_count: number;
+  votes: { upvote_count: number; downvote_count: number };
   created_at: string;
 }
 
@@ -183,7 +182,8 @@ export default function ReviewPage() {
     try {
       const res = await fetch(`/api/faq/${faqId}/versions`);
       if (res.ok) {
-        setVersions(await res.json());
+        const data = await res.json();
+        setVersions(data.versions ?? []);
       }
     } catch {
       // silently fail
@@ -461,7 +461,7 @@ export default function ReviewPage() {
                             >
                               <div className="flex items-center gap-2">
                                 <span className="rounded bg-[var(--color-panel)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text)]">
-                                  v{ver.version_number}
+                                  v{ver.version}
                                 </span>
                                 <span className="text-xs text-[var(--color-subtext)]">
                                   {new Date(ver.created_at).toLocaleDateString("zh-CN")}
@@ -474,10 +474,10 @@ export default function ReviewPage() {
                               </div>
                               <div className="flex shrink-0 items-center gap-2">
                                 <span className="text-xs text-green-600" title="赞同">
-                                  +{ver.upvote_count}
+                                  +{ver.votes.upvote_count}
                                 </span>
                                 <span className="text-xs text-red-500" title="反对">
-                                  -{ver.downvote_count}
+                                  -{ver.votes.downvote_count}
                                 </span>
                                 <svg
                                   className={`h-3 w-3 text-[var(--color-subtext)] transition-transform ${expandedVersion === ver.id ? "rotate-180" : ""}`}
