@@ -11,7 +11,8 @@
     "lint": "eslint",
     "seed": "npx tsx scripts/seed-faq.ts",
     "analyze-difficulty": "npx tsx scripts/analyze-difficulty.ts",
-    "migrate-content": "npx tsx -r ./scripts/env-loader.js scripts/migrate-content.ts"
+    "migrate-content": "npx tsx -r ./scripts/env-loader.js scripts/migrate-content.ts",
+    "faq:evaluate": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/evaluate.ts"
   },
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^5.0.1",
