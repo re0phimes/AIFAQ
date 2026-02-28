@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
+import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
 import FAQList from "@/components/FAQList";
 import DetailModal from "@/components/DetailModal";
 import type { FAQItem, VoteType } from "@/src/types/faq";
@@ -34,11 +35,12 @@ interface FAQPageProps {
   items: FAQItem[];
 }
 
-export default function FAQPage({ items }: FAQPageProps) {
-  // Shared state — owned here so both FAQList and DetailModal can use it
+function FAQPageInner({ items }: FAQPageProps) {
+  const { data: session } = useSession();
   const [lang, setLang] = useState<"zh" | "en">("zh");
   const [votedMap, setVotedMap] = useState<Map<number, VoteType>>(loadVotedMap);
   const [fingerprint, setFingerprint] = useState("");
+  const [favorites, setFavorites] = useState<Set<number>>(new Set());
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,14 +52,15 @@ export default function FAQPage({ items }: FAQPageProps) {
   useEffect(() => { votedMapRef.current = votedMap; }, [votedMap]);
   useEffect(() => { fingerprintRef.current = fingerprint; }, [fingerprint]);
 
-  // Load fingerprint on mount
+  // Load fingerprint on mount (only needed for anonymous users)
   useEffect(() => {
+    if (session?.user) return; // logged-in users don't need fingerprint
     import("@fingerprintjs/fingerprintjs").then((FP) =>
       FP.load().then((fp) =>
         fp.get().then((r) => setFingerprint(r.visitorId))
       )
     );
-  }, []);
+  }, [session]);
 
   // Restore votes from server when fingerprint is available
   useEffect(() => {
@@ -78,11 +81,22 @@ export default function FAQPage({ items }: FAQPageProps) {
       .catch(() => { /* network error, use localStorage fallback */ });
   }, [fingerprint]);
 
+  // Load favorites when logged in
+  useEffect(() => {
+    if (!session?.user) return;
+    fetch("/api/user/favorites")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.favorites) setFavorites(new Set(data.favorites));
+      })
+      .catch(() => {});
+  }, [session]);
+
   // --- Vote handlers (stable via refs) ---
   const handleVote = useCallback(
     async (faqId: number, type: VoteType, reason?: string, detail?: string) => {
       const fp = fingerprintRef.current;
-      if (!fp) return;
+      if (!fp && !session?.user) return;
       const current = votedMapRef.current.get(faqId);
 
       setVotedMap((prev) => {
@@ -96,7 +110,7 @@ export default function FAQPage({ items }: FAQPageProps) {
         const res = await fetch(`/api/faq/${faqId}/vote`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type, fingerprint: fp, reason, detail }),
+          body: JSON.stringify({ type, fingerprint: fp || undefined, reason, detail }),
         });
         if (!res.ok && res.status !== 409) {
           setVotedMap((prev) => {
@@ -117,13 +131,13 @@ export default function FAQPage({ items }: FAQPageProps) {
         });
       }
     },
-    []
+    [session]
   );
 
   const handleRevokeVote = useCallback(
     async (faqId: number) => {
       const fp = fingerprintRef.current;
-      if (!fp) return;
+      if (!fp && !session?.user) return;
       const current = votedMapRef.current.get(faqId);
 
       setVotedMap((prev) => {
@@ -137,7 +151,7 @@ export default function FAQPage({ items }: FAQPageProps) {
         const res = await fetch(`/api/faq/${faqId}/vote`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fingerprint: fp }),
+          body: JSON.stringify({ fingerprint: fp || undefined }),
         });
         if (!res.ok) {
           setVotedMap((prev) => {
@@ -156,8 +170,21 @@ export default function FAQPage({ items }: FAQPageProps) {
         });
       }
     },
-    []
+    [session]
   );
+
+  const handleToggleFavorite = useCallback(async (faqId: number) => {
+    const res = await fetch(`/api/faq/${faqId}/favorite`, { method: "POST" });
+    if (res.ok) {
+      const { favorited } = await res.json();
+      setFavorites((prev) => {
+        const next = new Set(prev);
+        if (favorited) next.add(faqId);
+        else next.delete(faqId);
+        return next;
+      });
+    }
+  }, []);
 
   // --- Modal handlers ---
   const handleOpenItem = useCallback((item: FAQItem) => {
@@ -196,6 +223,11 @@ export default function FAQPage({ items }: FAQPageProps) {
         onVote={handleVote}
         onRevokeVote={handleRevokeVote}
         onOpenItem={handleOpenItem}
+        session={session}
+        onSignIn={() => signIn("github")}
+        onSignOut={() => signOut()}
+        favorites={favorites}
+        onToggleFavorite={handleToggleFavorite}
       />
 
       <DetailModal
@@ -210,5 +242,13 @@ export default function FAQPage({ items }: FAQPageProps) {
         downvoteCount={modalItem?.downvoteCount}
       />
     </>
+  );
+}
+
+export default function FAQPage({ items }: FAQPageProps) {
+  return (
+    <SessionProvider>
+      <FAQPageInner items={items} />
+    </SessionProvider>
   );
 }
