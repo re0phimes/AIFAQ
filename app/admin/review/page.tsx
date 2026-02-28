@@ -26,6 +26,7 @@ interface FaqItem {
   updated_at: string;
   reviewed_at: string | null;
   reviewed_by: string | null;
+  current_version: number;
 }
 
 const STATUS_LABELS: Record<FaqStatus, string> = {
@@ -66,6 +67,19 @@ const FILTER_TABS = [
   { key: "failed", label: "失败" },
 ] as const;
 
+interface VersionItem {
+  id: number;
+  faq_id: number;
+  version_number: number;
+  answer: string | null;
+  answer_brief: string | null;
+  answer_en: string | null;
+  change_reason: string | null;
+  upvote_count: number;
+  downvote_count: number;
+  created_at: string;
+}
+
 export default function ReviewPage() {
   const [items, setItems] = useState<FaqItem[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -74,6 +88,10 @@ export default function ReviewPage() {
   const [previewTab, setPreviewTab] = useState<"raw" | "brief" | "detailed" | "en">("detailed");
   const [actionLoading, setActionLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [versions, setVersions] = useState<VersionItem[]>([]);
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [expandedVersion, setExpandedVersion] = useState<number | null>(null);
 
   const fetchItems = useCallback(async () => {
     const res = await fetch("/api/admin/faq");
@@ -128,6 +146,13 @@ export default function ReviewPage() {
     [items, selectedId]
   );
 
+  // Reset version panel when selection changes
+  useEffect(() => {
+    setVersionsOpen(false);
+    setVersions([]);
+    setExpandedVersion(null);
+  }, [selectedId]);
+
   async function handleAction(id: number, action: "publish" | "reject" | "unpublish" | "retry") {
     setActionLoading(true);
     try {
@@ -151,6 +176,31 @@ export default function ReviewPage() {
   function formatDate(dateStr: string) {
     const d = new Date(dateStr);
     return `${d.getMonth() + 1}/${d.getDate()}`;
+  }
+
+  async function fetchVersions(faqId: number) {
+    setVersionsLoading(true);
+    try {
+      const res = await fetch(`/api/faq/${faqId}/versions`);
+      if (res.ok) {
+        setVersions(await res.json());
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setVersionsLoading(false);
+    }
+  }
+
+  function toggleVersions(faqId: number) {
+    if (versionsOpen) {
+      setVersionsOpen(false);
+      setVersions([]);
+      setExpandedVersion(null);
+    } else {
+      setVersionsOpen(true);
+      fetchVersions(faqId);
+    }
   }
 
   return (
@@ -210,6 +260,7 @@ export default function ReviewPage() {
                   </p>
                   <div className="mt-1 flex items-center gap-2 text-xs text-[var(--color-subtext)]">
                     <span>{formatDate(item.created_at)}</span>
+                    <span className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px]">v{item.current_version ?? 1}</span>
                     {item.tags.length > 0 && <span>{item.tags.length} tags</span>}
                     {item.reviewed_at && <span>审批: {formatDate(item.reviewed_at)}</span>}
                   </div>
@@ -240,9 +291,14 @@ export default function ReviewPage() {
                       </p>
                     )}
                   </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE_STYLES[selectedItem.status]}`}>
-                    {STATUS_LABELS[selectedItem.status]}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="rounded bg-[var(--color-surface)] px-2 py-0.5 font-mono text-xs text-[var(--color-subtext)]">
+                      v{selectedItem.current_version ?? 1}
+                    </span>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE_STYLES[selectedItem.status]}`}>
+                      {STATUS_LABELS[selectedItem.status]}
+                    </span>
+                  </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {selectedItem.status === "review" && (
@@ -366,6 +422,85 @@ export default function ReviewPage() {
                       {selectedItem.reviewed_by && ` · ${selectedItem.reviewed_by}`}
                     </div>
                   )}
+
+                  {/* Version History */}
+                  <div className="border-t border-[var(--color-border)] pt-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleVersions(selectedItem.id)}
+                      className="flex w-full items-center justify-between text-left"
+                    >
+                      <p className="text-xs font-medium text-[var(--color-subtext)]">
+                        版本历史 (v{selectedItem.current_version ?? 1})
+                      </p>
+                      <svg
+                        className={`h-3.5 w-3.5 text-[var(--color-subtext)] transition-transform ${versionsOpen ? "rotate-180" : ""}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {versionsOpen && (
+                      <div className="mt-2 space-y-2">
+                        {versionsLoading && (
+                          <p className="text-xs text-[var(--color-subtext)]">加载中...</p>
+                        )}
+                        {!versionsLoading && versions.length === 0 && (
+                          <p className="text-xs text-[var(--color-subtext)]">暂无版本记录</p>
+                        )}
+                        {versions.map((ver) => (
+                          <div
+                            key={ver.id}
+                            className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setExpandedVersion(expandedVersion === ver.id ? null : ver.id)}
+                              className="flex w-full items-center justify-between text-left"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="rounded bg-[var(--color-panel)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text)]">
+                                  v{ver.version_number}
+                                </span>
+                                <span className="text-xs text-[var(--color-subtext)]">
+                                  {new Date(ver.created_at).toLocaleDateString("zh-CN")}
+                                </span>
+                                {ver.change_reason && (
+                                  <span className="truncate text-xs text-[var(--color-subtext)]">
+                                    — {ver.change_reason}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <span className="text-xs text-green-600" title="赞同">
+                                  +{ver.upvote_count}
+                                </span>
+                                <span className="text-xs text-red-500" title="反对">
+                                  -{ver.downvote_count}
+                                </span>
+                                <svg
+                                  className={`h-3 w-3 text-[var(--color-subtext)] transition-transform ${expandedVersion === ver.id ? "rotate-180" : ""}`}
+                                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
+                            </button>
+
+                            {expandedVersion === ver.id && ver.answer && (
+                              <div className="mt-2 border-t border-[var(--color-border)] pt-2">
+                                <SyncMarkdownContent
+                                  content={ver.answer}
+                                  className="markdown-body prose-xs"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
