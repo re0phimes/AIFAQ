@@ -6,7 +6,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  const authed = await verifyAdmin(request);
+  const authed = await verifyAdmin();
   if (!authed) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;

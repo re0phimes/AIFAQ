@@ -13,7 +13,7 @@ import { analyzeFAQ } from "@/lib/ai";
 import { waitUntil } from "@vercel/functions";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const authed = await verifyAdmin(request);
+  const authed = await verifyAdmin();
   if (!authed) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const formData = await request.formData();

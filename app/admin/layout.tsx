@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { SessionProvider, useSession, signOut } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 const NAV_ITEMS = [
@@ -9,43 +9,9 @@ const NAV_ITEMS = [
   { href: "/admin/submit", label: "提交新 FAQ" },
 ];
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [authed, setAuthed] = useState<boolean | null>(null);
-  const router = useRouter();
+function AdminNav({ children }: { children: React.ReactNode }) {
+  const { data: session } = useSession();
   const pathname = usePathname();
-
-  useEffect(() => {
-    if (pathname === "/admin/login") {
-      setAuthed(true);
-      return;
-    }
-    fetch("/api/admin/faq", { method: "HEAD" })
-      .then((res) => {
-        if (res.ok) setAuthed(true);
-        else throw new Error("Unauthorized");
-      })
-      .catch(() => {
-        setAuthed(false);
-        router.replace("/admin/login");
-      });
-  }, [pathname, router]);
-
-  if (pathname === "/admin/login") return <>{children}</>;
-
-  if (authed === null) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-[var(--color-subtext)]">验证中...</p>
-      </div>
-    );
-  }
-
-  if (!authed) return null;
-
-  async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.replace("/admin/login");
-  }
 
   return (
     <div className="flex h-screen flex-col bg-[var(--color-surface)]">
@@ -71,17 +37,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               ))}
             </nav>
           </div>
-          <button
-            onClick={handleLogout}
-            className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-subtext)] transition-colors hover:bg-[var(--color-surface)]"
-          >
-            登出
-          </button>
+          <div className="flex items-center gap-3">
+            {session?.user?.image && (
+              <img
+                src={session.user.image}
+                alt=""
+                className="h-7 w-7 rounded-full"
+              />
+            )}
+            <span className="text-sm text-[var(--color-subtext)]">
+              {session?.user?.name}
+            </span>
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-subtext)] transition-colors hover:bg-[var(--color-surface)]"
+            >
+              登出
+            </button>
+          </div>
         </div>
       </header>
       <main className="mx-auto w-full max-w-7xl flex-1 overflow-hidden px-4 py-4">
         {children}
       </main>
     </div>
+  );
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SessionProvider>
+      <AdminNav>{children}</AdminNav>
+    </SessionProvider>
   );
 }

@@ -43,6 +43,13 @@ const labels = {
   clearAll: { zh: "清空", en: "Clear" },
   compareView: { zh: "对比查看", en: "Compare" },
   backToTop: { zh: "返回顶部", en: "Back to top" },
+  login: { zh: "登录", en: "Login" },
+  loginWithGithub: { zh: "使用 GitHub 登录", en: "Sign in with GitHub" },
+  logout: { zh: "登出", en: "Logout" },
+  favorite: { zh: "收藏", en: "Favorite" },
+  unfavorite: { zh: "取消收藏", en: "Unfavorite" },
+  myFavorites: { zh: "我的收藏", en: "My Favorites" },
+  verifiedVote: { zh: "已认证用户投票", en: "Verified user vote" },
 } as const;
 
 export function t(key: keyof typeof labels, lang: Lang): string {
