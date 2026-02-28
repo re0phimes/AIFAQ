@@ -104,10 +104,8 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
     function handleScroll() {
       const currentY = window.scrollY;
       if (Math.abs(currentY - lastScrollY.current) < THRESHOLD) return;
-      // Hide header if: scrolling down, or any tab is open
-      const shouldHide =
-        (currentY > lastScrollY.current && currentY > 80) ||
-        openItemsSizeRef.current > 0;
+      // Hide header only when scrolling down past threshold
+      const shouldHide = currentY > lastScrollY.current && currentY > 80;
       setHeaderVisible(!shouldHide);
       lastScrollY.current = currentY;
     }
@@ -420,7 +418,8 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
 
         {/* Toolbar: compare, expand/collapse, info */}
         <div className="flex items-center justify-between">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Group 1: Compare */}
             <button
               onClick={handleToggleCompare}
               className={`rounded-full px-3 py-1.5 text-xs font-medium
@@ -433,19 +432,24 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
               {compareMode ? t("exitCompare", lang) : t("compare", lang)}
             </button>
             {session?.user && (
-              <button
-                onClick={() => setShowFavoritesOnly((v) => !v)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium
-                  transition-colors ${
-                    showFavoritesOnly
-                      ? "bg-amber-500 text-white"
-                      : "border-[0.5px] border-border text-subtext hover:bg-surface"
-                  }`}
-              >
-                <span className="mr-1">★</span>
-                {t("myFavorites", lang)}
-              </button>
+              <>
+                <span className="h-4 border-l border-border" />
+                <button
+                  onClick={() => setShowFavoritesOnly((v) => !v)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium
+                    transition-colors ${
+                      showFavoritesOnly
+                        ? "bg-amber-500 text-white"
+                        : "border-[0.5px] border-border text-amber-600 hover:bg-amber-50"
+                    }`}
+                >
+                  <span className="mr-1">★</span>
+                  {t("myFavorites", lang)}
+                </button>
+              </>
             )}
+            {/* Group 2: Expand/Collapse */}
+            <span className="h-4 border-l border-border" />
             <button
               onClick={handleExpandAll}
               className="rounded-full border-[0.5px] border-border px-3 py-1.5

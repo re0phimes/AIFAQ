@@ -315,7 +315,7 @@ function FAQItem({
                 )}
                 {isAuthenticated && currentVote === "upvote" && (
                   <svg className="h-3 w-3 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2l2.09 6.26L20.18 9l-5.09 3.74L16.18 19 12 15.77 7.82 19l1.09-6.26L3.82 9l6.09-.74z" />
+                    <path d="M12 0l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5z" />
                   </svg>
                 )}
               </button>
