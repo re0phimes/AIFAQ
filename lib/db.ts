@@ -33,6 +33,8 @@ export interface DBFaqItem {
   updated_at: Date;
   reviewed_at: Date | null;
   reviewed_by: string | null;
+  current_version: number;
+  last_updated_at: Date | null;
 }
 
 export async function initDB(): Promise<void> {
@@ -156,6 +158,30 @@ export async function initDB(): Promise<void> {
       updated_at  TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+
+  // Version tracking columns on faq_items
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS current_version INTEGER DEFAULT 1`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS last_updated_at TIMESTAMPTZ`;
+
+  // FAQ versions table
+  await sql`
+    CREATE TABLE IF NOT EXISTS faq_versions (
+      id              SERIAL PRIMARY KEY,
+      faq_id          INTEGER NOT NULL REFERENCES faq_items(id) ON DELETE CASCADE,
+      version         INTEGER NOT NULL,
+      answer          TEXT NOT NULL,
+      answer_brief    TEXT,
+      answer_en       TEXT,
+      answer_brief_en TEXT,
+      change_reason   TEXT,
+      created_at      TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(faq_id, version)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_faq_versions_faq_id ON faq_versions(faq_id)`;
+
+  // Version tracking on votes
+  await sql`ALTER TABLE faq_votes ADD COLUMN IF NOT EXISTS version_id INTEGER`;
 }
 
 export async function createFaqItem(
@@ -282,6 +308,8 @@ function rowToFaqItem(row: Record<string, unknown>): DBFaqItem {
     updated_at: new Date(row.updated_at as string),
     reviewed_at: row.reviewed_at ? new Date(row.reviewed_at as string) : null,
     reviewed_by: (row.reviewed_by as string | null) ?? null,
+    current_version: (row.current_version as number) ?? 1,
+    last_updated_at: row.last_updated_at ? new Date(row.last_updated_at as string) : null,
   };
 }
 
