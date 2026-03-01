@@ -32,6 +32,11 @@ export default async function ProfilePage() {
       fi.answer_en,
       fi.answer_brief_en,
       fi.tags,
+      fi.categories,
+      fi.references,
+      fi.images,
+      fi.upvote_count,
+      fi.downvote_count,
       fi.difficulty,
       fi.date
     FROM user_favorites uf
@@ -55,7 +60,12 @@ export default async function ProfilePage() {
         answerBrief: row.answer_brief,
         answerEn: row.answer_en,
         answerBriefEn: row.answer_brief_en,
-        tags: row.tags,
+        tags: row.tags || [],
+        categories: row.categories || [],
+        references: (typeof row.references === 'string' ? JSON.parse(row.references) : row.references) || [],
+        images: (typeof row.images === 'string' ? JSON.parse(row.images) : row.images) || [],
+        upvoteCount: row.upvote_count || 0,
+        downvoteCount: row.downvote_count || 0,
         difficulty: row.difficulty,
         date: row.date,
       }
