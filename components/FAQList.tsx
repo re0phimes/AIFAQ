@@ -366,6 +366,13 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
                 <button onClick={onSignOut} className="text-xs text-subtext hover:text-text">
                   {t("logout", lang)}
                 </button>
+                <span className="h-4 border-l border-border" />
+                <a
+                  href="/profile"
+                  className="flex items-center gap-1.5 rounded-full border-[0.5px] border-border px-3 py-1.5 text-xs text-subtext hover:bg-surface"
+                >
+                  {t("myLearning", lang)}
+                </a>
               </div>
             ) : (
               <button

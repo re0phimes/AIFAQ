@@ -6,10 +6,10 @@ const adminIds = (process.env.ADMIN_GITHUB_IDS ?? "")
   .map((id) => id.trim())
   .filter(Boolean);
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authOptions = {
   providers: [GitHub],
   callbacks: {
-    async jwt({ token, profile }) {
+    async jwt({ token, profile }: { token: any; profile?: any }) {
       if (profile?.id) {
         token.githubId = String(profile.id);
         token.role = adminIds.includes(String(profile.id)) ? "admin" : "user";
@@ -19,7 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return token;
     },
-    session({ session, token }) {
+    session({ session, token }: { session: any; token: any }) {
       if (session.user) {
         session.user.id = token.githubId as string;
         session.user.role = token.role as "admin" | "user";
@@ -28,4 +28,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
   },
-});
+};
+
+export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
+
+// NextAuth v5 compatibility: export getServerSession as an alias to auth()
+export const getServerSession = auth;
