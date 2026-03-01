@@ -5,14 +5,15 @@ import { initDB } from "@/lib/db";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const faqId = parseInt(params.id);
+  const { id } = await params;
+  const faqId = parseInt(id);
   if (isNaN(faqId)) {
     return NextResponse.json({ error: "Invalid FAQ ID" }, { status: 400 });
   }
@@ -26,7 +27,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
-    const updateFields: string[] = [`learning_status = '${status}'`, `updated_at = NOW()`];
+    const updateFields: string[] = [`learning_status = $3`, `updated_at = NOW()`];
     if (status === 'learning') {
       updateFields.push(`last_viewed_at = NOW()`);
     }
@@ -35,7 +36,7 @@ export async function PATCH(
       `UPDATE user_favorites
        SET ${updateFields.join(', ')}
        WHERE user_id = $1 AND faq_id = $2`,
-      [session.user.id, faqId]
+      [session.user.id, faqId, status]
     );
 
     return NextResponse.json({ success: true });
