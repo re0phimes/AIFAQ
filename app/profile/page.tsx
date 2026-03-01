@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/auth";
+import { cookies } from "next/headers";
 import ProfileClient from "./ProfileClient";
 
 export default async function ProfilePage() {
@@ -8,6 +9,11 @@ export default async function ProfilePage() {
   if (!session?.user) {
     redirect('/');
   }
+
+  // Get language preference from cookie or default to 'zh'
+  const cookieStore = await cookies();
+  const langCookie = cookieStore.get('aifaq-lang');
+  const lang = (langCookie?.value === 'en' ? 'en' : 'zh') as "zh" | "en";
 
   // Fetch favorites on server
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
@@ -25,6 +31,7 @@ export default async function ProfilePage() {
       <ProfileClient
         favorites={data.favorites || []}
         stats={data.stats || { total: 0, unread: 0, learning: 0, mastered: 0, stale: 0 }}
+        lang={lang}
       />
     </main>
   );

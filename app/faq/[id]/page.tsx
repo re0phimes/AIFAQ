@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getServerSession } from "@/auth";
 import { getFaqItemById } from "@/lib/db";
 import { sql } from "@vercel/postgres";
+import { cookies } from "next/headers";
 import FAQDetailClient from "./FAQDetailClient";
 
 export default async function FAQDetailPage({ params }: { params: { id: string } }) {
@@ -14,6 +15,11 @@ export default async function FAQDetailPage({ params }: { params: { id: string }
   if (!faqItem) {
     notFound();
   }
+
+  // Get language preference from cookie or default to 'zh'
+  const cookieStore = await cookies();
+  const langCookie = cookieStore.get('aifaq-lang');
+  const lang = (langCookie?.value === 'en' ? 'en' : 'zh') as "zh" | "en";
 
   const session = await getServerSession();
   let isFavorited = false;
@@ -66,6 +72,7 @@ export default async function FAQDetailPage({ params }: { params: { id: string }
         faq={faq}
         isFavorited={isFavorited}
         learningStatus={learningStatus}
+        lang={lang}
       />
     </main>
   );

@@ -53,6 +53,18 @@ const labels = {
   updated: { zh: "30天内有更新", en: "Updated within 30 days" },
   visitMainSite: { zh: "访问主站", en: "Visit Main Site" },
   viewHistory: { zh: "查看历史版本", en: "View answer history" },
+  myLearning: { zh: "我的学习", en: "My Learning" },
+  totalFavorites: { zh: "总收藏", en: "Total" },
+  learningStatus: { zh: "学习中", en: "Learning" },
+  masteredStatus: { zh: "已内化", en: "Mastered" },
+  unreadStatus: { zh: "未看", en: "Unread" },
+  staleReminder: { zh: "你有 {count} 个收藏超过90天未查看，建议删除", en: "You have {count} favorites unread for 90+ days" },
+  ignore: { zh: "忽略", en: "Ignore" },
+  markAsMastered: { zh: "标记为已内化", en: "Mark as Mastered" },
+  startCollecting: { zh: "开始收藏你感兴趣的 FAQ 吧！", en: "Start collecting FAQs you're interested in!" },
+  trackProgress: { zh: "追踪你的学习进度", en: "Track your learning progress" },
+  updating: { zh: "更新中...", en: "Updating..." },
+  backButton: { zh: "← 返回", en: "← Back" },
 } as const;
 
 export function t(key: keyof typeof labels, lang: Lang): string {

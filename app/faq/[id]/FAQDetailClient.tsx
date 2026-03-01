@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { t } from "@/lib/i18n";
 import MarkdownContent from "@/components/MarkdownContent";
 import type { FAQItem } from "@/src/types/faq";
 
@@ -9,9 +10,10 @@ interface FAQDetailClientProps {
   faq: FAQItem;
   isFavorited: boolean;
   learningStatus: string | null;
+  lang: "zh" | "en";
 }
 
-export default function FAQDetailClient({ faq, isFavorited, learningStatus }: FAQDetailClientProps) {
+export default function FAQDetailClient({ faq, isFavorited, learningStatus, lang }: FAQDetailClientProps) {
   const router = useRouter();
   const [updating, setUpdating] = useState(false);
 
@@ -54,7 +56,7 @@ export default function FAQDetailClient({ faq, isFavorited, learningStatus }: FA
             disabled={updating}
             className="ml-4 rounded-full border border-green-500 px-4 py-2 text-sm text-green-600 hover:bg-green-50 disabled:opacity-50"
           >
-            {updating ? '更新中...' : '标记为已内化'}
+            {updating ? t("updating", lang) : t("markAsMastered", lang)}
           </button>
         )}
       </div>
@@ -70,7 +72,7 @@ export default function FAQDetailClient({ faq, isFavorited, learningStatus }: FA
           onClick={() => router.back()}
           className="text-sm text-primary hover:underline"
         >
-          ← 返回
+          {t("backButton", lang)}
         </button>
       </div>
     </div>
