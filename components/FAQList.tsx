@@ -54,7 +54,18 @@ function loadSelected(): Set<number> {
 
 function loadPageSize(): number {
   if (typeof window === "undefined") return 20;
-  return Number(localStorage.getItem(LS_PAGESIZE)) || 20;
+  // Prefer new setting key, fallback to old key
+  const newValue = localStorage.getItem("aifaq-pageSize");
+  if (newValue) return Number(newValue);
+  const oldValue = localStorage.getItem(LS_PAGESIZE);
+  if (oldValue) return Number(oldValue);
+  return 20;
+}
+
+function loadDefaultDetailed(): boolean {
+  if (typeof window === "undefined") return false;
+  const value = localStorage.getItem("aifaq-defaultDetailed");
+  return value === 'true';
 }
 
 export default function FAQList({ items, lang, onLangChange, votedMap, onVote, onRevokeVote, onOpenItem, session, onSignIn, onSignOut, favorites, onToggleFavorite }: FAQListProps) {
@@ -69,9 +80,11 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(loadPageSize);
   const [sortMode, setSortMode] = useState<SortMode>("default");
-  const [globalDetailed, setGlobalDetailed] = useState(false);
+  const [globalDetailed, setGlobalDetailed] = useState(loadDefaultDetailed);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
   // Modal state removed - now managed by parent (FAQPage)
   const lastScrollY = useRef(0);
 
@@ -129,6 +142,19 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
   useEffect(() => {
     localStorage.setItem(LS_GLOBAL_DETAILED, String(globalDetailed));
   }, [globalDetailed]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    }
+    if (showUserDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showUserDropdown]);
 
   const { allTags, tagCounts } = useMemo(() => {
     const freq = new Map<string, number>();
