@@ -343,7 +343,7 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
             <div className="flex items-center gap-3">
               <h1 className="font-brand text-3xl font-bold text-text">AIFAQ</h1>
               <a
-                href="https://phimes.top"
+                href="https://www.phimes.top"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 rounded-full border-[0.5px] border-border px-2.5 py-1 text-xs text-subtext hover:bg-surface transition-colors"
