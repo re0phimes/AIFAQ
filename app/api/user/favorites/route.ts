@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/auth";
 import { sql } from "@vercel/postgres";
+import { initDB } from "@/lib/db";
 
 export async function GET() {
   const session = await getServerSession();
@@ -9,6 +10,8 @@ export async function GET() {
   }
 
   try {
+    await initDB();
+
     const result = await sql`
       SELECT
         uf.faq_id,
@@ -30,7 +33,9 @@ export async function GET() {
       ORDER BY uf.created_at DESC
     `;
 
-    const favorites = result.rows.map(row => ({
+    const favorites = result.rows
+      .filter(row => row.question !== null) // Filter out deleted FAQs
+      .map(row => ({
       faq_id: row.faq_id,
       learning_status: row.learning_status,
       created_at: row.created_at,
