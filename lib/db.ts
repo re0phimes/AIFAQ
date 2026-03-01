@@ -146,9 +146,10 @@ export async function initDB(): Promise<void> {
   `;
 
   // Learning progress tracking columns
-  await sql`ALTER TABLE user_favorites ADD COLUMN IF NOT EXISTS learning_status VARCHAR(20) DEFAULT 'unread'`;
+  await sql`ALTER TABLE user_favorites ADD COLUMN IF NOT EXISTS learning_status VARCHAR(20) DEFAULT 'unread' CHECK (learning_status IN ('unread', 'learning', 'mastered'))`;
   await sql`ALTER TABLE user_favorites ADD COLUMN IF NOT EXISTS last_viewed_at TIMESTAMPTZ`;
   await sql`ALTER TABLE user_favorites ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_user_favorites_status ON user_favorites(user_id, learning_status)`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS faq_imports (
