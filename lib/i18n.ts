@@ -70,6 +70,7 @@ const labels = {
   preferences: { zh: "偏好设置", en: "Preferences" },
   defaultPageSize: { zh: "默认每页数量", en: "Items per page" },
   defaultViewMode: { zh: "默认视图模式", en: "Default view mode" },
+  language: { zh: "语言", en: "Language" },
 } as const;
 
 export function t(key: keyof typeof labels, lang: Lang): string {

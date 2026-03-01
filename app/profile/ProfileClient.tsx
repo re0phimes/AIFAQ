@@ -24,9 +24,10 @@ interface ProfileClientProps {
   favorites: FavoriteItem[];
   stats: Stats;
   lang: "zh" | "en";
+  sessionUser?: { id?: string; name?: string | null; image?: string | null } | null;
 }
 
-export default function ProfileClient({ favorites, stats, lang }: ProfileClientProps) {
+export default function ProfileClient({ favorites, stats, lang, sessionUser }: ProfileClientProps) {
   const [showStaleReminder, setShowStaleReminder] = useState(stats.stale > 0);
   const [activeTab, setActiveTab] = useState<'learning' | 'settings'>('learning');
 
@@ -157,7 +158,7 @@ export default function ProfileClient({ favorites, stats, lang }: ProfileClientP
           )}
         </>
       ) : (
-        <SettingsTab lang={lang} />
+        <SettingsTab lang={lang} sessionUser={sessionUser} />
       )}
     </div>
   );
@@ -215,12 +216,127 @@ function FavoritesSection({ title, count, items, onUpdateStatus, showMasterButto
 
 interface SettingsTabProps {
   lang: "zh" | "en";
+  sessionUser?: { id?: string; name?: string | null; image?: string | null } | null;
 }
 
-function SettingsTab({ lang }: SettingsTabProps) {
+function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
+  // Load settings from localStorage
+  const [settings, setSettings] = useState({
+    lang: (typeof window !== 'undefined' ? localStorage.getItem('aifaq-lang') : null) as "zh" | "en" || lang,
+    pageSize: Number(typeof window !== 'undefined' ? localStorage.getItem('aifaq-pageSize') : null) || 20,
+    defaultDetailed: (typeof window !== 'undefined' ? localStorage.getItem('aifaq-defaultDetailed') : null) === 'true',
+  });
+
+  const updateSetting = <K extends keyof typeof settings>(
+    key: K,
+    value: typeof settings[K]
+  ) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+    localStorage.setItem(`aifaq-${key}`, String(value));
+  };
+
   return (
     <div className="space-y-6">
-      <p className="text-subtext">Settings content coming soon...</p>
+      {/* Account Info */}
+      <div className="rounded-lg border border-border bg-surface p-6">
+        <h2 className="mb-4 font-brand text-lg font-semibold text-text">
+          {t("accountInfo", lang)}
+        </h2>
+        <div className="flex items-center gap-4">
+          {sessionUser?.image && (
+            <img
+              src={sessionUser.image}
+              alt=""
+              className="h-16 w-16 rounded-full"
+            />
+          )}
+          <div>
+            <div className="font-medium text-text">{sessionUser?.name || '-'}</div>
+            <div className="text-sm text-subtext">ID: {sessionUser?.id?.slice(-8) || '-'}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Preferences */}
+      <div className="rounded-lg border border-border bg-surface p-6">
+        <h2 className="mb-4 font-brand text-lg font-semibold text-text">
+          {t("preferences", lang)}
+        </h2>
+        <div className="space-y-4">
+          {/* Language */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-subtext">
+              {t("language", lang) || "语言 / Language"}
+            </label>
+            <div className="flex gap-2">
+              {(['zh', 'en'] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => updateSetting('lang', l)}
+                  className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                    settings.lang === l
+                      ? 'bg-primary text-white'
+                      : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+                  }`}
+                >
+                  {l === 'zh' ? '中文' : 'EN'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Page Size */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-subtext">
+              {t("defaultPageSize", lang)}
+            </label>
+            <div className="flex gap-2">
+              {[10, 20, 50, 100].map((size) => (
+                <button
+                  key={size}
+                  onClick={() => updateSetting('pageSize', size)}
+                  className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                    settings.pageSize === size
+                      ? 'bg-primary text-white'
+                      : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+                  }`}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Default View Mode */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-subtext">
+              {t("defaultViewMode", lang)}
+            </label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => updateSetting('defaultDetailed', false)}
+                className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                  !settings.defaultDetailed
+                    ? 'bg-primary text-white'
+                    : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+                }`}
+              >
+                {t("brief", lang)}
+              </button>
+              <button
+                onClick={() => updateSetting('defaultDetailed', true)}
+                className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                  settings.defaultDetailed
+                    ? 'bg-primary text-white'
+                    : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+                }`}
+              >
+                {t("detailed", lang)}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
