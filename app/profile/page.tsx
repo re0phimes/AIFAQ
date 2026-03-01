@@ -94,6 +94,7 @@ export default async function ProfilePage() {
         favorites={data.favorites || []}
         stats={data.stats || { total: 0, unread: 0, learning: 0, mastered: 0, stale: 0 }}
         lang={lang}
+        sessionUser={session?.user}
       />
     </main>
   );

@@ -54,7 +54,18 @@ function loadSelected(): Set<number> {
 
 function loadPageSize(): number {
   if (typeof window === "undefined") return 20;
-  return Number(localStorage.getItem(LS_PAGESIZE)) || 20;
+  // Prefer new setting key, fallback to old key
+  const newValue = localStorage.getItem("aifaq-pageSize");
+  if (newValue) return Number(newValue);
+  const oldValue = localStorage.getItem(LS_PAGESIZE);
+  if (oldValue) return Number(oldValue);
+  return 20;
+}
+
+function loadDefaultDetailed(): boolean {
+  if (typeof window === "undefined") return false;
+  const value = localStorage.getItem("aifaq-defaultDetailed");
+  return value === 'true';
 }
 
 export default function FAQList({ items, lang, onLangChange, votedMap, onVote, onRevokeVote, onOpenItem, session, onSignIn, onSignOut, favorites, onToggleFavorite }: FAQListProps) {
@@ -69,9 +80,11 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(loadPageSize);
   const [sortMode, setSortMode] = useState<SortMode>("default");
-  const [globalDetailed, setGlobalDetailed] = useState(false);
+  const [globalDetailed, setGlobalDetailed] = useState(loadDefaultDetailed);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
   // Modal state removed - now managed by parent (FAQPage)
   const lastScrollY = useRef(0);
 
@@ -129,6 +142,19 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
   useEffect(() => {
     localStorage.setItem(LS_GLOBAL_DETAILED, String(globalDetailed));
   }, [globalDetailed]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    }
+    if (showUserDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showUserDropdown]);
 
   const { allTags, tagCounts } = useMemo(() => {
     const freq = new Map<string, number>();
@@ -358,21 +384,46 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
           </div>
           <div className="flex items-center gap-3">
             {session?.user ? (
-              <div className="flex items-center gap-2">
-                {session.user.image && (
-                  <img src={session.user.image} alt="" className="h-6 w-6 rounded-full" />
-                )}
-                <span className="text-xs text-subtext">{session.user.name}</span>
-                <button onClick={onSignOut} className="text-xs text-subtext hover:text-text">
-                  {t("logout", lang)}
-                </button>
-                <span className="h-4 border-l border-border" />
-                <a
-                  href="/profile"
-                  className="flex items-center gap-1.5 rounded-full border-[0.5px] border-border px-3 py-1.5 text-xs text-subtext hover:bg-surface"
+              <div className="relative" ref={userDropdownRef}>
+                <button
+                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  className="flex items-center gap-2 rounded-full border-[0.5px] border-border px-3 py-1.5 hover:bg-surface"
                 >
-                  {t("myLearning", lang)}
-                </a>
+                  {session.user.image && (
+                    <img src={session.user.image} alt="" className="h-6 w-6 rounded-full" />
+                  )}
+                  <span className="text-xs text-subtext">{session.user.name}</span>
+                  <svg
+                    className={`h-4 w-4 text-subtext transition-transform ${showUserDropdown ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {showUserDropdown && (
+                  <div className="absolute right-0 mt-2 w-40 rounded-lg border border-border bg-surface shadow-sm">
+                    <a
+                      href="/profile"
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-text hover:bg-bg"
+                    >
+                      <span>👤</span>
+                      {t("myLearning", lang)}
+                    </a>
+                    <button
+                      onClick={() => {
+                        setShowUserDropdown(false);
+                        onSignOut?.();
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-text hover:bg-bg"
+                    >
+                      <span>🚪</span>
+                      {t("logout", lang)}
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button

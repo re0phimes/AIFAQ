@@ -65,6 +65,12 @@ const labels = {
   trackProgress: { zh: "追踪你的学习进度", en: "Track your learning progress" },
   updating: { zh: "更新中...", en: "Updating..." },
   backButton: { zh: "← 返回", en: "← Back" },
+  settings: { zh: "设置", en: "Settings" },
+  accountInfo: { zh: "账号信息", en: "Account Info" },
+  preferences: { zh: "偏好设置", en: "Preferences" },
+  defaultPageSize: { zh: "默认每页数量", en: "Items per page" },
+  defaultViewMode: { zh: "默认视图模式", en: "Default view mode" },
+  language: { zh: "语言", en: "Language" },
 } as const;
 
 export function t(key: keyof typeof labels, lang: Lang): string {

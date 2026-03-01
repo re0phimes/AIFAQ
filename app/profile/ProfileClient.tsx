@@ -24,10 +24,12 @@ interface ProfileClientProps {
   favorites: FavoriteItem[];
   stats: Stats;
   lang: "zh" | "en";
+  sessionUser?: { id?: string; name?: string | null; image?: string | null } | null;
 }
 
-export default function ProfileClient({ favorites, stats, lang }: ProfileClientProps) {
+export default function ProfileClient({ favorites, stats, lang, sessionUser }: ProfileClientProps) {
   const [showStaleReminder, setShowStaleReminder] = useState(stats.stale > 0);
+  const [activeTab, setActiveTab] = useState<'learning' | 'settings'>('learning');
 
   const handleUpdateStatus = async (faqId: number, status: 'learning' | 'mastered') => {
     try {
@@ -46,87 +48,117 @@ export default function ProfileClient({ favorites, stats, lang }: ProfileClientP
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="font-brand text-3xl font-bold text-text">{t("myLearning", lang)}</h1>
-        <p className="mt-1 text-sm text-subtext">{t("trackProgress", lang)}</p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-lg border border-border bg-surface p-4">
-          <div className="text-2xl font-bold text-text">{stats.total}</div>
-          <div className="text-xs text-subtext">{t("totalFavorites", lang)}</div>
+      {/* Header with Tabs */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-brand text-3xl font-bold text-text">AIFAQ</h1>
+          <p className="mt-1 text-sm text-subtext">{t("trackProgress", lang)}</p>
         </div>
-        <div className="rounded-lg border border-border bg-surface p-4">
-          <div className="text-2xl font-bold text-blue-600">{stats.learning}</div>
-          <div className="text-xs text-subtext">{t("learningStatus", lang)}</div>
-        </div>
-        <div className="rounded-lg border border-border bg-surface p-4">
-          <div className="text-2xl font-bold text-green-600">{stats.mastered}</div>
-          <div className="text-xs text-subtext">{t("masteredStatus", lang)}</div>
-        </div>
-      </div>
-
-      {/* Stale Reminder */}
-      {showStaleReminder && stats.stale > 0 && (
-        <div className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-4">
-          <div className="flex items-center gap-2">
-            <span className="text-amber-600">⚠️</span>
-            <span className="text-sm text-amber-900">
-              {t("staleReminder", lang).replace("{count}", String(stats.stale))}
-            </span>
-          </div>
+        <div className="flex gap-1">
           <button
-            onClick={() => setShowStaleReminder(false)}
-            className="text-xs text-amber-600 hover:text-amber-800"
+            onClick={() => setActiveTab('learning')}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'learning'
+                ? 'bg-primary text-white'
+                : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+            }`}
           >
-            {t("ignore", lang)}
+            {t("myLearning", lang)}
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'settings'
+                ? 'bg-primary text-white'
+                : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+            }`}
+          >
+            {t("settings", lang)}
           </button>
         </div>
-      )}
+      </div>
 
-      {/* Favorites List */}
-      {favorites.length === 0 ? (
-        <div className="py-16 text-center">
-          <p className="text-subtext">{t("startCollecting", lang)}</p>
-        </div>
+      {activeTab === 'learning' ? (
+        <>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="rounded-lg border border-border bg-surface p-4">
+              <div className="text-2xl font-bold text-text">{stats.total}</div>
+              <div className="text-xs text-subtext">{t("totalFavorites", lang)}</div>
+            </div>
+            <div className="rounded-lg border border-border bg-surface p-4">
+              <div className="text-2xl font-bold text-blue-600">{stats.learning}</div>
+              <div className="text-xs text-subtext">{t("learningStatus", lang)}</div>
+            </div>
+            <div className="rounded-lg border border-border bg-surface p-4">
+              <div className="text-2xl font-bold text-green-600">{stats.mastered}</div>
+              <div className="text-xs text-subtext">{t("masteredStatus", lang)}</div>
+            </div>
+          </div>
+
+          {/* Stale Reminder */}
+          {showStaleReminder && stats.stale > 0 && (
+            <div className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-4">
+              <div className="flex items-center gap-2">
+                <span className="text-amber-600">⚠️</span>
+                <span className="text-sm text-amber-900">
+                  {t("staleReminder", lang).replace("{count}", String(stats.stale))}
+                </span>
+              </div>
+              <button
+                onClick={() => setShowStaleReminder(false)}
+                className="text-xs text-amber-600 hover:text-amber-800"
+              >
+                {t("ignore", lang)}
+              </button>
+            </div>
+          )}
+
+          {/* Favorites List */}
+          {favorites.length === 0 ? (
+            <div className="py-16 text-center">
+              <p className="text-subtext">{t("startCollecting", lang)}</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Unread Section */}
+              {stats.unread > 0 && (
+                <FavoritesSection
+                  title={`📚 ${t("unreadStatus", lang)}`}
+                  count={stats.unread}
+                  items={favorites.filter(f => f.learning_status === 'unread')}
+                  onUpdateStatus={handleUpdateStatus}
+                  lang={lang}
+                />
+              )}
+
+              {/* Learning Section */}
+              {stats.learning > 0 && (
+                <FavoritesSection
+                  title={`📖 ${t("learningStatus", lang)}`}
+                  count={stats.learning}
+                  items={favorites.filter(f => f.learning_status === 'learning')}
+                  onUpdateStatus={handleUpdateStatus}
+                  showMasterButton
+                  lang={lang}
+                />
+              )}
+
+              {/* Mastered Section */}
+              {stats.mastered > 0 && (
+                <FavoritesSection
+                  title={`✅ ${t("masteredStatus", lang)}`}
+                  count={stats.mastered}
+                  items={favorites.filter(f => f.learning_status === 'mastered')}
+                  onUpdateStatus={handleUpdateStatus}
+                  lang={lang}
+                />
+              )}
+            </div>
+          )}
+        </>
       ) : (
-        <div className="space-y-4">
-          {/* Unread Section */}
-          {stats.unread > 0 && (
-            <FavoritesSection
-              title={`📚 ${t("unreadStatus", lang)}`}
-              count={stats.unread}
-              items={favorites.filter(f => f.learning_status === 'unread')}
-              onUpdateStatus={handleUpdateStatus}
-              lang={lang}
-            />
-          )}
-
-          {/* Learning Section */}
-          {stats.learning > 0 && (
-            <FavoritesSection
-              title={`📖 ${t("learningStatus", lang)}`}
-              count={stats.learning}
-              items={favorites.filter(f => f.learning_status === 'learning')}
-              onUpdateStatus={handleUpdateStatus}
-              showMasterButton
-              lang={lang}
-            />
-          )}
-
-          {/* Mastered Section */}
-          {stats.mastered > 0 && (
-            <FavoritesSection
-              title={`✅ ${t("masteredStatus", lang)}`}
-              count={stats.mastered}
-              items={favorites.filter(f => f.learning_status === 'mastered')}
-              onUpdateStatus={handleUpdateStatus}
-              lang={lang}
-            />
-          )}
-        </div>
+        <SettingsTab lang={lang} sessionUser={sessionUser} />
       )}
     </div>
   );
@@ -178,6 +210,133 @@ function FavoritesSection({ title, count, items, onUpdateStatus, showMasterButto
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+interface SettingsTabProps {
+  lang: "zh" | "en";
+  sessionUser?: { id?: string; name?: string | null; image?: string | null } | null;
+}
+
+function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
+  // Load settings from localStorage
+  const [settings, setSettings] = useState({
+    lang: (typeof window !== 'undefined' ? localStorage.getItem('aifaq-lang') : null) as "zh" | "en" || lang,
+    pageSize: Number(typeof window !== 'undefined' ? localStorage.getItem('aifaq-pageSize') : null) || 20,
+    defaultDetailed: (typeof window !== 'undefined' ? localStorage.getItem('aifaq-defaultDetailed') : null) === 'true',
+  });
+
+  const updateSetting = <K extends keyof typeof settings>(
+    key: K,
+    value: typeof settings[K]
+  ) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+    localStorage.setItem(`aifaq-${key}`, String(value));
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Account Info */}
+      <div className="rounded-lg border border-border bg-surface p-6">
+        <h2 className="mb-4 font-brand text-lg font-semibold text-text">
+          {t("accountInfo", lang)}
+        </h2>
+        <div className="flex items-center gap-4">
+          {sessionUser?.image && (
+            <img
+              src={sessionUser.image}
+              alt=""
+              className="h-16 w-16 rounded-full"
+            />
+          )}
+          <div>
+            <div className="font-medium text-text">{sessionUser?.name || '-'}</div>
+            <div className="text-sm text-subtext">ID: {sessionUser?.id?.slice(-8) || '-'}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Preferences */}
+      <div className="rounded-lg border border-border bg-surface p-6">
+        <h2 className="mb-4 font-brand text-lg font-semibold text-text">
+          {t("preferences", lang)}
+        </h2>
+        <div className="space-y-4">
+          {/* Language */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-subtext">
+              {t("language", lang) || "语言 / Language"}
+            </label>
+            <div className="flex gap-2">
+              {(['zh', 'en'] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => updateSetting('lang', l)}
+                  className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                    settings.lang === l
+                      ? 'bg-primary text-white'
+                      : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+                  }`}
+                >
+                  {l === 'zh' ? '中文' : 'EN'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Page Size */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-subtext">
+              {t("defaultPageSize", lang)}
+            </label>
+            <div className="flex gap-2">
+              {[10, 20, 50, 100].map((size) => (
+                <button
+                  key={size}
+                  onClick={() => updateSetting('pageSize', size)}
+                  className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                    settings.pageSize === size
+                      ? 'bg-primary text-white'
+                      : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+                  }`}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Default View Mode */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-subtext">
+              {t("defaultViewMode", lang)}
+            </label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => updateSetting('defaultDetailed', false)}
+                className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                  !settings.defaultDetailed
+                    ? 'bg-primary text-white'
+                    : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+                }`}
+              >
+                {t("brief", lang)}
+              </button>
+              <button
+                onClick={() => updateSetting('defaultDetailed', true)}
+                className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                  settings.defaultDetailed
+                    ? 'bg-primary text-white'
+                    : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+                }`}
+              >
+                {t("detailed", lang)}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
