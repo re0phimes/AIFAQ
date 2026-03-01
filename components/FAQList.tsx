@@ -384,21 +384,46 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
           </div>
           <div className="flex items-center gap-3">
             {session?.user ? (
-              <div className="flex items-center gap-2">
-                {session.user.image && (
-                  <img src={session.user.image} alt="" className="h-6 w-6 rounded-full" />
-                )}
-                <span className="text-xs text-subtext">{session.user.name}</span>
-                <button onClick={onSignOut} className="text-xs text-subtext hover:text-text">
-                  {t("logout", lang)}
-                </button>
-                <span className="h-4 border-l border-border" />
-                <a
-                  href="/profile"
-                  className="flex items-center gap-1.5 rounded-full border-[0.5px] border-border px-3 py-1.5 text-xs text-subtext hover:bg-surface"
+              <div className="relative" ref={userDropdownRef}>
+                <button
+                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  className="flex items-center gap-2 rounded-full border-[0.5px] border-border px-3 py-1.5 hover:bg-surface"
                 >
-                  {t("myLearning", lang)}
-                </a>
+                  {session.user.image && (
+                    <img src={session.user.image} alt="" className="h-6 w-6 rounded-full" />
+                  )}
+                  <span className="text-xs text-subtext">{session.user.name}</span>
+                  <svg
+                    className={`h-4 w-4 text-subtext transition-transform ${showUserDropdown ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {showUserDropdown && (
+                  <div className="absolute right-0 mt-2 w-40 rounded-lg border border-border bg-surface shadow-sm">
+                    <a
+                      href="/profile"
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-text hover:bg-bg"
+                    >
+                      <span>👤</span>
+                      {t("myLearning", lang)}
+                    </a>
+                    <button
+                      onClick={() => {
+                        setShowUserDropdown(false);
+                        onSignOut?.();
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-text hover:bg-bg"
+                    >
+                      <span>🚪</span>
+                      {t("logout", lang)}
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button
