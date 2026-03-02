@@ -1,10 +1,31 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Link from "next/link";
 import { t } from "@/lib/i18n";
 import type { FAQItem } from "@/src/types/faq";
 import FavoriteCard from "@/components/FavoriteCard";
 import Toast from "@/components/Toast";
+
+// Alert Triangle Icon Component
+function AlertTriangleIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+    </svg>
+  );
+}
 
 interface FavoriteItem {
   faq_id: number;
@@ -29,14 +50,18 @@ interface ProfileClientProps {
   sessionUser?: { id?: string; name?: string | null; image?: string | null } | null;
 }
 
+interface ToastState {
+  message: string;
+  faqId: number;
+}
+
 export default function ProfileClient({ favorites: initialFavorites, stats: initialStats, lang, sessionUser }: ProfileClientProps) {
-  const [showStaleReminder, setShowStaleReminder] = useState(initialStats.stale > 0);
-  const [activeTab, setActiveTab] = useState<'learning' | 'settings'>('learning');
-  const [filter, setFilter] = useState<'all' | 'unread' | 'learning' | 'mastered'>('all');
-  const [pendingRemovals, setPendingRemovals] = useState<Set<number>>(new Set());
-  const [toast, setToast] = useState<{ message: string; faqId: number } | null>(null);
   const [favorites, setFavorites] = useState(initialFavorites);
   const [stats, setStats] = useState(initialStats);
+  const [showStaleReminder, setShowStaleReminder] = useState(initialStats.stale > 0);
+  const [activeTab, setActiveTab] = useState<'learning' | 'settings'>('learning');
+  const [pendingRemovals, setPendingRemovals] = useState<Set<number>>(new Set());
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   const handleUpdateStatus = async (faqId: number, status: 'learning' | 'mastered') => {
     try {
@@ -46,15 +71,15 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
         body: JSON.stringify({ status })
       });
       if (res.ok) {
-        // Update local state instead of reloading
+        // Update local state immediately instead of reloading
         setFavorites(prev => prev.map(f =>
           f.faq_id === faqId ? { ...f, learning_status: status } : f
         ));
+
         // Update stats
         setStats(prev => ({
           ...prev,
-          unread: status === 'learning' ? prev.unread - 1 : prev.unread,
-          learning: status === 'mastered' ? prev.learning - 1 : prev.learning + (status === 'learning' ? 1 : 0),
+          learning: status === 'mastered' ? prev.learning - 1 : prev.learning,
           mastered: status === 'mastered' ? prev.mastered + 1 : prev.mastered
         }));
       }
@@ -63,13 +88,39 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
     }
   };
 
+  const actuallyRemoveFavorite = useCallback((faqId: number) => {
+    const removedItem = favorites.find(f => f.faq_id === faqId);
+    setFavorites(prev => prev.filter(f => f.faq_id !== faqId));
+
+    // Update stats
+    setStats(prev => {
+      const newStats = {
+        total: prev.total - 1,
+        unread: prev.unread,
+        learning: prev.learning,
+        mastered: prev.mastered,
+        stale: prev.stale
+      };
+      if (removedItem) {
+        if (removedItem.learning_status === 'unread') newStats.unread--;
+        else if (removedItem.learning_status === 'learning') newStats.learning--;
+        else if (removedItem.learning_status === 'mastered') newStats.mastered--;
+      }
+      return newStats;
+    });
+  }, [favorites]);
+
   const handleToggleFavorite = async (faqId: number) => {
     try {
-      const res = await fetch(`/api/faq/${faqId}/favorite`, { method: 'POST' });
+      const res = await fetch(`/api/faq/${faqId}/favorite`, {
+        method: 'POST'
+      });
       if (res.ok) {
         const { favorited } = await res.json();
         if (!favorited) {
+          // Mark as pending removal (visual feedback)
           setPendingRemovals(prev => new Set(prev).add(faqId));
+          // Show toast for undo
           setToast({ message: t("removedFromFavorites", lang), faqId });
         }
       }
@@ -80,10 +131,14 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
 
   const handleUndo = async (faqId: number) => {
     try {
-      const res = await fetch(`/api/faq/${faqId}/favorite`, { method: 'POST' });
+      // Call API to re-add to favorites
+      const res = await fetch(`/api/faq/${faqId}/favorite`, {
+        method: 'POST'
+      });
       if (res.ok) {
         const { favorited } = await res.json();
         if (favorited) {
+          // Remove from pending - item will be restored visually
           setPendingRemovals(prev => {
             const next = new Set(prev);
             next.delete(faqId);
@@ -93,21 +148,14 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
         }
       }
     } catch (error) {
-      console.error('Failed to undo:', error);
+      console.error('Failed to undo favorite:', error);
     }
   };
 
   const handleToastClose = (faqId: number) => {
+    // Only actually remove if still pending (not undone)
     if (pendingRemovals.has(faqId)) {
-      const removedItem = favorites.find(f => f.faq_id === faqId);
-      setFavorites(prev => prev.filter(f => f.faq_id !== faqId));
-      if (removedItem) {
-        setStats(prev => ({
-          ...prev,
-          total: prev.total - 1,
-          [removedItem.learning_status]: prev[removedItem.learning_status] - 1
-        }));
-      }
+      actuallyRemoveFavorite(faqId);
       setPendingRemovals(prev => {
         const next = new Set(prev);
         next.delete(faqId);
@@ -117,16 +165,20 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
     setToast(null);
   };
 
-  const filteredFavorites = favorites
-    .filter(f => filter === 'all' || f.learning_status === filter)
-    .filter(f => !pendingRemovals.has(f.faq_id));
-
   return (
     <div className="space-y-6">
       {/* Header with Tabs */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-brand text-3xl font-bold text-text">AIFAQ</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-brand text-3xl font-bold text-text">AIFAQ</h1>
+            <Link
+              href="/"
+              className="flex items-center gap-1 rounded-full border-[0.5px] border-border px-2.5 py-1 text-xs text-subtext hover:bg-surface transition-colors"
+            >
+              ← {t("backToHome", lang)}
+            </Link>
+          </div>
           <p className="mt-1 text-sm text-subtext">{t("trackProgress", lang)}</p>
         </div>
         <div className="flex gap-1">
@@ -153,7 +205,7 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
         </div>
       </div>
 
-      {/* Toast */}
+      {/* Toast for undo */}
       {toast && (
         <Toast
           message={toast.message}
@@ -165,16 +217,27 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
 
       {activeTab === 'learning' ? (
         <>
-          {/* Inline Stats */}
-          <p className="text-sm text-subtext">
-            {t("totalFavorites", lang)} {stats.total} · {t("learningStatus", lang)} {stats.learning} · {t("masteredStatus", lang)} {stats.mastered}
-          </p>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="rounded-xl border-[0.5px] border-border bg-panel p-4">
+              <div className="text-2xl font-bold text-text">{stats.total}</div>
+              <div className="text-xs text-subtext">{t("totalFavorites", lang)}</div>
+            </div>
+            <div className="rounded-xl border-[0.5px] border-border bg-panel p-4">
+              <div className="text-2xl font-bold text-blue-600">{stats.learning}</div>
+              <div className="text-xs text-subtext">{t("learningStatus", lang)}</div>
+            </div>
+            <div className="rounded-xl border-[0.5px] border-border bg-panel p-4">
+              <div className="text-2xl font-bold text-green-600">{stats.mastered}</div>
+              <div className="text-xs text-subtext">{t("masteredStatus", lang)}</div>
+            </div>
+          </div>
 
           {/* Stale Reminder */}
           {showStaleReminder && stats.stale > 0 && (
             <div className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-4">
               <div className="flex items-center gap-2">
-                <span className="text-amber-600">⚠️</span>
+                <AlertTriangleIcon className="h-5 w-5 text-amber-600" />
                 <span className="text-sm text-amber-900">
                   {t("staleReminder", lang).replace("{count}", String(stats.stale))}
                 </span>
@@ -219,22 +282,112 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredFavorites.map(item => (
-                <FavoriteCard
-                  key={item.faq_id}
-                  item={item}
-                  lang={lang}
+              {/* Unread Section */}
+              {stats.unread > 0 && (
+                <FavoritesSection
+                  title={
+                    <span className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+                      {t("unreadStatus", lang)}
+                    </span>
+                  }
+                  count={stats.unread}
+                  items={favorites.filter(f => f.learning_status === 'unread')}
                   onUpdateStatus={handleUpdateStatus}
                   onToggleFavorite={handleToggleFavorite}
-                  showMasterButton={item.learning_status === 'learning'}
-                  isPending={pendingRemovals.has(item.faq_id)}
+                  lang={lang}
+                  pendingRemovals={pendingRemovals}
                 />
-              ))}
+              )}
+
+              {/* Learning Section */}
+              {stats.learning > 0 && (
+                <FavoritesSection
+                  title={
+                    <span className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                      {t("learningStatus", lang)}
+                    </span>
+                  }
+                  count={stats.learning}
+                  items={favorites.filter(f => f.learning_status === 'learning')}
+                  onUpdateStatus={handleUpdateStatus}
+                  onToggleFavorite={handleToggleFavorite}
+                  showMasterButton
+                  lang={lang}
+                  pendingRemovals={pendingRemovals}
+                />
+              )}
+
+              {/* Mastered Section */}
+              {stats.mastered > 0 && (
+                <FavoritesSection
+                  title={
+                    <span className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                      {t("masteredStatus", lang)}
+                    </span>
+                  }
+                  count={stats.mastered}
+                  items={favorites.filter(f => f.learning_status === 'mastered')}
+                  onUpdateStatus={handleUpdateStatus}
+                  onToggleFavorite={handleToggleFavorite}
+                  lang={lang}
+                  pendingRemovals={pendingRemovals}
+                />
+              )}
             </div>
           )}
         </>
       ) : (
         <SettingsTab lang={lang} sessionUser={sessionUser} />
+      )}
+    </div>
+  );
+}
+
+interface FavoritesSectionProps {
+  title: React.ReactNode;
+  count: number;
+  items: FavoriteItem[];
+  onUpdateStatus: (faqId: number, status: 'learning' | 'mastered') => void;
+  onToggleFavorite: (faqId: number) => void;
+  showMasterButton?: boolean;
+  lang: "zh" | "en";
+  pendingRemovals: Set<number>;
+}
+
+function FavoritesSection({ title, count, items, onUpdateStatus, onToggleFavorite, showMasterButton, lang, pendingRemovals }: FavoritesSectionProps) {
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <div className="space-y-3">
+      {/* Section Header with title and count on same line */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center justify-between text-left"
+      >
+        <div className="flex items-center gap-2">
+          {title}
+          <span className="text-sm text-subtext">({count})</span>
+        </div>
+        <span className="text-subtext">{expanded ? '▼' : '▶'}</span>
+      </button>
+
+      {expanded && (
+        <div className="space-y-3">
+          {items.map(item => (
+            <FavoriteCard
+              key={item.faq_id}
+              item={item}
+              lang={lang}
+              onUpdateStatus={onUpdateStatus}
+              onToggleFavorite={onToggleFavorite}
+              showMasterButton={showMasterButton}
+              isPending={pendingRemovals.has(item.faq_id)}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

@@ -404,12 +404,11 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
                 </button>
 
                 {showUserDropdown && (
-                  <div className="absolute right-0 mt-2 w-40 rounded-lg border border-border bg-surface shadow-sm">
+                  <div className="absolute right-0 mt-2 w-40 rounded-lg border border-border bg-surface shadow-sm z-50">
                     <a
                       href="/profile"
                       className="flex items-center gap-2 px-4 py-2.5 text-sm text-text hover:bg-bg"
                     >
-                      <span>👤</span>
                       {t("myLearning", lang)}
                     </a>
                     <button
@@ -419,7 +418,6 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
                       }}
                       className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-text hover:bg-bg"
                     >
-                      <span>🚪</span>
                       {t("logout", lang)}
                     </button>
                   </div>
