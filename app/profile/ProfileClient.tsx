@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { t } from "@/lib/i18n";
 import type { FAQItem } from "@/src/types/faq";
 
@@ -51,7 +52,15 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
       {/* Header with Tabs */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-brand text-3xl font-bold text-text">AIFAQ</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-brand text-3xl font-bold text-text">AIFAQ</h1>
+            <Link
+              href="/"
+              className="flex items-center gap-1 rounded-full border-[0.5px] border-border px-2.5 py-1 text-xs text-subtext hover:bg-surface transition-colors"
+            >
+              ← {t("backToHome", lang)}
+            </Link>
+          </div>
           <p className="mt-1 text-sm text-subtext">{t("trackProgress", lang)}</p>
         </div>
         <div className="flex gap-1">
@@ -192,12 +201,12 @@ function FavoritesSection({ title, count, items, onUpdateStatus, showMasterButto
         <div className="border-t border-border p-4 space-y-2">
           {items.map(item => (
             <div key={item.faq_id} className="flex items-center justify-between py-2">
-              <a
+              <Link
                 href={`/faq/${item.faq_id}`}
                 className="flex-1 text-sm text-text hover:text-primary"
               >
                 {item.faq.question}
-              </a>
+              </Link>
               {showMasterButton && (
                 <button
                   onClick={() => onUpdateStatus(item.faq_id, 'mastered')}
