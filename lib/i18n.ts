@@ -75,6 +75,10 @@ const labels = {
   removedFromFavorites: { zh: "已取消收藏", en: "Removed from favorites" },
   undo: { zh: "撤销", en: "Undo" },
   loginToFavorite: { zh: "登录后收藏", en: "Sign in to favorite" },
+  all: { zh: "全部", en: "All" },
+  startLearning: { zh: "开始学习", en: "Start Learning" },
+  noFavorites: { zh: "暂无收藏", en: "No favorites yet" },
+  saved: { zh: "已收藏", en: "Saved" },
 } as const;
 
 export function t(key: keyof typeof labels, lang: Lang): string {
