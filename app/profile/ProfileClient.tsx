@@ -129,14 +129,27 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
     }
   };
 
-  const handleUndo = (faqId: number) => {
-    // Remove from pending - item will be restored visually
-    setPendingRemovals(prev => {
-      const next = new Set(prev);
-      next.delete(faqId);
-      return next;
-    });
-    setToast(null);
+  const handleUndo = async (faqId: number) => {
+    try {
+      // Call API to re-add to favorites
+      const res = await fetch(`/api/faq/${faqId}/favorite`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        const { favorited } = await res.json();
+        if (favorited) {
+          // Remove from pending - item will be restored visually
+          setPendingRemovals(prev => {
+            const next = new Set(prev);
+            next.delete(faqId);
+            return next;
+          });
+          setToast(null);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to undo favorite:', error);
+    }
   };
 
   const handleToastClose = (faqId: number) => {
