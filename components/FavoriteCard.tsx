@@ -14,6 +14,7 @@ interface FavoriteCardProps {
   onUpdateStatus: (faqId: number, status: 'learning' | 'mastered') => void;
   onToggleFavorite: (faqId: number) => void;
   showMasterButton?: boolean;
+  isPending?: boolean;
 }
 
 export default function FavoriteCard({
@@ -22,6 +23,7 @@ export default function FavoriteCard({
   onUpdateStatus,
   onToggleFavorite,
   showMasterButton,
+  isPending,
 }: FavoriteCardProps) {
   const { faq_id, faq, learning_status } = item;
 
@@ -47,7 +49,11 @@ export default function FavoriteCard({
   const status = statusConfig[learning_status];
 
   return (
-    <article className="rounded-xl border-[0.5px] border-border bg-panel transition-all duration-200 hover:border-primary/20">
+    <article className={`rounded-xl border-[0.5px] bg-panel transition-all duration-200 ${
+      isPending
+        ? 'border-red-300 opacity-50 grayscale'
+        : 'border-border hover:border-primary/20'
+    }`}>
       <div className="flex items-start p-4">
         {/* Left: ID */}
         <span className="shrink-0 font-brand text-xl font-bold text-primary md:text-2xl">

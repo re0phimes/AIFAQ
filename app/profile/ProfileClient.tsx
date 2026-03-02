@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { t } from "@/lib/i18n";
 import type { FAQItem } from "@/src/types/faq";
 import FavoriteCard from "@/components/FavoriteCard";
+import Toast from "@/components/Toast";
 
 // Alert Triangle Icon Component
 function AlertTriangleIcon({ className }: { className?: string }) {
@@ -49,11 +50,18 @@ interface ProfileClientProps {
   sessionUser?: { id?: string; name?: string | null; image?: string | null } | null;
 }
 
+interface ToastState {
+  message: string;
+  faqId: number;
+}
+
 export default function ProfileClient({ favorites: initialFavorites, stats: initialStats, lang, sessionUser }: ProfileClientProps) {
   const [favorites, setFavorites] = useState(initialFavorites);
   const [stats, setStats] = useState(initialStats);
   const [showStaleReminder, setShowStaleReminder] = useState(initialStats.stale > 0);
   const [activeTab, setActiveTab] = useState<'learning' | 'settings'>('learning');
+  const [pendingRemovals, setPendingRemovals] = useState<Set<number>>(new Set());
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   const handleUpdateStatus = async (faqId: number, status: 'learning' | 'mastered') => {
     try {
@@ -80,6 +88,28 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
     }
   };
 
+  const actuallyRemoveFavorite = useCallback((faqId: number) => {
+    const removedItem = favorites.find(f => f.faq_id === faqId);
+    setFavorites(prev => prev.filter(f => f.faq_id !== faqId));
+
+    // Update stats
+    setStats(prev => {
+      const newStats = {
+        total: prev.total - 1,
+        unread: prev.unread,
+        learning: prev.learning,
+        mastered: prev.mastered,
+        stale: prev.stale
+      };
+      if (removedItem) {
+        if (removedItem.learning_status === 'unread') newStats.unread--;
+        else if (removedItem.learning_status === 'learning') newStats.learning--;
+        else if (removedItem.learning_status === 'mastered') newStats.mastered--;
+      }
+      return newStats;
+    });
+  }, [favorites]);
+
   const handleToggleFavorite = async (faqId: number) => {
     try {
       const res = await fetch(`/api/faq/${faqId}/favorite`, {
@@ -88,31 +118,38 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
       if (res.ok) {
         const { favorited } = await res.json();
         if (!favorited) {
-          // Removed from favorites - update local state immediately
-          const removedItem = favorites.find(f => f.faq_id === faqId);
-          setFavorites(prev => prev.filter(f => f.faq_id !== faqId));
-
-          // Update stats
-          setStats(prev => {
-            const newStats = {
-              total: prev.total - 1,
-              unread: prev.unread,
-              learning: prev.learning,
-              mastered: prev.mastered,
-              stale: prev.stale
-            };
-            if (removedItem) {
-              if (removedItem.learning_status === 'unread') newStats.unread--;
-              else if (removedItem.learning_status === 'learning') newStats.learning--;
-              else if (removedItem.learning_status === 'mastered') newStats.mastered--;
-            }
-            return newStats;
-          });
+          // Mark as pending removal (visual feedback)
+          setPendingRemovals(prev => new Set(prev).add(faqId));
+          // Show toast for undo
+          setToast({ message: t("removedFromFavorites", lang), faqId });
         }
       }
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
     }
+  };
+
+  const handleUndo = (faqId: number) => {
+    // Remove from pending - item will be restored visually
+    setPendingRemovals(prev => {
+      const next = new Set(prev);
+      next.delete(faqId);
+      return next;
+    });
+    setToast(null);
+  };
+
+  const handleToastClose = (faqId: number) => {
+    // Only actually remove if still pending (not undone)
+    if (pendingRemovals.has(faqId)) {
+      actuallyRemoveFavorite(faqId);
+      setPendingRemovals(prev => {
+        const next = new Set(prev);
+        next.delete(faqId);
+        return next;
+      });
+    }
+    setToast(null);
   };
 
   return (
@@ -154,6 +191,16 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
           </button>
         </div>
       </div>
+
+      {/* Toast for undo */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          action={{ label: t("undo", lang), onClick: () => handleUndo(toast.faqId) }}
+          onClose={() => handleToastClose(toast.faqId)}
+          duration={5000}
+        />
+      )}
 
       {activeTab === 'learning' ? (
         <>
@@ -212,6 +259,7 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
                   onUpdateStatus={handleUpdateStatus}
                   onToggleFavorite={handleToggleFavorite}
                   lang={lang}
+                  pendingRemovals={pendingRemovals}
                 />
               )}
 
@@ -230,6 +278,7 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
                   onToggleFavorite={handleToggleFavorite}
                   showMasterButton
                   lang={lang}
+                  pendingRemovals={pendingRemovals}
                 />
               )}
 
@@ -247,6 +296,7 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
                   onUpdateStatus={handleUpdateStatus}
                   onToggleFavorite={handleToggleFavorite}
                   lang={lang}
+                  pendingRemovals={pendingRemovals}
                 />
               )}
             </div>
@@ -267,9 +317,10 @@ interface FavoritesSectionProps {
   onToggleFavorite: (faqId: number) => void;
   showMasterButton?: boolean;
   lang: "zh" | "en";
+  pendingRemovals: Set<number>;
 }
 
-function FavoritesSection({ title, count, items, onUpdateStatus, onToggleFavorite, showMasterButton, lang }: FavoritesSectionProps) {
+function FavoritesSection({ title, count, items, onUpdateStatus, onToggleFavorite, showMasterButton, lang, pendingRemovals }: FavoritesSectionProps) {
   const [expanded, setExpanded] = useState(true);
 
   return (
@@ -296,6 +347,7 @@ function FavoritesSection({ title, count, items, onUpdateStatus, onToggleFavorit
               onUpdateStatus={onUpdateStatus}
               onToggleFavorite={onToggleFavorite}
               showMasterButton={showMasterButton}
+              isPending={pendingRemovals.has(item.faq_id)}
             />
           ))}
         </div>

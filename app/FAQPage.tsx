@@ -240,6 +240,9 @@ function FAQPageInner({ items }: FAQPageProps) {
         currentVote={modalCurrentVote}
         upvoteCount={modalItem?.upvoteCount}
         downvoteCount={modalItem?.downvoteCount}
+        isFavorited={modalItem ? favorites.has(modalItem.id) : false}
+        onToggleFavorite={() => modalItem && handleToggleFavorite(modalItem.id)}
+        isAuthenticated={!!session?.user}
       />
     </>
   );
