@@ -409,7 +409,6 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
                       href="/profile"
                       className="flex items-center gap-2 px-4 py-2.5 text-sm text-text hover:bg-bg"
                     >
-                      <span>👤</span>
                       {t("myLearning", lang)}
                     </a>
                     <button
@@ -419,7 +418,6 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
                       }}
                       className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-text hover:bg-bg"
                     >
-                      <span>🚪</span>
                       {t("logout", lang)}
                     </button>
                   </div>
