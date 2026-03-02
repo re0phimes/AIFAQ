@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { t } from "@/lib/i18n";
 import type { FAQItem } from "@/src/types/faq";
+import FavoriteCard from "@/components/FavoriteCard";
 
 // Alert Triangle Icon Component
 function AlertTriangleIcon({ className }: { className?: string }) {
@@ -67,6 +68,19 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
     }
   };
 
+  const handleToggleFavorite = async (faqId: number) => {
+    try {
+      const res = await fetch(`/api/faq/${faqId}/favorite`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header with Tabs */}
@@ -111,15 +125,15 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
         <>
           {/* Stats Cards */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="rounded-lg border border-border bg-surface p-4">
+            <div className="rounded-xl border-[0.5px] border-border bg-panel p-4">
               <div className="text-2xl font-bold text-text">{stats.total}</div>
               <div className="text-xs text-subtext">{t("totalFavorites", lang)}</div>
             </div>
-            <div className="rounded-lg border border-border bg-surface p-4">
+            <div className="rounded-xl border-[0.5px] border-border bg-panel p-4">
               <div className="text-2xl font-bold text-blue-600">{stats.learning}</div>
               <div className="text-xs text-subtext">{t("learningStatus", lang)}</div>
             </div>
-            <div className="rounded-lg border border-border bg-surface p-4">
+            <div className="rounded-xl border-[0.5px] border-border bg-panel p-4">
               <div className="text-2xl font-bold text-green-600">{stats.mastered}</div>
               <div className="text-xs text-subtext">{t("masteredStatus", lang)}</div>
             </div>
@@ -162,6 +176,7 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
                   count={stats.unread}
                   items={favorites.filter(f => f.learning_status === 'unread')}
                   onUpdateStatus={handleUpdateStatus}
+                  onToggleFavorite={handleToggleFavorite}
                   lang={lang}
                 />
               )}
@@ -178,6 +193,7 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
                   count={stats.learning}
                   items={favorites.filter(f => f.learning_status === 'learning')}
                   onUpdateStatus={handleUpdateStatus}
+                  onToggleFavorite={handleToggleFavorite}
                   showMasterButton
                   lang={lang}
                 />
@@ -195,6 +211,7 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
                   count={stats.mastered}
                   items={favorites.filter(f => f.learning_status === 'mastered')}
                   onUpdateStatus={handleUpdateStatus}
+                  onToggleFavorite={handleToggleFavorite}
                   lang={lang}
                 />
               )}
@@ -213,44 +230,39 @@ interface FavoritesSectionProps {
   count: number;
   items: FavoriteItem[];
   onUpdateStatus: (faqId: number, status: 'learning' | 'mastered') => void;
+  onToggleFavorite: (faqId: number) => void;
   showMasterButton?: boolean;
   lang: "zh" | "en";
 }
 
-function FavoritesSection({ title, count, items, onUpdateStatus, showMasterButton, lang }: FavoritesSectionProps) {
+function FavoritesSection({ title, count, items, onUpdateStatus, onToggleFavorite, showMasterButton, lang }: FavoritesSectionProps) {
   const [expanded, setExpanded] = useState(true);
 
   return (
-    <div className="rounded-lg border border-border bg-surface">
+    <div className="space-y-3">
+      {/* Section Header with title and count on same line */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center justify-between p-4 text-left hover:bg-bg"
+        className="flex w-full items-center justify-between text-left"
       >
-        <span className="font-medium text-text">
-          {title} ({count})
-        </span>
+        <div className="flex items-center gap-2">
+          {title}
+          <span className="text-sm text-subtext">({count})</span>
+        </div>
         <span className="text-subtext">{expanded ? '▼' : '▶'}</span>
       </button>
 
       {expanded && (
-        <div className="border-t border-border p-4 space-y-2">
+        <div className="space-y-3">
           {items.map(item => (
-            <div key={item.faq_id} className="flex items-center justify-between py-2">
-              <Link
-                href={`/faq/${item.faq_id}`}
-                className="flex-1 text-sm text-text hover:text-primary"
-              >
-                {item.faq.question}
-              </Link>
-              {showMasterButton && (
-                <button
-                  onClick={() => onUpdateStatus(item.faq_id, 'mastered')}
-                  className="ml-4 rounded-full border border-green-500 px-3 py-1 text-xs text-green-600 hover:bg-green-50"
-                >
-                  {t("markAsMastered", lang)}
-                </button>
-              )}
-            </div>
+            <FavoriteCard
+              key={item.faq_id}
+              item={item}
+              lang={lang}
+              onUpdateStatus={onUpdateStatus}
+              onToggleFavorite={onToggleFavorite}
+              showMasterButton={showMasterButton}
+            />
           ))}
         </div>
       )}
