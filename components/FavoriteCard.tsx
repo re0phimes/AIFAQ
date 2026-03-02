@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { t, translateTag } from "@/lib/i18n";
 import type { FAQItem } from "@/src/types/faq";
+import MarkdownContent from "@/components/MarkdownContent";
+import ReferenceList from "@/components/ReferenceList";
 
 interface FavoriteCardProps {
   item: {
@@ -13,8 +14,12 @@ interface FavoriteCardProps {
   lang: "zh" | "en";
   onUpdateStatus: (faqId: number, status: 'learning' | 'mastered') => void;
   onToggleFavorite: (faqId: number) => void;
+  onOpenItem: (item: FavoriteCardProps["item"]) => void;
   showMasterButton?: boolean;
   isPending?: boolean;
+  detailedMode?: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: (faqId: number) => void;
 }
 
 export default function FavoriteCard({
@@ -22,10 +27,19 @@ export default function FavoriteCard({
   lang,
   onUpdateStatus,
   onToggleFavorite,
+  onOpenItem,
   showMasterButton,
   isPending,
+  detailedMode = false,
+  isExpanded = false,
+  onToggleExpand,
 }: FavoriteCardProps) {
   const { faq_id, faq, learning_status } = item;
+  const title = lang === "en" && faq.questionEn ? faq.questionEn : faq.question;
+  const briefContent =
+    lang === "en" && faq.answerBriefEn
+      ? faq.answerBriefEn
+      : faq.answerBrief ?? faq.answer;
 
   // Status badge config
   const statusConfig = {
@@ -63,12 +77,13 @@ export default function FavoriteCard({
         {/* Middle: Content */}
         <div className="min-w-0 flex-1 px-4">
           {/* Title */}
-          <Link
-            href={`/faq/${faq_id}`}
-            className="block text-sm font-medium leading-snug text-text hover:text-primary md:text-base"
+          <button
+            type="button"
+            onClick={() => (detailedMode ? onOpenItem(item) : onToggleExpand?.(faq_id))}
+            className="block w-full text-left text-sm font-medium leading-snug text-text hover:text-primary md:text-base"
           >
-            {lang === "en" && faq.questionEn ? faq.questionEn : faq.question}
-          </Link>
+            {title}
+          </button>
 
           {/* Status badge */}
           <div className="mt-2 flex items-center gap-2">
@@ -134,6 +149,38 @@ export default function FavoriteCard({
           )}
         </div>
       </div>
+
+      {!detailedMode && isExpanded && (
+        <div className="border-t border-border/50 px-4 pb-4 pt-3">
+          <MarkdownContent
+            className="prose prose-sm max-w-none text-text [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:p-4 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_.katex-display]:overflow-x-auto [&_.katex-display]:py-2"
+            content={briefContent}
+          />
+          {faq.images && faq.images.length > 0 && (
+            <div className="mt-4 space-y-3">
+              {faq.images.map((img, i) => (
+                <figure key={i} className="overflow-hidden rounded-lg border-[0.5px] border-border">
+                  <a href={img.url} target="_blank" rel="noopener noreferrer">
+                    <img
+                      src={img.url}
+                      alt={img.caption}
+                      className="w-full object-contain"
+                      loading="lazy"
+                    />
+                  </a>
+                  <figcaption className="bg-surface/50 px-3 py-2 text-xs text-subtext">
+                    {img.caption}
+                    <span className="ml-2 text-[10px] text-subtext/60">
+                      [{img.source === "blog" ? t("blog", lang) : t("paper", lang)}]
+                    </span>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
+          <ReferenceList references={faq.references} lang={lang} />
+        </div>
+      )}
     </article>
   );
 }

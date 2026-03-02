@@ -1,11 +1,35 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { t } from "@/lib/i18n";
-import type { FAQItem } from "@/src/types/faq";
+import type { FAQItem, VoteType } from "@/src/types/faq";
 import FavoriteCard from "@/components/FavoriteCard";
 import Toast from "@/components/Toast";
+import DetailModal from "@/components/DetailModal";
+
+const LS_VOTED = "aifaq-voted";
+
+function loadVotedMap(): Map<number, VoteType> {
+  if (typeof window === "undefined") return new Map();
+  try {
+    const raw = localStorage.getItem(LS_VOTED);
+    if (!raw) return new Map();
+    const obj = JSON.parse(raw) as Record<string, VoteType>;
+    const map = new Map<number, VoteType>();
+    for (const [k, v] of Object.entries(obj)) map.set(Number(k), v);
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
+function saveVotedMap(map: Map<number, VoteType>): void {
+  if (typeof window === "undefined") return;
+  const obj: Record<string, VoteType> = {};
+  for (const [k, v] of map) obj[String(k)] = v;
+  localStorage.setItem(LS_VOTED, JSON.stringify(obj));
+}
 
 // Alert Triangle Icon Component
 function AlertTriangleIcon({ className }: { className?: string }) {
@@ -29,7 +53,7 @@ function AlertTriangleIcon({ className }: { className?: string }) {
 
 interface FavoriteItem {
   faq_id: number;
-  learning_status: 'unread' | 'learning' | 'mastered';
+  learning_status: "unread" | "learning" | "mastered";
   created_at: string;
   last_viewed_at: string | null;
   faq: FAQItem;
@@ -55,92 +79,264 @@ interface ToastState {
   faqId: number;
 }
 
-export default function ProfileClient({ favorites: initialFavorites, stats: initialStats, lang, sessionUser }: ProfileClientProps) {
+export default function ProfileClient({
+  favorites: initialFavorites,
+  stats: initialStats,
+  lang,
+  sessionUser,
+}: ProfileClientProps) {
   const [favorites, setFavorites] = useState(initialFavorites);
   const [stats, setStats] = useState(initialStats);
   const [showStaleReminder, setShowStaleReminder] = useState(initialStats.stale > 0);
-  const [activeTab, setActiveTab] = useState<'learning' | 'settings'>('learning');
-  const [filter, setFilter] = useState<'all' | 'unread' | 'learning' | 'mastered'>('all');
+  const [activeTab, setActiveTab] = useState<"learning" | "settings">("learning");
+  const [filter, setFilter] = useState<"all" | "unread" | "learning" | "mastered">("all");
   const [pendingRemovals, setPendingRemovals] = useState<Set<number>>(new Set());
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [globalDetailed, setGlobalDetailed] = useState(false);
+  const [openItems, setOpenItems] = useState<Set<number>>(new Set());
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalItem, setModalItem] = useState<FAQItem | null>(null);
+  const [votedMap, setVotedMap] = useState<Map<number, VoteType>>(loadVotedMap);
+  const [fingerprint, setFingerprint] = useState("");
 
-  const handleUpdateStatus = async (faqId: number, status: 'learning' | 'mastered') => {
+  const votedMapRef = useRef(votedMap);
+  const fingerprintRef = useRef(fingerprint);
+
+  useEffect(() => {
+    votedMapRef.current = votedMap;
+  }, [votedMap]);
+
+  useEffect(() => {
+    fingerprintRef.current = fingerprint;
+  }, [fingerprint]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem("aifaq-defaultDetailed");
+    if (saved !== null) setGlobalDetailed(saved === "true");
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("aifaq-defaultDetailed", String(globalDetailed));
+  }, [globalDetailed]);
+
+  useEffect(() => {
+    if (sessionUser?.id) return;
+    import("@fingerprintjs/fingerprintjs")
+      .then((FP) => FP.load())
+      .then((fp) => fp.get())
+      .then((result) => setFingerprint(result.visitorId))
+      .catch(() => {});
+  }, [sessionUser?.id]);
+
+  useEffect(() => {
+    if (!fingerprint) return;
+    fetch(`/api/faq/votes?fingerprint=${fingerprint}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: Record<string, string> | null) => {
+        if (!data) return;
+        const map = new Map<number, VoteType>();
+        for (const [k, v] of Object.entries(data)) {
+          if (v === "upvote" || v === "downvote") {
+            map.set(Number(k), v as VoteType);
+          }
+        }
+        setVotedMap(map);
+        saveVotedMap(map);
+      })
+      .catch(() => {});
+  }, [fingerprint]);
+
+  const handleVote = useCallback(
+    async (faqId: number, type: VoteType, reason?: string, detail?: string) => {
+      const fp = fingerprintRef.current;
+      if (!fp && !sessionUser?.id) return;
+      const current = votedMapRef.current.get(faqId);
+
+      setVotedMap((prev) => {
+        const next = new Map(prev);
+        next.set(faqId, type);
+        saveVotedMap(next);
+        return next;
+      });
+
+      try {
+        const res = await fetch(`/api/faq/${faqId}/vote`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type, fingerprint: fp || undefined, reason, detail }),
+        });
+        if (!res.ok && res.status !== 409) {
+          setVotedMap((prev) => {
+            const next = new Map(prev);
+            if (current) next.set(faqId, current);
+            else next.delete(faqId);
+            saveVotedMap(next);
+            return next;
+          });
+        }
+      } catch {
+        setVotedMap((prev) => {
+          const next = new Map(prev);
+          if (current) next.set(faqId, current);
+          else next.delete(faqId);
+          saveVotedMap(next);
+          return next;
+        });
+      }
+    },
+    [sessionUser?.id]
+  );
+
+  const handleRevokeVote = useCallback(
+    async (faqId: number) => {
+      const fp = fingerprintRef.current;
+      if (!fp && !sessionUser?.id) return;
+      const current = votedMapRef.current.get(faqId);
+
+      setVotedMap((prev) => {
+        const next = new Map(prev);
+        next.delete(faqId);
+        saveVotedMap(next);
+        return next;
+      });
+
+      try {
+        const res = await fetch(`/api/faq/${faqId}/vote`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fingerprint: fp || undefined }),
+        });
+        if (!res.ok) {
+          setVotedMap((prev) => {
+            const next = new Map(prev);
+            if (current) next.set(faqId, current);
+            saveVotedMap(next);
+            return next;
+          });
+        }
+      } catch {
+        setVotedMap((prev) => {
+          const next = new Map(prev);
+          if (current) next.set(faqId, current);
+          saveVotedMap(next);
+          return next;
+        });
+      }
+    },
+    [sessionUser?.id]
+  );
+
+  const handleModalVote = useCallback(
+    (type: VoteType, reason?: string, detail?: string) => {
+      if (modalItem) handleVote(modalItem.id, type, reason, detail);
+    },
+    [modalItem, handleVote]
+  );
+
+  const handleModalRevokeVote = useCallback(() => {
+    if (modalItem) handleRevokeVote(modalItem.id);
+  }, [modalItem, handleRevokeVote]);
+
+  const handleOpenFavorite = useCallback((item: Pick<FavoriteItem, "faq_id" | "faq">) => {
+    if (globalDetailed) {
+      setModalItem(item.faq);
+      setIsModalOpen(true);
+      return;
+    }
+    setOpenItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(item.faq_id)) next.delete(item.faq_id);
+      else next.add(item.faq_id);
+      return next;
+    });
+  }, [globalDetailed]);
+
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    setTimeout(() => setModalItem(null), 100);
+  }, []);
+
+  const handleUpdateStatus = async (faqId: number, status: "learning" | "mastered") => {
     try {
       const res = await fetch(`/api/favorites/${faqId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
       });
       if (res.ok) {
-        // Update local state immediately instead of reloading
-        setFavorites(prev => prev.map(f =>
-          f.faq_id === faqId ? { ...f, learning_status: status } : f
-        ));
+        setFavorites((prev) =>
+          prev.map((f) => (f.faq_id === faqId ? { ...f, learning_status: status } : f))
+        );
 
-        // Update stats
-        setStats(prev => ({
+        setStats((prev) => ({
           ...prev,
-          learning: status === 'mastered' ? prev.learning - 1 : prev.learning,
-          mastered: status === 'mastered' ? prev.mastered + 1 : prev.mastered
+          learning: status === "mastered" ? prev.learning - 1 : prev.learning,
+          mastered: status === "mastered" ? prev.mastered + 1 : prev.mastered,
         }));
       }
     } catch (error) {
-      console.error('Failed to update status:', error);
+      console.error("Failed to update status:", error);
     }
   };
 
   const actuallyRemoveFavorite = useCallback((faqId: number) => {
-    const removedItem = favorites.find(f => f.faq_id === faqId);
-    setFavorites(prev => prev.filter(f => f.faq_id !== faqId));
+    const removedItem = favorites.find((f) => f.faq_id === faqId);
+    setFavorites((prev) => prev.filter((f) => f.faq_id !== faqId));
+    setOpenItems((prev) => {
+      const next = new Set(prev);
+      next.delete(faqId);
+      return next;
+    });
+    if (modalItem?.id === faqId) {
+      setIsModalOpen(false);
+      setModalItem(null);
+    }
 
-    // Update stats
-    setStats(prev => {
+    setStats((prev) => {
       const newStats = {
         total: prev.total - 1,
         unread: prev.unread,
         learning: prev.learning,
         mastered: prev.mastered,
-        stale: prev.stale
+        stale: prev.stale,
       };
       if (removedItem) {
-        if (removedItem.learning_status === 'unread') newStats.unread--;
-        else if (removedItem.learning_status === 'learning') newStats.learning--;
-        else if (removedItem.learning_status === 'mastered') newStats.mastered--;
+        if (removedItem.learning_status === "unread") newStats.unread--;
+        else if (removedItem.learning_status === "learning") newStats.learning--;
+        else if (removedItem.learning_status === "mastered") newStats.mastered--;
       }
       return newStats;
     });
-  }, [favorites]);
+  }, [favorites, modalItem?.id]);
 
   const handleToggleFavorite = async (faqId: number) => {
     try {
       const res = await fetch(`/api/faq/${faqId}/favorite`, {
-        method: 'POST'
+        method: "POST",
       });
       if (res.ok) {
         const { favorited } = await res.json();
         if (!favorited) {
-          // Mark as pending removal (visual feedback)
-          setPendingRemovals(prev => new Set(prev).add(faqId));
-          // Show toast for undo
+          setPendingRemovals((prev) => new Set(prev).add(faqId));
           setToast({ message: t("removedFromFavorites", lang), faqId });
         }
       }
     } catch (error) {
-      console.error('Failed to toggle favorite:', error);
+      console.error("Failed to toggle favorite:", error);
     }
   };
 
   const handleUndo = async (faqId: number) => {
     try {
-      // Call API to re-add to favorites
       const res = await fetch(`/api/faq/${faqId}/favorite`, {
-        method: 'POST'
+        method: "POST",
       });
       if (res.ok) {
         const { favorited } = await res.json();
         if (favorited) {
-          // Remove from pending - item will be restored visually
-          setPendingRemovals(prev => {
+          setPendingRemovals((prev) => {
             const next = new Set(prev);
             next.delete(faqId);
             return next;
@@ -149,15 +345,14 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
         }
       }
     } catch (error) {
-      console.error('Failed to undo favorite:', error);
+      console.error("Failed to undo favorite:", error);
     }
   };
 
   const handleToastClose = (faqId: number) => {
-    // Only actually remove if still pending (not undone)
     if (pendingRemovals.has(faqId)) {
       actuallyRemoveFavorite(faqId);
-      setPendingRemovals(prev => {
+      setPendingRemovals((prev) => {
         const next = new Set(prev);
         next.delete(faqId);
         return next;
@@ -167,19 +362,24 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
   };
 
   const filteredFavorites = favorites
-    .filter(f => filter === 'all' || f.learning_status === filter)
-    .filter(f => !pendingRemovals.has(f.faq_id));
+    .filter((f) => filter === "all" || f.learning_status === filter)
+    .filter((f) => !pendingRemovals.has(f.faq_id));
+
+  const modalCurrentVote = modalItem ? (votedMap.get(modalItem.id) ?? null) : null;
+  const modalIsFavorited =
+    modalItem
+      ? favorites.some((f) => f.faq_id === modalItem.id) && !pendingRemovals.has(modalItem.id)
+      : false;
 
   return (
     <div className="space-y-6">
-      {/* Header with Tabs */}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="font-brand text-3xl font-bold text-text">AIFAQ</h1>
             <Link
               href="/"
-              className="flex items-center gap-1 rounded-full border-[0.5px] border-border px-2.5 py-1 text-xs text-subtext hover:bg-surface transition-colors"
+              className="flex items-center gap-1 rounded-full border-[0.5px] border-border px-2.5 py-1 text-xs text-subtext transition-colors hover:bg-surface"
             >
               ← {t("backToHome", lang)}
             </Link>
@@ -188,21 +388,21 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
         </div>
         <div className="flex gap-1">
           <button
-            onClick={() => setActiveTab('learning')}
+            onClick={() => setActiveTab("learning")}
             className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === 'learning'
-                ? 'bg-primary text-white'
-                : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+              activeTab === "learning"
+                ? "bg-primary text-white"
+                : "border-[0.5px] border-border text-subtext hover:bg-surface"
             }`}
           >
             {t("myLearning", lang)}
           </button>
           <button
-            onClick={() => setActiveTab('settings')}
+            onClick={() => setActiveTab("settings")}
             className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === 'settings'
-                ? 'bg-primary text-white'
-                : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+              activeTab === "settings"
+                ? "bg-primary text-white"
+                : "border-[0.5px] border-border text-subtext hover:bg-surface"
             }`}
           >
             {t("settings", lang)}
@@ -210,7 +410,6 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
         </div>
       </div>
 
-      {/* Toast for undo */}
       {toast && (
         <Toast
           message={toast.message}
@@ -220,9 +419,8 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
         />
       )}
 
-      {activeTab === 'learning' ? (
+      {activeTab === "learning" ? (
         <>
-          {/* Stats Cards */}
           <div className="grid grid-cols-3 gap-4">
             <div className="rounded-xl border-[0.5px] border-border bg-panel p-4">
               <div className="text-2xl font-bold text-text">{stats.total}</div>
@@ -238,7 +436,6 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
             </div>
           </div>
 
-          {/* Stale Reminder */}
           {showStaleReminder && stats.stale > 0 && (
             <div className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-4">
               <div className="flex items-center gap-2">
@@ -256,144 +453,106 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
             </div>
           )}
 
-          {/* Filter Tabs */}
           {favorites.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-              {[
-                { key: 'all', label: `${t("all", lang)} (${stats.total})` },
-                { key: 'unread', label: `${t("unreadStatus", lang)} (${stats.unread})` },
-                { key: 'learning', label: `${t("learningStatus", lang)} (${stats.learning})` },
-                { key: 'mastered', label: `${t("masteredStatus", lang)} (${stats.mastered})` },
-              ].map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setFilter(key as typeof filter)}
-                  className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    filter === key
-                      ? 'bg-primary text-white'
-                      : 'bg-surface text-subtext hover:bg-bg'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+            <div className="space-y-3">
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+                {[
+                  { key: "all", label: `${t("all", lang)} (${stats.total})` },
+                  { key: "unread", label: `${t("unreadStatus", lang)} (${stats.unread})` },
+                  { key: "learning", label: `${t("learningStatus", lang)} (${stats.learning})` },
+                  { key: "mastered", label: `${t("masteredStatus", lang)} (${stats.mastered})` },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setFilter(key as typeof filter)}
+                    className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                      filter === key
+                        ? "bg-primary text-white"
+                        : "bg-surface text-subtext hover:bg-bg"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-subtext">{t("defaultViewMode", lang)}</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setGlobalDetailed(false)}
+                    className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                      !globalDetailed
+                        ? "bg-primary text-white"
+                        : "border-[0.5px] border-border text-subtext hover:bg-surface"
+                    }`}
+                  >
+                    {t("brief", lang)}
+                  </button>
+                  <button
+                    onClick={() => setGlobalDetailed(true)}
+                    className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                      globalDetailed
+                        ? "bg-primary text-white"
+                        : "border-[0.5px] border-border text-subtext hover:bg-surface"
+                    }`}
+                  >
+                    {t("detailed", lang)}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Favorites List */}
           {filteredFavorites.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-subtext">{t("noFavorites", lang)}</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {/* Unread Section */}
-              {stats.unread > 0 && (
-                <FavoritesSection
-                  title={
-                    <span className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
-                      {t("unreadStatus", lang)}
-                    </span>
-                  }
-                  count={stats.unread}
-                  items={favorites.filter(f => f.learning_status === 'unread')}
+            <div className="space-y-3">
+              {filteredFavorites.map((item) => (
+                <FavoriteCard
+                  key={item.faq_id}
+                  item={item}
+                  lang={lang}
                   onUpdateStatus={handleUpdateStatus}
                   onToggleFavorite={handleToggleFavorite}
-                  lang={lang}
-                  pendingRemovals={pendingRemovals}
-                />
-              )}
-
-              {/* Learning Section */}
-              {stats.learning > 0 && (
-                <FavoritesSection
-                  title={
-                    <span className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                      {t("learningStatus", lang)}
-                    </span>
+                  onOpenItem={handleOpenFavorite}
+                  showMasterButton={item.learning_status === "learning"}
+                  isPending={pendingRemovals.has(item.faq_id)}
+                  detailedMode={globalDetailed}
+                  isExpanded={openItems.has(item.faq_id)}
+                  onToggleExpand={(faqId) =>
+                    setOpenItems((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(faqId)) next.delete(faqId);
+                      else next.add(faqId);
+                      return next;
+                    })
                   }
-                  count={stats.learning}
-                  items={favorites.filter(f => f.learning_status === 'learning')}
-                  onUpdateStatus={handleUpdateStatus}
-                  onToggleFavorite={handleToggleFavorite}
-                  showMasterButton
-                  lang={lang}
-                  pendingRemovals={pendingRemovals}
                 />
-              )}
-
-              {/* Mastered Section */}
-              {stats.mastered > 0 && (
-                <FavoritesSection
-                  title={
-                    <span className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                      {t("masteredStatus", lang)}
-                    </span>
-                  }
-                  count={stats.mastered}
-                  items={favorites.filter(f => f.learning_status === 'mastered')}
-                  onUpdateStatus={handleUpdateStatus}
-                  onToggleFavorite={handleToggleFavorite}
-                  lang={lang}
-                  pendingRemovals={pendingRemovals}
-                />
-              )}
+              ))}
             </div>
           )}
         </>
       ) : (
         <SettingsTab lang={lang} sessionUser={sessionUser} />
       )}
-    </div>
-  );
-}
 
-interface FavoritesSectionProps {
-  title: React.ReactNode;
-  count: number;
-  items: FavoriteItem[];
-  onUpdateStatus: (faqId: number, status: 'learning' | 'mastered') => void;
-  onToggleFavorite: (faqId: number) => void;
-  showMasterButton?: boolean;
-  lang: "zh" | "en";
-  pendingRemovals: Set<number>;
-}
-
-function FavoritesSection({ title, count, items, onUpdateStatus, onToggleFavorite, showMasterButton, lang, pendingRemovals }: FavoritesSectionProps) {
-  const [expanded, setExpanded] = useState(true);
-
-  return (
-    <div className="space-y-3">
-      {/* Section Header with title and count on same line */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center justify-between text-left"
-      >
-        <div className="flex items-center gap-2">
-          {title}
-          <span className="text-sm text-subtext">({count})</span>
-        </div>
-        <span className="text-subtext">{expanded ? '▼' : '▶'}</span>
-      </button>
-
-      {expanded && (
-        <div className="space-y-3">
-          {items.map(item => (
-            <FavoriteCard
-              key={item.faq_id}
-              item={item}
-              lang={lang}
-              onUpdateStatus={onUpdateStatus}
-              onToggleFavorite={onToggleFavorite}
-              showMasterButton={showMasterButton}
-              isPending={pendingRemovals.has(item.faq_id)}
-            />
-          ))}
-        </div>
-      )}
+      <DetailModal
+        item={modalItem}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        lang={lang}
+        onVote={handleModalVote}
+        onRevokeVote={handleModalRevokeVote}
+        currentVote={modalCurrentVote}
+        upvoteCount={modalItem?.upvoteCount}
+        downvoteCount={modalItem?.downvoteCount}
+        isFavorited={modalIsFavorited}
+        onToggleFavorite={() => modalItem && handleToggleFavorite(modalItem.id)}
+        isAuthenticated={!!sessionUser?.id}
+      />
     </div>
   );
 }
@@ -404,24 +563,26 @@ interface SettingsTabProps {
 }
 
 function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
-  // Load settings from localStorage
   const [settings, setSettings] = useState({
-    lang: (typeof window !== 'undefined' ? localStorage.getItem('aifaq-lang') : null) as "zh" | "en" || lang,
-    pageSize: Number(typeof window !== 'undefined' ? localStorage.getItem('aifaq-pageSize') : null) || 20,
-    defaultDetailed: (typeof window !== 'undefined' ? localStorage.getItem('aifaq-defaultDetailed') : null) === 'true',
+    lang:
+      ((typeof window !== "undefined" ? localStorage.getItem("aifaq-lang") : null) as
+        | "zh"
+        | "en") || lang,
+    pageSize: Number(typeof window !== "undefined" ? localStorage.getItem("aifaq-pageSize") : null) || 20,
+    defaultDetailed:
+      (typeof window !== "undefined" ? localStorage.getItem("aifaq-defaultDetailed") : null) === "true",
   });
 
   const updateSetting = <K extends keyof typeof settings>(
     key: K,
-    value: typeof settings[K]
+    value: (typeof settings)[K]
   ) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings((prev) => ({ ...prev, [key]: value }));
     localStorage.setItem(`aifaq-${key}`, String(value));
   };
 
   return (
     <div className="space-y-6">
-      {/* Account Info */}
       <div className="rounded-lg border border-border bg-surface p-6">
         <h2 className="mb-4 font-brand text-lg font-semibold text-text">
           {t("accountInfo", lang)}
@@ -435,41 +596,38 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
             />
           )}
           <div>
-            <div className="font-medium text-text">{sessionUser?.name || '-'}</div>
-            <div className="text-sm text-subtext">ID: {sessionUser?.id?.slice(-8) || '-'}</div>
+            <div className="font-medium text-text">{sessionUser?.name || "-"}</div>
+            <div className="text-sm text-subtext">ID: {sessionUser?.id?.slice(-8) || "-"}</div>
           </div>
         </div>
       </div>
 
-      {/* Preferences */}
       <div className="rounded-lg border border-border bg-surface p-6">
         <h2 className="mb-4 font-brand text-lg font-semibold text-text">
           {t("preferences", lang)}
         </h2>
         <div className="space-y-4">
-          {/* Language */}
           <div>
             <label className="mb-2 block text-sm font-medium text-subtext">
               {t("language", lang) || "语言 / Language"}
             </label>
             <div className="flex gap-2">
-              {(['zh', 'en'] as const).map((l) => (
+              {(["zh", "en"] as const).map((l) => (
                 <button
                   key={l}
-                  onClick={() => updateSetting('lang', l)}
+                  onClick={() => updateSetting("lang", l)}
                   className={`rounded-full px-4 py-2 text-sm transition-colors ${
                     settings.lang === l
-                      ? 'bg-primary text-white'
-                      : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+                      ? "bg-primary text-white"
+                      : "border-[0.5px] border-border text-subtext hover:bg-surface"
                   }`}
                 >
-                  {l === 'zh' ? '中文' : 'EN'}
+                  {l === "zh" ? "中文" : "EN"}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Page Size */}
           <div>
             <label className="mb-2 block text-sm font-medium text-subtext">
               {t("defaultPageSize", lang)}
@@ -478,11 +636,11 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
               {[10, 20, 50, 100].map((size) => (
                 <button
                   key={size}
-                  onClick={() => updateSetting('pageSize', size)}
+                  onClick={() => updateSetting("pageSize", size)}
                   className={`rounded-full px-4 py-2 text-sm transition-colors ${
                     settings.pageSize === size
-                      ? 'bg-primary text-white'
-                      : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+                      ? "bg-primary text-white"
+                      : "border-[0.5px] border-border text-subtext hover:bg-surface"
                   }`}
                 >
                   {size}
@@ -491,28 +649,27 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
             </div>
           </div>
 
-          {/* Default View Mode */}
           <div>
             <label className="mb-2 block text-sm font-medium text-subtext">
               {t("defaultViewMode", lang)}
             </label>
             <div className="flex gap-2">
               <button
-                onClick={() => updateSetting('defaultDetailed', false)}
+                onClick={() => updateSetting("defaultDetailed", false)}
                 className={`rounded-full px-4 py-2 text-sm transition-colors ${
                   !settings.defaultDetailed
-                    ? 'bg-primary text-white'
-                    : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+                    ? "bg-primary text-white"
+                    : "border-[0.5px] border-border text-subtext hover:bg-surface"
                 }`}
               >
                 {t("brief", lang)}
               </button>
               <button
-                onClick={() => updateSetting('defaultDetailed', true)}
+                onClick={() => updateSetting("defaultDetailed", true)}
                 className={`rounded-full px-4 py-2 text-sm transition-colors ${
                   settings.defaultDetailed
-                    ? 'bg-primary text-white'
-                    : 'border-[0.5px] border-border text-subtext hover:bg-surface'
+                    ? "bg-primary text-white"
+                    : "border-[0.5px] border-border text-subtext hover:bg-surface"
                 }`}
               >
                 {t("detailed", lang)}
