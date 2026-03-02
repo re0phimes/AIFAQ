@@ -5,9 +5,14 @@ import { sql } from "@vercel/postgres";
 import { cookies } from "next/headers";
 import FAQDetailClient from "./FAQDetailClient";
 
-export default async function FAQDetailPage({ params }: { params: { id: string } }) {
-  const faqId = parseInt(params.id);
-  if (isNaN(faqId)) {
+export default async function FAQDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const faqId = Number(id);
+  if (!Number.isInteger(faqId) || faqId <= 0) {
     notFound();
   }
 
