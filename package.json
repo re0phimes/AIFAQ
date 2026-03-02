@@ -14,7 +14,8 @@
     "migrate-content": "npx tsx -r ./scripts/env-loader.js scripts/migrate-content.ts",
     "faq:pull": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/pull.ts",
     "faq:push": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/push.ts",
-    "faq:evaluate": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/evaluate.ts"
+    "faq:evaluate": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/evaluate.ts",
+    "faq:answer-and-stage": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/answer-and-stage.ts"
   },
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^5.0.1",

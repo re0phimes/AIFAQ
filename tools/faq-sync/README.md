@@ -55,6 +55,18 @@ npm run faq:push
 npm run faq:evaluate
 ```
 
+### `npm run faq:answer-and-stage` — 问题生成 + 联网验证 + 入 review 队列
+
+从文本问题或图片抽取问题出发，生成草稿答案并做 evidence grounding（论文优先），最终将结果写入数据库并设置 `status=review`。
+
+```bash
+npm run faq:answer-and-stage -- --question "什么是Transformer中的自注意力？" --dry-run
+npm run faq:answer-and-stage -- --questions-file data/sample-questions.txt --max 3 --dry-run
+npm run faq:answer-and-stage -- --images data/samples/1.png,data/samples/2.jpg --dry-run
+```
+
+详细流程见 `tools/faq-sync/GROUNDED-WORKFLOW.md`。
+
 ## 完整工作流示例
 
 ```bash
