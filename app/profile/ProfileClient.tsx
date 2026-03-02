@@ -239,7 +239,53 @@ export default function ProfileClient({
     if (modalItem) handleRevokeVote(modalItem.id);
   }, [modalItem, handleRevokeVote]);
 
-  const handleOpenFavorite = useCallback((item: Pick<FavoriteItem, "faq_id" | "faq">) => {
+  const handleUpdateStatus = async (faqId: number, status: "learning" | "mastered") => {
+    try {
+      const currentItem = favorites.find((f) => f.faq_id === faqId);
+      const previousStatus = currentItem?.learning_status;
+      if (!previousStatus || previousStatus === status) return;
+
+      const res = await fetch(`/api/favorites/${faqId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        setFavorites((prev) =>
+          prev.map((f) => (f.faq_id === faqId ? { ...f, learning_status: status } : f))
+        );
+
+        setStats((prev) => {
+          const next = { ...prev };
+
+          if (previousStatus === "unread") next.unread = Math.max(0, next.unread - 1);
+          else if (previousStatus === "learning") next.learning = Math.max(0, next.learning - 1);
+          else if (previousStatus === "mastered") next.mastered = Math.max(0, next.mastered - 1);
+
+          if (status === "learning") next.learning += 1;
+          else if (status === "mastered") next.mastered += 1;
+
+          if (
+            previousStatus === "unread" &&
+            currentItem &&
+            new Date(currentItem.created_at) < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+          ) {
+            next.stale = Math.max(0, next.stale - 1);
+          }
+
+          return next;
+        });
+      }
+    } catch (error) {
+      console.error("Failed to update status:", error);
+    }
+  };
+
+  const handleOpenFavorite = useCallback((item: Pick<FavoriteItem, "faq_id" | "faq" | "learning_status">) => {
+    if (item.learning_status === "unread") {
+      void handleUpdateStatus(item.faq_id, "learning");
+    }
+
     if (globalDetailed) {
       setModalItem(item.faq);
       setIsModalOpen(true);
@@ -251,35 +297,12 @@ export default function ProfileClient({
       else next.add(item.faq_id);
       return next;
     });
-  }, [globalDetailed]);
+  }, [globalDetailed, handleUpdateStatus]);
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
     setTimeout(() => setModalItem(null), 100);
   }, []);
-
-  const handleUpdateStatus = async (faqId: number, status: "learning" | "mastered") => {
-    try {
-      const res = await fetch(`/api/favorites/${faqId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (res.ok) {
-        setFavorites((prev) =>
-          prev.map((f) => (f.faq_id === faqId ? { ...f, learning_status: status } : f))
-        );
-
-        setStats((prev) => ({
-          ...prev,
-          learning: status === "mastered" ? prev.learning - 1 : prev.learning,
-          mastered: status === "mastered" ? prev.mastered + 1 : prev.mastered,
-        }));
-      }
-    } catch (error) {
-      console.error("Failed to update status:", error);
-    }
-  };
 
   const actuallyRemoveFavorite = useCallback((faqId: number) => {
     const removedItem = favorites.find((f) => f.faq_id === faqId);
