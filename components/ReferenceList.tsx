@@ -76,8 +76,14 @@ function RefItems({ references }: { references: Reference[] }) {
 
         return (
           <li key={i} className="flex items-start gap-2 text-xs md:text-sm">
-            <span className="shrink-0 text-subtext">
-              {ref.type === "paper" ? "📄" : ref.type === "blog" ? "📖" : "📌"}
+            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium md:text-xs ${
+              ref.type === "paper"
+                ? "bg-blue-100 text-blue-700"
+                : ref.type === "blog"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-100 text-gray-700"
+            }`}>
+              {ref.type === "paper" ? "Paper" : ref.type === "blog" ? "Blog" : "Ref"}
             </span>
             {ref.url ? (
               <a
