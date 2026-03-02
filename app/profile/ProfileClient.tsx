@@ -5,6 +5,26 @@ import Link from "next/link";
 import { t } from "@/lib/i18n";
 import type { FAQItem } from "@/src/types/faq";
 
+// Alert Triangle Icon Component
+function AlertTriangleIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+    </svg>
+  );
+}
+
 interface FavoriteItem {
   faq_id: number;
   learning_status: 'unread' | 'learning' | 'mastered';
@@ -109,7 +129,7 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
           {showStaleReminder && stats.stale > 0 && (
             <div className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-4">
               <div className="flex items-center gap-2">
-                <span className="text-amber-600">⚠️</span>
+                <AlertTriangleIcon className="h-5 w-5 text-amber-600" />
                 <span className="text-sm text-amber-900">
                   {t("staleReminder", lang).replace("{count}", String(stats.stale))}
                 </span>
@@ -133,7 +153,12 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
               {/* Unread Section */}
               {stats.unread > 0 && (
                 <FavoritesSection
-                  title={`📚 ${t("unreadStatus", lang)}`}
+                  title={
+                    <span className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+                      {t("unreadStatus", lang)}
+                    </span>
+                  }
                   count={stats.unread}
                   items={favorites.filter(f => f.learning_status === 'unread')}
                   onUpdateStatus={handleUpdateStatus}
@@ -144,7 +169,12 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
               {/* Learning Section */}
               {stats.learning > 0 && (
                 <FavoritesSection
-                  title={`📖 ${t("learningStatus", lang)}`}
+                  title={
+                    <span className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                      {t("learningStatus", lang)}
+                    </span>
+                  }
                   count={stats.learning}
                   items={favorites.filter(f => f.learning_status === 'learning')}
                   onUpdateStatus={handleUpdateStatus}
@@ -156,7 +186,12 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
               {/* Mastered Section */}
               {stats.mastered > 0 && (
                 <FavoritesSection
-                  title={`✅ ${t("masteredStatus", lang)}`}
+                  title={
+                    <span className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                      {t("masteredStatus", lang)}
+                    </span>
+                  }
                   count={stats.mastered}
                   items={favorites.filter(f => f.learning_status === 'mastered')}
                   onUpdateStatus={handleUpdateStatus}
@@ -174,7 +209,7 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
 }
 
 interface FavoritesSectionProps {
-  title: string;
+  title: React.ReactNode;
   count: number;
   items: FavoriteItem[];
   onUpdateStatus: (faqId: number, status: 'learning' | 'mastered') => void;
