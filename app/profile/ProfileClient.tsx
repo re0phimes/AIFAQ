@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { t } from "@/lib/i18n";
 import type { FAQItem } from "@/src/types/faq";
+import FavoriteCard from "@/components/FavoriteCard";
+import Toast from "@/components/Toast";
 
 interface FavoriteItem {
   faq_id: number;
@@ -27,9 +29,14 @@ interface ProfileClientProps {
   sessionUser?: { id?: string; name?: string | null; image?: string | null } | null;
 }
 
-export default function ProfileClient({ favorites, stats, lang, sessionUser }: ProfileClientProps) {
-  const [showStaleReminder, setShowStaleReminder] = useState(stats.stale > 0);
+export default function ProfileClient({ favorites: initialFavorites, stats: initialStats, lang, sessionUser }: ProfileClientProps) {
+  const [showStaleReminder, setShowStaleReminder] = useState(initialStats.stale > 0);
   const [activeTab, setActiveTab] = useState<'learning' | 'settings'>('learning');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'learning' | 'mastered'>('all');
+  const [pendingRemovals, setPendingRemovals] = useState<Set<number>>(new Set());
+  const [toast, setToast] = useState<{ message: string; faqId: number } | null>(null);
+  const [favorites, setFavorites] = useState(initialFavorites);
+  const [stats, setStats] = useState(initialStats);
 
   const handleUpdateStatus = async (faqId: number, status: 'learning' | 'mastered') => {
     try {
@@ -39,12 +46,80 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
         body: JSON.stringify({ status })
       });
       if (res.ok) {
-        window.location.reload(); // Simple refresh for now
+        // Update local state instead of reloading
+        setFavorites(prev => prev.map(f =>
+          f.faq_id === faqId ? { ...f, learning_status: status } : f
+        ));
+        // Update stats
+        setStats(prev => ({
+          ...prev,
+          unread: status === 'learning' ? prev.unread - 1 : prev.unread,
+          learning: status === 'mastered' ? prev.learning - 1 : prev.learning + (status === 'learning' ? 1 : 0),
+          mastered: status === 'mastered' ? prev.mastered + 1 : prev.mastered
+        }));
       }
     } catch (error) {
       console.error('Failed to update status:', error);
     }
   };
+
+  const handleToggleFavorite = async (faqId: number) => {
+    try {
+      const res = await fetch(`/api/faq/${faqId}/favorite`, { method: 'POST' });
+      if (res.ok) {
+        const { favorited } = await res.json();
+        if (!favorited) {
+          setPendingRemovals(prev => new Set(prev).add(faqId));
+          setToast({ message: t("removedFromFavorites", lang), faqId });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+    }
+  };
+
+  const handleUndo = async (faqId: number) => {
+    try {
+      const res = await fetch(`/api/faq/${faqId}/favorite`, { method: 'POST' });
+      if (res.ok) {
+        const { favorited } = await res.json();
+        if (favorited) {
+          setPendingRemovals(prev => {
+            const next = new Set(prev);
+            next.delete(faqId);
+            return next;
+          });
+          setToast(null);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to undo:', error);
+    }
+  };
+
+  const handleToastClose = (faqId: number) => {
+    if (pendingRemovals.has(faqId)) {
+      const removedItem = favorites.find(f => f.faq_id === faqId);
+      setFavorites(prev => prev.filter(f => f.faq_id !== faqId));
+      if (removedItem) {
+        setStats(prev => ({
+          ...prev,
+          total: prev.total - 1,
+          [removedItem.learning_status]: prev[removedItem.learning_status] - 1
+        }));
+      }
+      setPendingRemovals(prev => {
+        const next = new Set(prev);
+        next.delete(faqId);
+        return next;
+      });
+    }
+    setToast(null);
+  };
+
+  const filteredFavorites = favorites
+    .filter(f => filter === 'all' || f.learning_status === filter)
+    .filter(f => !pendingRemovals.has(f.faq_id));
 
   return (
     <div className="space-y-6">
@@ -78,23 +153,22 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
         </div>
       </div>
 
+      {/* Toast */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          action={{ label: t("undo", lang), onClick: () => handleUndo(toast.faqId) }}
+          onClose={() => handleToastClose(toast.faqId)}
+          duration={5000}
+        />
+      )}
+
       {activeTab === 'learning' ? (
         <>
-          {/* Stats Cards */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="rounded-lg border border-border bg-surface p-4">
-              <div className="text-2xl font-bold text-text">{stats.total}</div>
-              <div className="text-xs text-subtext">{t("totalFavorites", lang)}</div>
-            </div>
-            <div className="rounded-lg border border-border bg-surface p-4">
-              <div className="text-2xl font-bold text-blue-600">{stats.learning}</div>
-              <div className="text-xs text-subtext">{t("learningStatus", lang)}</div>
-            </div>
-            <div className="rounded-lg border border-border bg-surface p-4">
-              <div className="text-2xl font-bold text-green-600">{stats.mastered}</div>
-              <div className="text-xs text-subtext">{t("masteredStatus", lang)}</div>
-            </div>
-          </div>
+          {/* Inline Stats */}
+          <p className="text-sm text-subtext">
+            {t("totalFavorites", lang)} {stats.total} · {t("learningStatus", lang)} {stats.learning} · {t("masteredStatus", lang)} {stats.mastered}
+          </p>
 
           {/* Stale Reminder */}
           {showStaleReminder && stats.stale > 0 && (
@@ -114,101 +188,53 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
             </div>
           )}
 
+          {/* Filter Tabs */}
+          {favorites.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+              {[
+                { key: 'all', label: `${t("all", lang)} (${stats.total})` },
+                { key: 'unread', label: `${t("unreadStatus", lang)} (${stats.unread})` },
+                { key: 'learning', label: `${t("learningStatus", lang)} (${stats.learning})` },
+                { key: 'mastered', label: `${t("masteredStatus", lang)} (${stats.mastered})` },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setFilter(key as typeof filter)}
+                  className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    filter === key
+                      ? 'bg-primary text-white'
+                      : 'bg-surface text-subtext hover:bg-bg'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Favorites List */}
-          {favorites.length === 0 ? (
+          {filteredFavorites.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="text-subtext">{t("startCollecting", lang)}</p>
+              <p className="text-subtext">{t("noFavorites", lang)}</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Unread Section */}
-              {stats.unread > 0 && (
-                <FavoritesSection
-                  title={`📚 ${t("unreadStatus", lang)}`}
-                  count={stats.unread}
-                  items={favorites.filter(f => f.learning_status === 'unread')}
-                  onUpdateStatus={handleUpdateStatus}
+              {filteredFavorites.map(item => (
+                <FavoriteCard
+                  key={item.faq_id}
+                  item={item}
                   lang={lang}
-                />
-              )}
-
-              {/* Learning Section */}
-              {stats.learning > 0 && (
-                <FavoritesSection
-                  title={`📖 ${t("learningStatus", lang)}`}
-                  count={stats.learning}
-                  items={favorites.filter(f => f.learning_status === 'learning')}
                   onUpdateStatus={handleUpdateStatus}
-                  showMasterButton
-                  lang={lang}
+                  onToggleFavorite={handleToggleFavorite}
+                  showMasterButton={item.learning_status === 'learning'}
+                  isPending={pendingRemovals.has(item.faq_id)}
                 />
-              )}
-
-              {/* Mastered Section */}
-              {stats.mastered > 0 && (
-                <FavoritesSection
-                  title={`✅ ${t("masteredStatus", lang)}`}
-                  count={stats.mastered}
-                  items={favorites.filter(f => f.learning_status === 'mastered')}
-                  onUpdateStatus={handleUpdateStatus}
-                  lang={lang}
-                />
-              )}
+              ))}
             </div>
           )}
         </>
       ) : (
         <SettingsTab lang={lang} sessionUser={sessionUser} />
-      )}
-    </div>
-  );
-}
-
-interface FavoritesSectionProps {
-  title: string;
-  count: number;
-  items: FavoriteItem[];
-  onUpdateStatus: (faqId: number, status: 'learning' | 'mastered') => void;
-  showMasterButton?: boolean;
-  lang: "zh" | "en";
-}
-
-function FavoritesSection({ title, count, items, onUpdateStatus, showMasterButton, lang }: FavoritesSectionProps) {
-  const [expanded, setExpanded] = useState(true);
-
-  return (
-    <div className="rounded-lg border border-border bg-surface">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center justify-between p-4 text-left hover:bg-bg"
-      >
-        <span className="font-medium text-text">
-          {title} ({count})
-        </span>
-        <span className="text-subtext">{expanded ? '▼' : '▶'}</span>
-      </button>
-
-      {expanded && (
-        <div className="border-t border-border p-4 space-y-2">
-          {items.map(item => (
-            <div key={item.faq_id} className="flex items-center justify-between py-2">
-              <a
-                href={`/faq/${item.faq_id}`}
-                className="flex-1 text-sm text-text hover:text-primary"
-              >
-                {item.faq.question}
-              </a>
-              {showMasterButton && (
-                <button
-                  onClick={() => onUpdateStatus(item.faq_id, 'mastered')}
-                  className="ml-4 rounded-full border border-green-500 px-3 py-1 text-xs text-green-600 hover:bg-green-50"
-                >
-                  {t("markAsMastered", lang)}
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
       )}
     </div>
   );
