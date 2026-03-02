@@ -34,7 +34,8 @@ export default function Toast({
           <button
             onClick={() => {
               action.onClick();
-              onClose();
+              // 注意：不在这里调用 onClose，让 action handler 自己控制关闭时机
+              // 避免状态更新不同步的问题
             }}
             className="font-medium text-amber-400 hover:text-amber-300 underline underline-offset-2"
           >
