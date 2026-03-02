@@ -49,8 +49,10 @@ interface ProfileClientProps {
   sessionUser?: { id?: string; name?: string | null; image?: string | null } | null;
 }
 
-export default function ProfileClient({ favorites, stats, lang, sessionUser }: ProfileClientProps) {
-  const [showStaleReminder, setShowStaleReminder] = useState(stats.stale > 0);
+export default function ProfileClient({ favorites: initialFavorites, stats: initialStats, lang, sessionUser }: ProfileClientProps) {
+  const [favorites, setFavorites] = useState(initialFavorites);
+  const [stats, setStats] = useState(initialStats);
+  const [showStaleReminder, setShowStaleReminder] = useState(initialStats.stale > 0);
   const [activeTab, setActiveTab] = useState<'learning' | 'settings'>('learning');
 
   const handleUpdateStatus = async (faqId: number, status: 'learning' | 'mastered') => {
@@ -61,7 +63,17 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
         body: JSON.stringify({ status })
       });
       if (res.ok) {
-        window.location.reload(); // Simple refresh for now
+        // Update local state immediately instead of reloading
+        setFavorites(prev => prev.map(f =>
+          f.faq_id === faqId ? { ...f, learning_status: status } : f
+        ));
+
+        // Update stats
+        setStats(prev => ({
+          ...prev,
+          learning: status === 'mastered' ? prev.learning - 1 : prev.learning,
+          mastered: status === 'mastered' ? prev.mastered + 1 : prev.mastered
+        }));
       }
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -74,7 +86,29 @@ export default function ProfileClient({ favorites, stats, lang, sessionUser }: P
         method: 'POST'
       });
       if (res.ok) {
-        window.location.reload();
+        const { favorited } = await res.json();
+        if (!favorited) {
+          // Removed from favorites - update local state immediately
+          const removedItem = favorites.find(f => f.faq_id === faqId);
+          setFavorites(prev => prev.filter(f => f.faq_id !== faqId));
+
+          // Update stats
+          setStats(prev => {
+            const newStats = {
+              total: prev.total - 1,
+              unread: prev.unread,
+              learning: prev.learning,
+              mastered: prev.mastered,
+              stale: prev.stale
+            };
+            if (removedItem) {
+              if (removedItem.learning_status === 'unread') newStats.unread--;
+              else if (removedItem.learning_status === 'learning') newStats.learning--;
+              else if (removedItem.learning_status === 'mastered') newStats.mastered--;
+            }
+            return newStats;
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to toggle favorite:', error);

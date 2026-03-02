@@ -491,27 +491,35 @@ function FAQItem({
                 )}
               </button>
 
-              {isAuthenticated && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleFavorite?.(item.id);
-                  }}
-                  className={`ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-1
-                    text-xs transition-colors ${
-                      isFavorited
-                        ? "bg-amber-50 text-amber-600"
-                        : "text-subtext hover:bg-surface"
-                    }`}
-                  title={isFavorited ? "取消收藏" : "收藏"}
-                >
-                  <svg className="h-3.5 w-3.5" fill={isFavorited ? "currentColor" : "none"}
-                    stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round"
-                      d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.562.562 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-                  </svg>
-                </button>
-              )}
+              {/* Favorite button - shown for all users */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isAuthenticated) {
+                    // Trigger haptic feedback if available
+                    if (navigator.vibrate) {
+                      navigator.vibrate(50);
+                    }
+                    // Show login prompt
+                    alert(lang === 'zh' ? '请先登录后再收藏' : 'Please sign in to favorite');
+                    return;
+                  }
+                  onToggleFavorite?.(item.id);
+                }}
+                className={`ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-1
+                  text-xs transition-colors ${
+                    isFavorited
+                      ? "bg-amber-50 text-amber-600"
+                      : "text-subtext hover:bg-surface"
+                  }`}
+                title={isAuthenticated ? (isFavorited ? "取消收藏" : "收藏") : (lang === 'zh' ? "登录后收藏" : "Sign in to favorite")}
+              >
+                <svg className="h-3.5 w-3.5" fill={isFavorited ? "currentColor" : "none"}
+                  stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.562.562 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                </svg>
+              </button>
             </div>
             {showDownvotePanel && currentVote !== "downvote" && (
               <DownvotePanel
