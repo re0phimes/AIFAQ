@@ -60,6 +60,7 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
   const [stats, setStats] = useState(initialStats);
   const [showStaleReminder, setShowStaleReminder] = useState(initialStats.stale > 0);
   const [activeTab, setActiveTab] = useState<'learning' | 'settings'>('learning');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'learning' | 'mastered'>('all');
   const [pendingRemovals, setPendingRemovals] = useState<Set<number>>(new Set());
   const [toast, setToast] = useState<ToastState | null>(null);
 
@@ -164,6 +165,10 @@ export default function ProfileClient({ favorites: initialFavorites, stats: init
     }
     setToast(null);
   };
+
+  const filteredFavorites = favorites
+    .filter(f => filter === 'all' || f.learning_status === filter)
+    .filter(f => !pendingRemovals.has(f.faq_id));
 
   return (
     <div className="space-y-6">
