@@ -280,8 +280,7 @@ function FAQItem({
               )}
               {isRecentlyUpdated && (
                 <span className="ml-1.5 inline-block rounded bg-blue-100
-                  px-1.5 py-0.5 align-middle text-[10px] text-blue-700
-                  dark:bg-blue-900/30 dark:text-blue-300">
+                  px-1.5 py-0.5 align-middle text-[10px] text-blue-700">
                   {t("updated", lang)}
                 </span>
               )}
