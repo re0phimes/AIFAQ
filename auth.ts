@@ -1,4 +1,6 @@
 import NextAuth from "next-auth";
+import type { NextAuthConfig, Session } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import GitHub from "next-auth/providers/github";
 
 const adminIds = (process.env.ADMIN_GITHUB_IDS ?? "")
@@ -9,26 +11,35 @@ const adminIds = (process.env.ADMIN_GITHUB_IDS ?? "")
 export const authOptions = {
   providers: [GitHub],
   callbacks: {
-    async jwt({ token, profile }: { token: any; profile?: any }) {
-      if (profile?.id) {
-        token.githubId = String(profile.id);
-        token.role = adminIds.includes(String(profile.id)) ? "admin" : "user";
+    async jwt({ token, profile }: { token: JWT; profile?: Record<string, unknown> | null }) {
+      const profileData = profile ?? undefined;
+      const profileId =
+        typeof profileData?.id === "number" || typeof profileData?.id === "string"
+          ? String(profileData.id)
+          : undefined;
+      const profileLogin =
+        typeof profileData?.login === "string" ? profileData.login : "";
+
+      if (profileId) {
+        token.githubId = profileId;
+        token.role = adminIds.includes(profileId) ? "admin" : "user";
         // Upsert user and load tier from DB
         const { upsertUser } = await import("@/lib/db");
-        token.tier = await upsertUser(String(profile.id), String(profile.login ?? "")) as "free" | "premium";
+        const tier = await upsertUser(profileId, profileLogin);
+        token.tier = tier === "premium" ? "premium" : "free";
       }
       return token;
     },
-    session({ session, token }: { session: any; token: any }) {
+    session({ session, token }: { session: Session; token: JWT }) {
       if (session.user) {
-        session.user.id = token.githubId as string;
-        session.user.role = token.role as "admin" | "user";
-        session.user.tier = (token.tier as "free" | "premium") ?? "free";
+        session.user.id = token.githubId ?? "";
+        session.user.role = token.role ?? "user";
+        session.user.tier = token.tier ?? "free";
       }
       return session;
     },
   },
-};
+} satisfies NextAuthConfig;
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
 

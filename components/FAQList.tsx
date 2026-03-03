@@ -64,8 +64,10 @@ function loadPageSize(): number {
 
 function loadDefaultDetailed(): boolean {
   if (typeof window === "undefined") return false;
-  const value = localStorage.getItem("aifaq-defaultDetailed");
-  return value === 'true';
+  const globalValue = localStorage.getItem(LS_GLOBAL_DETAILED);
+  if (globalValue !== null) return globalValue === "true";
+  const fallbackValue = localStorage.getItem("aifaq-defaultDetailed");
+  return fallbackValue === "true";
 }
 
 export default function FAQList({ items, lang, onLangChange, votedMap, onVote, onRevokeVote, onOpenItem, session, onSignIn, onSignOut, favorites, onToggleFavorite }: FAQListProps) {
@@ -95,14 +97,6 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
   // Sync refs with state
   useEffect(() => { itemsRef.current = items; }, [items]);
   useEffect(() => { globalDetailedRef.current = globalDetailed; }, [globalDetailed]);
-
-  // Load globalDetailed from localStorage on client
-  useEffect(() => {
-    const saved = localStorage.getItem(LS_GLOBAL_DETAILED);
-    if (saved !== null) {
-      setGlobalDetailed(saved === "true");
-    }
-  }, []);
 
   // Hide header on scroll down, show on scroll up, or when tab is open
   // 使用 ref 避免频繁重新订阅 scroll 事件
@@ -249,11 +243,6 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
     return arr;
   }, [filtered, sortMode]);
 
-  // Reset page on filter change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, searchMode, selectedTags, selectedCategories, sortMode, showFavoritesOnly]);
-
   // Pagination
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
@@ -278,12 +267,14 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
     setSelectedCategories((prev) =>
       prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
     );
+    setCurrentPage(1);
   }
 
   function handleToggleTag(tag: string): void {
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
+    setCurrentPage(1);
   }
 
   const handleToggleItem = useCallback((id: number): void => {
@@ -456,9 +447,15 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
         </header>
         <SearchBar
           value={searchQuery}
-          onChange={setSearchQuery}
+          onChange={(value) => {
+            setSearchQuery(value);
+            setCurrentPage(1);
+          }}
           mode={searchMode}
-          onModeChange={setSearchMode}
+          onModeChange={(mode) => {
+            setSearchMode(mode);
+            setCurrentPage(1);
+          }}
           lang={lang}
         />
         <div className="mt-2">
@@ -474,6 +471,7 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
             onClearAll={() => {
               setSelectedTags([]);
               setSelectedCategories([]);
+              setCurrentPage(1);
             }}
           />
         </div>
@@ -502,7 +500,10 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
               <>
                 <span className="h-4 border-l border-border" />
                 <button
-                  onClick={() => setShowFavoritesOnly((v) => !v)}
+                  onClick={() => {
+                    setShowFavoritesOnly((v) => !v);
+                    setCurrentPage(1);
+                  }}
                   className={`rounded-full px-3 py-1.5 text-xs font-medium
                     transition-colors ${
                       showFavoritesOnly
@@ -558,7 +559,10 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
               {(["default", "date", "difficulty"] as const).map((mode) => (
                 <button
                   key={mode}
-                  onClick={() => setSortMode(mode)}
+                  onClick={() => {
+                    setSortMode(mode);
+                    setCurrentPage(1);
+                  }}
                   className={`rounded-full px-2 py-1.5 text-xs transition-colors ${
                     sortMode === mode
                       ? "bg-primary text-white"

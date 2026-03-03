@@ -25,53 +25,48 @@ const customComponents: Components = {
  * 避免阻塞主线程
  */
 function AsyncMarkdownContent({ content, className }: AsyncMarkdownContentProps) {
-  const [renderedContent, setRenderedContent] = useState<React.ReactNode>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [rendered, setRendered] = useState<{ source: string; node: React.ReactNode } | null>(null);
   const contentRef = useRef(content);
+  const isLoading = rendered?.source !== content;
 
   useEffect(() => {
     contentRef.current = content;
-    setIsLoading(true);
-    setRenderedContent(null);
 
     let cancelled = false;
 
     // 使用 requestIdleCallback 延迟到浏览器空闲时执行
-    const scheduleRender = () => {
-      const idleCallback = (window as any).requestIdleCallback;
-      
-      const render = () => {
-        if (cancelled) return;
-        
-        // 分段渲染：先显示纯文本，再异步渲染 Markdown
-        setRenderedContent(
+    const render = () => {
+      if (cancelled) return;
+      const source = contentRef.current;
+      // 分段渲染：先显示纯文本，再异步渲染 Markdown
+      setRendered({
+        source,
+        node: (
           <ReactMarkdown
             remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
             rehypePlugins={[rehypeKatex]}
             components={customComponents}
           >
-            {contentRef.current}
+            {source}
           </ReactMarkdown>
-        );
-        setIsLoading(false);
-      };
-
-      if (idleCallback) {
-        return idleCallback(render, { timeout: 200 });
-      } else {
-        return setTimeout(render, 0);
-      }
+        ),
+      });
     };
 
-    const id = scheduleRender();
+    const scheduleRender = () => {
+      if (window.requestIdleCallback) {
+        const id = window.requestIdleCallback(render, { timeout: 200 });
+        return () => window.cancelIdleCallback?.(id);
+      }
+      const id = window.setTimeout(render, 0);
+      return () => window.clearTimeout(id);
+    };
+
+    const cancelScheduledRender = scheduleRender();
 
     return () => {
       cancelled = true;
-      if ((window as any).cancelIdleCallback) {
-        (window as any).cancelIdleCallback(id);
-      } else {
-        clearTimeout(id);
-      }
+      cancelScheduledRender();
     };
   }, [content]);
 
@@ -88,7 +83,7 @@ function AsyncMarkdownContent({ content, className }: AsyncMarkdownContentProps)
     );
   }
 
-  return <div className={className}>{renderedContent}</div>;
+  return <div className={className}>{rendered?.node}</div>;
 }
 
 export default memo(AsyncMarkdownContent);

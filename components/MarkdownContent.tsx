@@ -26,41 +26,18 @@ export default function MarkdownContent({
   className,
   delay = 0 
 }: MarkdownContentProps) {
-  const [mounted, setMounted] = useState(false);
-  const [contentReady, setContentReady] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [readyContent, setReadyContent] = useState<string | null>(delay === 0 ? content : null);
+  const contentReady = delay === 0 || readyContent === content;
 
   // 延迟渲染内容（用于 Modal 优化）
   useEffect(() => {
-    if (!mounted) return;
-    if (delay === 0) {
-      setContentReady(true);
-      return;
-    }
-    
+    if (delay === 0) return;
     const timer = setTimeout(() => {
-      setContentReady(true);
+      setReadyContent(content);
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [mounted, delay]);
-
-  // 未挂载时显示骨架屏
-  if (!mounted) {
-    return (
-      <div className={className}>
-        <div className="animate-pulse space-y-3">
-          <div className="h-4 bg-surface rounded w-3/4"></div>
-          <div className="h-4 bg-surface rounded w-full"></div>
-          <div className="h-4 bg-surface rounded w-5/6"></div>
-          <div className="h-4 bg-surface rounded w-1/2"></div>
-        </div>
-      </div>
-    );
-  }
+  }, [content, delay]);
 
   // delay > 0 时，挂载但未准备好内容显示骨架屏
   if (delay > 0 && !contentReady) {

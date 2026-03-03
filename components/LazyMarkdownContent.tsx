@@ -38,12 +38,11 @@ const customComponents: Components = {
  * 避免大段 Markdown 阻塞主线程
  */
 function LazyMarkdownContent({ content, className }: LazyMarkdownContentProps) {
-  const [isReady, setIsReady] = useState(false);
+  const [readyContent, setReadyContent] = useState<string | null>(null);
   const scheduledRef = useRef(false);
+  const isReady = readyContent === content;
 
   useEffect(() => {
-    // 重置状态
-    setIsReady(false);
     scheduledRef.current = false;
 
     // 使用 requestIdleCallback 或 setTimeout 延迟解析
@@ -51,17 +50,13 @@ function LazyMarkdownContent({ content, className }: LazyMarkdownContentProps) {
       if (scheduledRef.current) return;
       scheduledRef.current = true;
 
-      const id = (window as any).requestIdleCallback
-        ? (window as any).requestIdleCallback(() => setIsReady(true), { timeout: 100 })
-        : setTimeout(() => setIsReady(true), 50);
+      if (window.requestIdleCallback) {
+        const id = window.requestIdleCallback(() => setReadyContent(content), { timeout: 100 });
+        return () => window.cancelIdleCallback?.(id);
+      }
 
-      return () => {
-        if ((window as any).requestIdleCallback) {
-          (window as any).cancelIdleCallback(id);
-        } else {
-          clearTimeout(id);
-        }
-      };
+      const id = window.setTimeout(() => setReadyContent(content), 50);
+      return () => window.clearTimeout(id);
     };
 
     return scheduleRender();

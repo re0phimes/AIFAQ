@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // Preload .env.local before any module imports (CJS for -r compatibility)
 const fs = require("fs");
 const path = require("path");
