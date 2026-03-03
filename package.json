@@ -15,7 +15,8 @@
     "faq:pull": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/pull.ts",
     "faq:push": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/push.ts",
     "faq:evaluate": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/evaluate.ts",
-    "faq:answer-and-stage": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/answer-and-stage.ts"
+    "faq:answer-and-stage": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/answer-and-stage.ts",
+    "check:compact-top": "node scripts/check-compact-top-layout.mjs"
   },
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^5.0.1",
