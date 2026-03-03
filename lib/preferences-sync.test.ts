@@ -109,3 +109,16 @@ test("shouldPromptImport returns true for new unsynced conflict", () => {
 
   assert.equal(should, true);
 });
+
+test("shouldPromptImport returns false when local has no unsynced changes", () => {
+  const should = shouldPromptImport({
+    userId: "u1",
+    hasLocalPrefs: true,
+    localHash: "local3",
+    serverHash: "server3",
+    localHasUnsyncedChanges: false,
+    dismissedConflictKey: null,
+  });
+
+  assert.equal(should, false);
+});
