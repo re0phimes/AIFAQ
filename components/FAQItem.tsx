@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, memo } from "react";
+import Image from "next/image";
 import MarkdownContent from "./MarkdownContent";
 import ReferenceList from "./ReferenceList";
 import type { FAQItem as FAQItemType, VoteType } from "@/src/types/faq";
@@ -396,11 +397,14 @@ function FAQItem({
                 {item.images.map((img, i) => (
                   <figure key={i} className="overflow-hidden rounded-lg border-[0.5px] border-border">
                     <a href={img.url} target="_blank" rel="noopener noreferrer">
-                      <img
+                      <Image
                         src={img.url}
                         alt={img.caption}
-                        className="w-full object-contain"
+                        width={1200}
+                        height={800}
+                        className="h-auto w-full object-contain"
                         loading="lazy"
+                        unoptimized
                       />
                     </a>
                     <figcaption className="bg-surface/50 px-3 py-2 text-xs text-subtext">

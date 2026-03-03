@@ -1,6 +1,7 @@
 "use client";
 
 import { t, translateTag } from "@/lib/i18n";
+import Image from "next/image";
 import type { FAQItem } from "@/src/types/faq";
 import MarkdownContent from "@/components/MarkdownContent";
 import ReferenceList from "@/components/ReferenceList";
@@ -174,11 +175,14 @@ export default function FavoriteCard({
               {faq.images.map((img, i) => (
                 <figure key={i} className="overflow-hidden rounded-lg border-[0.5px] border-border">
                   <a href={img.url} target="_blank" rel="noopener noreferrer">
-                    <img
+                    <Image
                       src={img.url}
                       alt={img.caption}
-                      className="w-full object-contain"
+                      width={1200}
+                      height={800}
+                      className="h-auto w-full object-contain"
                       loading="lazy"
+                      unoptimized
                     />
                   </a>
                   <figcaption className="bg-surface/50 px-3 py-2 text-xs text-subtext">

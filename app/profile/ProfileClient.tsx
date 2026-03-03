@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { t } from "@/lib/i18n";
 import type { FAQItem, VoteType } from "@/src/types/faq";
 import FavoriteCard from "@/components/FavoriteCard";
@@ -241,7 +242,7 @@ export default function ProfileClient({
     if (modalItem) handleRevokeVote(modalItem.id);
   }, [modalItem, handleRevokeVote]);
 
-  const handleUpdateStatus = async (faqId: number, status: "learning" | "mastered") => {
+  const handleUpdateStatus = useCallback(async (faqId: number, status: "learning" | "mastered") => {
     try {
       const currentItem = favorites.find((f) => f.faq_id === faqId);
       const previousStatus = currentItem?.learning_status;
@@ -293,7 +294,7 @@ export default function ProfileClient({
     } catch (error) {
       console.error("Failed to update status:", error);
     }
-  };
+  }, [favorites, lang]);
 
   const handleOpenFavorite = useCallback((item: Pick<FavoriteItem, "faq_id" | "faq" | "learning_status">) => {
     if (item.learning_status === "unread") {
@@ -627,10 +628,13 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
         </h2>
         <div className="flex items-center gap-4">
           {sessionUser?.image && (
-            <img
+            <Image
               src={sessionUser.image}
               alt=""
+              width={64}
+              height={64}
               className="h-16 w-16 rounded-full"
+              unoptimized
             />
           )}
           <div>
