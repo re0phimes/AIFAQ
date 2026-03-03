@@ -1,0 +1,111 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  buildConflictKey,
+  buildPrefsHash,
+  mergePreferences,
+  shouldPromptImport,
+  type UserPreferencesSnapshot,
+} from "./preferences-sync";
+
+const SERVER_OLD = "2026-03-03T00:00:00.000Z";
+const LOCAL_NEW = "2026-03-03T01:00:00.000Z";
+
+function snapshot(
+  input: Partial<UserPreferencesSnapshot>
+): UserPreferencesSnapshot {
+  return {
+    language: input.language,
+    pageSize: input.pageSize,
+    defaultDetailed: input.defaultDetailed,
+    focusCategories: input.focusCategories ?? [],
+    updatedAt: input.updatedAt ?? SERVER_OLD,
+  };
+}
+
+test("mergePreferences unions and dedupes focus categories", () => {
+  const merged = mergePreferences(
+    snapshot({
+      focusCategories: ["深度学习", "生成式 AI / LLM"],
+      updatedAt: LOCAL_NEW,
+    }),
+    snapshot({
+      focusCategories: ["深度学习", "机器学习基础"],
+      updatedAt: SERVER_OLD,
+    })
+  );
+
+  assert.deepEqual(merged.focusCategories.sort(), [
+    "深度学习",
+    "生成式 AI / LLM",
+    "机器学习基础",
+  ].sort());
+});
+
+test("mergePreferences prefers newer scalar fields by updatedAt", () => {
+  const merged = mergePreferences(
+    snapshot({
+      language: "en",
+      pageSize: 50,
+      defaultDetailed: true,
+      updatedAt: LOCAL_NEW,
+    }),
+    snapshot({
+      language: "zh",
+      pageSize: 20,
+      defaultDetailed: false,
+      updatedAt: SERVER_OLD,
+    })
+  );
+
+  assert.equal(merged.language, "en");
+  assert.equal(merged.pageSize, 50);
+  assert.equal(merged.defaultDetailed, true);
+});
+
+test("buildPrefsHash is stable regardless of focus category order", () => {
+  const a = snapshot({
+    language: "zh",
+    pageSize: 20,
+    defaultDetailed: false,
+    focusCategories: ["深度学习", "机器学习基础"],
+  });
+  const b = snapshot({
+    language: "zh",
+    pageSize: 20,
+    defaultDetailed: false,
+    focusCategories: ["机器学习基础", "深度学习"],
+  });
+
+  assert.equal(buildPrefsHash(a), buildPrefsHash(b));
+});
+
+test("shouldPromptImport returns false when dismissed conflict is the same", () => {
+  const localHash = "local1";
+  const serverHash = "server1";
+  const key = buildConflictKey("u1", localHash, serverHash);
+
+  const should = shouldPromptImport({
+    userId: "u1",
+    hasLocalPrefs: true,
+    localHash,
+    serverHash,
+    localHasUnsyncedChanges: true,
+    dismissedConflictKey: key,
+  });
+
+  assert.equal(should, false);
+});
+
+test("shouldPromptImport returns true for new unsynced conflict", () => {
+  const should = shouldPromptImport({
+    userId: "u1",
+    hasLocalPrefs: true,
+    localHash: "local2",
+    serverHash: "server2",
+    localHasUnsyncedChanges: true,
+    dismissedConflictKey: null,
+  });
+
+  assert.equal(should, true);
+});
