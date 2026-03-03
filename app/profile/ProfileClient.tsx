@@ -411,10 +411,10 @@ export default function ProfileClient({
       : false;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <h1 className="font-brand text-2xl font-bold text-text md:text-[28px]">AIFAQ</h1>
             <Link
               href="/"
@@ -423,12 +423,12 @@ export default function ProfileClient({
               ← {t("backToHome", lang)}
             </Link>
           </div>
-          <p className="mt-1 text-xs text-subtext">{t("trackProgress", lang)}</p>
+          <p className="mt-0.5 text-xs text-subtext">{t("trackProgress", lang)}</p>
         </div>
         <div className="flex gap-1">
           <button
             onClick={() => setActiveTab("learning")}
-            className={`rounded-full px-4 py-2 text-xs font-medium transition-colors ${
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               activeTab === "learning"
                 ? "bg-primary text-white"
                 : "border-[0.5px] border-border text-subtext hover:bg-surface"
@@ -438,7 +438,7 @@ export default function ProfileClient({
           </button>
           <button
             onClick={() => setActiveTab("settings")}
-            className={`rounded-full px-4 py-2 text-xs font-medium transition-colors ${
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               activeTab === "settings"
                 ? "bg-primary text-white"
                 : "border-[0.5px] border-border text-subtext hover:bg-surface"
@@ -460,23 +460,23 @@ export default function ProfileClient({
 
       {activeTab === "learning" ? (
         <>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="rounded-xl border-[0.5px] border-border bg-panel p-4">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl border-[0.5px] border-border bg-panel p-3">
               <div className="text-xl font-bold text-text">{stats.total}</div>
               <div className="text-xs text-subtext">{t("totalFavorites", lang)}</div>
             </div>
-            <div className="rounded-xl border-[0.5px] border-border bg-panel p-4">
+            <div className="rounded-xl border-[0.5px] border-border bg-panel p-3">
               <div className="text-xl font-bold text-blue-600">{stats.learning}</div>
               <div className="text-xs text-subtext">{t("learningStatus", lang)}</div>
             </div>
-            <div className="rounded-xl border-[0.5px] border-border bg-panel p-4">
+            <div className="rounded-xl border-[0.5px] border-border bg-panel p-3">
               <div className="text-xl font-bold text-green-600">{stats.mastered}</div>
               <div className="text-xs text-subtext">{t("masteredStatus", lang)}</div>
             </div>
           </div>
 
           {showStaleReminder && stats.stale > 0 && (
-            <div className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-4">
+            <div className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-3">
               <div className="flex items-center gap-2">
                 <AlertTriangleIcon className="h-5 w-5 text-amber-600" />
                 <span className="text-sm text-amber-900">

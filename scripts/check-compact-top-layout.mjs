@@ -38,6 +38,36 @@ const checks = {
       expected: "<div className=\"rounded-xl border-[0.5px] border-border bg-panel p-2.5\">",
     },
   ],
+  "profile-top": [
+    {
+      file: "app/profile/ProfileClient.tsx",
+      expected: "return (\n    <div className=\"space-y-4\">",
+    },
+    {
+      file: "app/profile/ProfileClient.tsx",
+      expected: "<div className=\"flex items-center gap-2\">",
+    },
+    {
+      file: "app/profile/ProfileClient.tsx",
+      expected: "<p className=\"mt-0.5 text-xs text-subtext\">",
+    },
+    {
+      file: "app/profile/ProfileClient.tsx",
+      expected: "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+    },
+    {
+      file: "app/profile/ProfileClient.tsx",
+      expected: "<div className=\"grid grid-cols-3 gap-3\">",
+    },
+    {
+      file: "app/profile/ProfileClient.tsx",
+      expected: "className=\"rounded-xl border-[0.5px] border-border bg-panel p-3\"",
+    },
+    {
+      file: "app/profile/ProfileClient.tsx",
+      expected: "className=\"flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-3\"",
+    },
+  ],
 };
 
 const selected = scope === "all" ? Object.values(checks).flat() : checks[scope] ?? [];
