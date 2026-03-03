@@ -42,6 +42,7 @@ interface FAQListProps {
 const LS_KEY = "aifaq-selected";
 const LS_PAGESIZE = "aifaq-pagesize";
 const LS_GLOBAL_DETAILED = "aifaq-global-detailed";
+const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 
 function loadSelected(): Set<number> {
   if (typeof window === "undefined") return new Set();
@@ -53,13 +54,10 @@ function loadSelected(): Set<number> {
 }
 
 function loadPageSize(): number {
-  if (typeof window === "undefined") return 20;
-  // Prefer new setting key, fallback to old key
-  const newValue = localStorage.getItem("aifaq-pageSize");
-  if (newValue) return Number(newValue);
-  const oldValue = localStorage.getItem(LS_PAGESIZE);
-  if (oldValue) return Number(oldValue);
-  return 20;
+  if (typeof window === "undefined") return 10;
+  const raw = localStorage.getItem("aifaq-pageSize") ?? localStorage.getItem(LS_PAGESIZE);
+  const parsed = raw ? Number(raw) : NaN;
+  return PAGE_SIZE_OPTIONS.includes(parsed as (typeof PAGE_SIZE_OPTIONS)[number]) ? parsed : 10;
 }
 
 function loadDefaultDetailed(): boolean {
