@@ -8,6 +8,8 @@ import SelectionSidebar from "./SelectionSidebar";
 import ReadingView from "./ReadingView";
 import Pagination from "./Pagination";
 import BackToTop from "./BackToTop";
+import BrandLogo from "./BrandLogo";
+import ThemeToggle from "./ThemeToggle";
 import taxonomy from "@/data/tag-taxonomy.json";
 import { t, paginationInfo } from "@/lib/i18n";
 import type {
@@ -397,7 +399,7 @@ export default function FAQList({
         <header className="mb-2 flex items-center justify-between pt-1">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-brand text-3xl font-bold text-text">AIFAQ</h1>
+              <BrandLogo />
               <a
                 href="https://www.phimes.top"
                 target="_blank"
@@ -465,23 +467,24 @@ export default function FAQList({
               </button>
             )}
             <div className="flex gap-1">
-            <button
-              onClick={() => onLangChange("zh")}
-              className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
-                lang === "zh" ? "bg-primary text-white" : "text-subtext hover:bg-surface"
-              }`}
-            >
-              中文
-            </button>
-            <button
-              onClick={() => onLangChange("en")}
-              className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
-                lang === "en" ? "bg-primary text-white" : "text-subtext hover:bg-surface"
-              }`}
-            >
-              EN
-            </button>
-          </div>
+              <ThemeToggle lang={lang} />
+              <button
+                onClick={() => onLangChange("zh")}
+                className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                  lang === "zh" ? "bg-primary text-white" : "text-subtext hover:bg-surface"
+                }`}
+              >
+                中文
+              </button>
+              <button
+                onClick={() => onLangChange("en")}
+                className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                  lang === "en" ? "bg-primary text-white" : "text-subtext hover:bg-surface"
+                }`}
+              >
+                EN
+              </button>
+            </div>
           </div>
         </header>
         <SearchBar
