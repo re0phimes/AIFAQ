@@ -6,6 +6,8 @@ import ReferenceList from "./ReferenceList";
 import type { FAQItem as FAQItemType, VoteType } from "@/src/types/faq";
 import { t, getDownvoteReasons, translateTag } from "@/lib/i18n";
 
+const RENDER_TIME_TS = Date.now();
+
 interface FAQItemProps {
   item: FAQItemType;
   lang?: "zh" | "en";
@@ -218,27 +220,11 @@ function FAQItem({
 }: FAQItemProps) {
   const [showDownvotePanel, setShowDownvotePanel] = useState(false);
   const [detailedOverride, setDetailedOverride] = useState<boolean | null>(null);
-  const [mounted, setMounted] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
-  // Lazy render: mount content on open, unmount after collapse animation
-  const [shouldRender, setShouldRender] = useState(isOpen);
   const detailed = detailedOverride ?? globalDetailed;
   const hasTimelinessWarning = (item.downvoteCount ?? 0) >= 3;
   const isRecentlyUpdated = item.currentVersion && item.currentVersion > 1 && item.lastUpdatedAt &&
-    (Date.now() - new Date(item.lastUpdatedAt).getTime()) < 30 * 24 * 60 * 60 * 1000;
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (isOpen) {
-      setShouldRender(true);
-    } else {
-      const timer = setTimeout(() => setShouldRender(false), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
+    (RENDER_TIME_TS - new Date(item.lastUpdatedAt).getTime()) < 30 * 24 * 60 * 60 * 1000;
 
   return (
     <article
@@ -276,13 +262,13 @@ function FAQItem({
               showCheckbox ? "" : "pl-4 md:pl-5"
             }`}
         >
-          <span className="shrink-0 font-brand text-xl font-bold
-            text-primary md:text-2xl">
+          <span className="shrink-0 font-brand text-lg font-bold
+            text-primary md:text-xl">
             {item.id}
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-medium leading-snug
-              text-text md:text-base">
+            <h2 className="text-[13px] font-medium leading-snug
+              text-text md:text-sm">
               {lang === "en" && item.questionEn ? item.questionEn : item.question}
               {hasTimelinessWarning && (
                 <span className="ml-1.5 inline-block rounded bg-amber-100
@@ -300,7 +286,7 @@ function FAQItem({
               )}
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-subtext md:text-xs">
+              <span className="text-[10px] text-subtext md:text-[11px]">
                 {item.date}
               </span>
               {item.currentVersion && item.currentVersion > 1 && userTier === "premium" && (
@@ -310,7 +296,7 @@ function FAQItem({
                       e.stopPropagation();
                       setShowVersions((v) => !v);
                     }}
-                    className="text-[11px] text-subtext hover:text-primary md:text-xs"
+                    className="text-[10px] text-subtext hover:text-primary md:text-[11px]"
                     title={t("viewHistory", lang)}
                   >
                     v{item.currentVersion}
@@ -328,7 +314,7 @@ function FAQItem({
                 <span
                   key={tag}
                   className="hidden rounded-full border-[0.5px] border-border bg-panel px-1.5 py-0.5
-                    text-xs font-medium text-primary
+                    text-[11px] font-medium text-primary
                     md:inline-block"
                 >
                   {translateTag(tag, lang)}
@@ -357,7 +343,6 @@ function FAQItem({
 
       <div className={`answer-wrapper ${isOpen ? "open" : ""}`}>
         <div>
-          {shouldRender && (
           <div className={`answer-scroll px-4 pb-4 ${
             showCheckbox ? "pl-10 md:pl-14" : "pl-4 md:pl-5"
           }`}>
@@ -406,7 +391,7 @@ function FAQItem({
                     ? item.answerBriefEn
                     : (item.answerBrief ?? item.answer))}
             />
-            {mounted && detailed && item.images && item.images.length > 0 && (
+            {detailed && item.images && item.images.length > 0 && (
               <div className="mt-4 space-y-3">
                 {item.images.map((img, i) => (
                   <figure key={i} className="overflow-hidden rounded-lg border-[0.5px] border-border">
@@ -532,7 +517,6 @@ function FAQItem({
               />
             )}
           </div>
-          )}
         </div>
       </div>
     </article>

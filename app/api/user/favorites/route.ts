@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "@/auth";
 import { sql } from "@vercel/postgres";
 import { initDB } from "@/lib/db";
+import { computeFavoriteStats, enrichFavoriteForDisplay } from "@/lib/favorite-reminder";
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const url = new URL(request.url);
+  const lang = url.searchParams.get("lang") === "en" ? "en" : "zh";
 
   try {
     await initDB();
@@ -53,24 +56,13 @@ export async function GET() {
         date: row.date,
       }
     }));
-
-    // Calculate stats
-    const total = favorites.length;
-    const unread = favorites.filter(f => f.learning_status === 'unread').length;
-    const learning = favorites.filter(f => f.learning_status === 'learning').length;
-    const mastered = favorites.filter(f => f.learning_status === 'mastered').length;
-
-    // Calculate stale (90 days)
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    const stale = favorites.filter(f =>
-      f.learning_status === 'unread' &&
-      new Date(f.created_at) < ninetyDaysAgo
-    ).length;
+    const enrichedFavorites = favorites.map((favorite) =>
+      enrichFavoriteForDisplay(favorite, lang)
+    );
 
     return NextResponse.json({
-      favorites,
-      stats: { total, unread, learning, mastered, stale }
+      favorites: enrichedFavorites,
+      stats: computeFavoriteStats(enrichedFavorites)
     });
   } catch (error) {
     console.error("Failed to fetch favorites:", error);

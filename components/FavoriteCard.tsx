@@ -10,6 +10,8 @@ interface FavoriteCardProps {
     faq_id: number;
     faq: FAQItem;
     learning_status: 'unread' | 'learning' | 'mastered';
+    relative_time_label: string;
+    needs_nudge: boolean;
   };
   lang: "zh" | "en";
   onUpdateStatus: (faqId: number, status: 'learning' | 'mastered') => void;
@@ -34,7 +36,7 @@ export default function FavoriteCard({
   isExpanded = false,
   onToggleExpand,
 }: FavoriteCardProps) {
-  const { faq_id, faq, learning_status } = item;
+  const { faq_id, faq, learning_status, relative_time_label, needs_nudge } = item;
   const title = lang === "en" && faq.questionEn ? faq.questionEn : faq.question;
   const briefContent =
     lang === "en" && faq.answerBriefEn
@@ -61,6 +63,7 @@ export default function FavoriteCard({
   };
 
   const status = statusConfig[learning_status];
+  const timeLabelKey = learning_status === "unread" ? "savedAt" : "lastReviewedAt";
 
   return (
     <article className={`rounded-xl border-[0.5px] bg-panel transition-all duration-200 ${
@@ -68,9 +71,9 @@ export default function FavoriteCard({
         ? 'border-red-300 opacity-50 grayscale'
         : 'border-border hover:border-primary/20'
     }`}>
-      <div className="flex items-start p-4">
+      <div className="flex items-start p-3.5 md:p-4">
         {/* Left: ID */}
-        <span className="shrink-0 font-brand text-xl font-bold text-primary md:text-2xl">
+        <span className="shrink-0 font-brand text-lg font-bold text-primary md:text-xl">
           {faq_id}
         </span>
 
@@ -80,7 +83,7 @@ export default function FavoriteCard({
           <button
             type="button"
             onClick={() => (detailedMode ? onOpenItem(item) : onToggleExpand?.(faq_id))}
-            className="block w-full text-left text-sm font-medium leading-snug text-text hover:text-primary md:text-base"
+            className="block w-full text-left text-[13px] font-medium leading-snug text-text hover:text-primary md:text-sm"
           >
             {title}
           </button>
@@ -92,6 +95,16 @@ export default function FavoriteCard({
               {status.label}
             </span>
           </div>
+          <div className="mt-1.5 text-[11px] text-subtext">
+            {t(timeLabelKey, lang)}: {relative_time_label}
+          </div>
+          {needs_nudge && (
+            <div className="mt-2">
+              <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
+                {t("internalizeSoon", lang)}
+              </span>
+            </div>
+          )}
 
           {/* Tags */}
           {faq.tags.length > 0 && (
@@ -99,13 +112,13 @@ export default function FavoriteCard({
               {faq.tags.slice(0, 5).map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full border-[0.5px] border-border bg-panel px-1.5 py-0.5 text-xs font-medium text-primary"
+                  className="rounded-full border-[0.5px] border-border bg-panel px-1.5 py-0.5 text-[11px] font-medium text-primary"
                 >
                   {translateTag(tag, lang)}
                 </span>
               ))}
               {faq.tags.length > 5 && (
-                <span className="text-xs text-subtext">+{faq.tags.length - 5}</span>
+                <span className="text-[11px] text-subtext">+{faq.tags.length - 5}</span>
               )}
             </div>
           )}

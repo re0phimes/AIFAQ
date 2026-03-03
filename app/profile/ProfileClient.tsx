@@ -56,6 +56,8 @@ interface FavoriteItem {
   learning_status: "unread" | "learning" | "mastered";
   created_at: string;
   last_viewed_at: string | null;
+  relative_time_label: string;
+  needs_nudge: boolean;
   faq: FAQItem;
 }
 
@@ -252,7 +254,23 @@ export default function ProfileClient({
       });
       if (res.ok) {
         setFavorites((prev) =>
-          prev.map((f) => (f.faq_id === faqId ? { ...f, learning_status: status } : f))
+          prev.map((f) => {
+            if (f.faq_id !== faqId) return f;
+            if (status === "learning") {
+              return {
+                ...f,
+                learning_status: status,
+                last_viewed_at: new Date().toISOString(),
+                relative_time_label: lang === "en" ? "0 days ago" : "0 天前",
+                needs_nudge: false,
+              };
+            }
+            return {
+              ...f,
+              learning_status: status,
+              needs_nudge: false,
+            };
+          })
         );
 
         setStats((prev) => {
@@ -265,11 +283,7 @@ export default function ProfileClient({
           if (status === "learning") next.learning += 1;
           else if (status === "mastered") next.mastered += 1;
 
-          if (
-            previousStatus === "unread" &&
-            currentItem &&
-            new Date(currentItem.created_at) < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
-          ) {
+          if (currentItem?.needs_nudge) {
             next.stale = Math.max(0, next.stale - 1);
           }
 
@@ -329,6 +343,7 @@ export default function ProfileClient({
         if (removedItem.learning_status === "unread") newStats.unread--;
         else if (removedItem.learning_status === "learning") newStats.learning--;
         else if (removedItem.learning_status === "mastered") newStats.mastered--;
+        if (removedItem.needs_nudge) newStats.stale = Math.max(0, newStats.stale - 1);
       }
       return newStats;
     });
@@ -399,20 +414,20 @@ export default function ProfileClient({
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="font-brand text-3xl font-bold text-text">AIFAQ</h1>
+            <h1 className="font-brand text-2xl font-bold text-text md:text-[28px]">AIFAQ</h1>
             <Link
               href="/"
-              className="flex items-center gap-1 rounded-full border-[0.5px] border-border px-2.5 py-1 text-xs text-subtext transition-colors hover:bg-surface"
+              className="flex items-center gap-1 rounded-full border-[0.5px] border-border px-2.5 py-1 text-[11px] text-subtext transition-colors hover:bg-surface"
             >
               ← {t("backToHome", lang)}
             </Link>
           </div>
-          <p className="mt-1 text-sm text-subtext">{t("trackProgress", lang)}</p>
+          <p className="mt-1 text-xs text-subtext">{t("trackProgress", lang)}</p>
         </div>
         <div className="flex gap-1">
           <button
             onClick={() => setActiveTab("learning")}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+            className={`rounded-full px-4 py-2 text-xs font-medium transition-colors ${
               activeTab === "learning"
                 ? "bg-primary text-white"
                 : "border-[0.5px] border-border text-subtext hover:bg-surface"
@@ -422,7 +437,7 @@ export default function ProfileClient({
           </button>
           <button
             onClick={() => setActiveTab("settings")}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+            className={`rounded-full px-4 py-2 text-xs font-medium transition-colors ${
               activeTab === "settings"
                 ? "bg-primary text-white"
                 : "border-[0.5px] border-border text-subtext hover:bg-surface"
@@ -446,15 +461,15 @@ export default function ProfileClient({
         <>
           <div className="grid grid-cols-3 gap-4">
             <div className="rounded-xl border-[0.5px] border-border bg-panel p-4">
-              <div className="text-2xl font-bold text-text">{stats.total}</div>
+              <div className="text-xl font-bold text-text">{stats.total}</div>
               <div className="text-xs text-subtext">{t("totalFavorites", lang)}</div>
             </div>
             <div className="rounded-xl border-[0.5px] border-border bg-panel p-4">
-              <div className="text-2xl font-bold text-blue-600">{stats.learning}</div>
+              <div className="text-xl font-bold text-blue-600">{stats.learning}</div>
               <div className="text-xs text-subtext">{t("learningStatus", lang)}</div>
             </div>
             <div className="rounded-xl border-[0.5px] border-border bg-panel p-4">
-              <div className="text-2xl font-bold text-green-600">{stats.mastered}</div>
+              <div className="text-xl font-bold text-green-600">{stats.mastered}</div>
               <div className="text-xs text-subtext">{t("masteredStatus", lang)}</div>
             </div>
           </div>
@@ -488,7 +503,7 @@ export default function ProfileClient({
                   <button
                     key={key}
                     onClick={() => setFilter(key as typeof filter)}
-                    className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium transition-colors ${
                       filter === key
                         ? "bg-primary text-white"
                         : "bg-surface text-subtext hover:bg-bg"

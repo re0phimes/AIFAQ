@@ -3,6 +3,7 @@ import { getServerSession } from "@/auth";
 import { cookies } from "next/headers";
 import { sql } from "@vercel/postgres";
 import { initDB } from "@/lib/db";
+import { computeFavoriteStats, enrichFavoriteForDisplay } from "@/lib/favorite-reminder";
 import ProfileClient from "./ProfileClient";
 
 export default async function ProfilePage() {
@@ -71,21 +72,13 @@ export default async function ProfilePage() {
       }
     }));
 
-  // Calculate stats
-  const total = favorites.length;
-  const unread = favorites.filter(f => f.learning_status === 'unread').length;
-  const learning = favorites.filter(f => f.learning_status === 'learning').length;
-  const mastered = favorites.filter(f => f.learning_status === 'mastered').length;
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-  const stale = favorites.filter(f =>
-    f.learning_status === 'unread' &&
-    new Date(f.created_at) < ninetyDaysAgo
-  ).length;
+  const enrichedFavorites = favorites.map((favorite) =>
+    enrichFavoriteForDisplay(favorite, lang)
+  );
 
   const data = {
-    favorites,
-    stats: { total, unread, learning, mastered, stale }
+    favorites: enrichedFavorites,
+    stats: computeFavoriteStats(enrichedFavorites)
   };
 
   return (
