@@ -80,6 +80,25 @@ test("buildPrefsHash is stable regardless of focus category order", () => {
   assert.equal(buildPrefsHash(a), buildPrefsHash(b));
 });
 
+test("buildPrefsHash ignores updatedAt when preference content is the same", () => {
+  const a = snapshot({
+    language: "zh",
+    pageSize: 20,
+    defaultDetailed: false,
+    focusCategories: ["深度学习"],
+    updatedAt: "2026-03-03T00:00:00.000Z",
+  });
+  const b = snapshot({
+    language: "zh",
+    pageSize: 20,
+    defaultDetailed: false,
+    focusCategories: ["深度学习"],
+    updatedAt: "2026-03-03T23:59:59.000Z",
+  });
+
+  assert.equal(buildPrefsHash(a), buildPrefsHash(b));
+});
+
 test("shouldPromptImport returns false when dismissed conflict is the same", () => {
   const localHash = "local1";
   const serverHash = "server1";

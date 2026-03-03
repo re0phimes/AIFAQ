@@ -48,7 +48,13 @@ function simpleHash(input: string): string {
 
 export function buildPrefsHash(snapshot: Partial<UserPreferencesSnapshot>): string {
   const normalized = normalize(snapshot);
-  return simpleHash(JSON.stringify(normalized));
+  const contentOnly = {
+    language: normalized.language ?? null,
+    pageSize: normalized.pageSize ?? null,
+    defaultDetailed: normalized.defaultDetailed ?? null,
+    focusCategories: normalized.focusCategories,
+  };
+  return simpleHash(JSON.stringify(contentOnly));
 }
 
 export function buildConflictKey(userId: string, localHash: string, serverHash: string): string {

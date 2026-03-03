@@ -37,6 +37,11 @@ interface FAQListProps {
   onSignOut?: () => void;
   favorites?: Set<number>;
   onToggleFavorite?: (id: number) => void;
+  focusCategories?: string[];
+  onFocusEmpty?: () => void;
+  initialPageSize?: number;
+  initialGlobalDetailed?: boolean;
+  onPreferenceChange?: (patch: { pageSize?: number; defaultDetailed?: boolean }) => void;
 }
 
 const LS_KEY = "aifaq-selected";
@@ -68,7 +73,25 @@ function loadDefaultDetailed(): boolean {
   return fallbackValue === "true";
 }
 
-export default function FAQList({ items, lang, onLangChange, votedMap, onVote, onRevokeVote, onOpenItem, session, onSignIn, onSignOut, favorites, onToggleFavorite }: FAQListProps) {
+export default function FAQList({
+  items,
+  lang,
+  onLangChange,
+  votedMap,
+  onVote,
+  onRevokeVote,
+  onOpenItem,
+  session,
+  onSignIn,
+  onSignOut,
+  favorites,
+  onToggleFavorite,
+  focusCategories = [],
+  onFocusEmpty,
+  initialPageSize,
+  initialGlobalDetailed,
+  onPreferenceChange,
+}: FAQListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMode, setSearchMode] = useState<SearchMode>("combined");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -78,10 +101,10 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
   const [view, setView] = useState<"list" | "reading">("list");
   const [compareMode, setCompareMode] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(loadPageSize);
+  const [pageSize, setPageSize] = useState(() => initialPageSize ?? loadPageSize());
   const [sortMode, setSortMode] = useState<SortMode>("default");
-  const [globalDetailed, setGlobalDetailed] = useState(loadDefaultDetailed);
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [globalDetailed, setGlobalDetailed] = useState(() => initialGlobalDetailed ?? loadDefaultDetailed());
+  const [showFocusOnly, setShowFocusOnly] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
@@ -128,12 +151,26 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
   // Persist pageSize
   useEffect(() => {
     localStorage.setItem(LS_PAGESIZE, String(pageSize));
-  }, [pageSize]);
+    onPreferenceChange?.({ pageSize });
+  }, [pageSize, onPreferenceChange]);
+
+  useEffect(() => {
+    if (initialPageSize === undefined) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPageSize(initialPageSize);
+  }, [initialPageSize]);
+
+  useEffect(() => {
+    if (initialGlobalDetailed === undefined) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGlobalDetailed(initialGlobalDetailed);
+  }, [initialGlobalDetailed]);
 
   // Persist globalDetailed
   useEffect(() => {
     localStorage.setItem(LS_GLOBAL_DETAILED, String(globalDetailed));
-  }, [globalDetailed]);
+    onPreferenceChange?.({ defaultDetailed: globalDetailed });
+  }, [globalDetailed, onPreferenceChange]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -174,9 +211,12 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
   const filtered = useMemo(() => {
     let result = items;
 
-    // Favorites filter
-    if (showFavoritesOnly && favorites) {
-      result = result.filter((item) => favorites.has(item.id));
+    // Focus filter (big category)
+    if (showFocusOnly) {
+      const focusSet = new Set(focusCategories);
+      result = result.filter((item) =>
+        (item.categories ?? []).some((category) => focusSet.has(category))
+      );
     }
 
     const q = searchQuery.trim().toLowerCase();
@@ -223,7 +263,7 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
     }
 
     return result;
-  }, [items, searchQuery, searchMode, selectedTags, selectedCategories, categoryTagsMap, showFavoritesOnly, favorites]);
+  }, [items, searchQuery, searchMode, selectedTags, selectedCategories, categoryTagsMap, showFocusOnly, focusCategories]);
 
   // Sort logic
   const sorted = useMemo(() => {
@@ -495,26 +535,28 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
             >
               {compareMode ? t("exitCompare", lang) : t("compare", lang)}
             </button>
-            {session?.user && (
-              <>
-                <span className="h-4 border-l border-border" />
-                <button
-                  onClick={() => {
-                    setShowFavoritesOnly((v) => !v);
-                    setCurrentPage(1);
-                  }}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium
-                    transition-colors ${
-                      showFavoritesOnly
-                        ? "bg-amber-500 text-white"
-                        : "border-[0.5px] border-border text-amber-600 hover:bg-amber-50"
-                    }`}
-                >
-                  <span className="mr-1">★</span>
-                  {t("myFavorites", lang)}
-                </button>
-              </>
-            )}
+            <>
+              <span className="h-4 border-l border-border" />
+              <button
+                onClick={() => {
+                  if (focusCategories.length === 0) {
+                    onFocusEmpty?.();
+                    return;
+                  }
+                  setShowFocusOnly((v) => !v);
+                  setCurrentPage(1);
+                }}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium
+                  transition-colors ${
+                    showFocusOnly
+                      ? "bg-amber-500 text-white"
+                      : "border-[0.5px] border-border text-amber-600 hover:bg-amber-50"
+                  }`}
+              >
+                <span className="mr-1">★</span>
+                {t("myFocus", lang)}
+              </button>
+            </>
             {/* Group 2: Expand/Collapse */}
             <span className="h-4 border-l border-border" />
             <button

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "@/auth";
 import { cookies } from "next/headers";
 import { sql } from "@vercel/postgres";
-import { initDB } from "@/lib/db";
+import { getUserPreferences, initDB } from "@/lib/db";
 import { computeFavoriteStats, enrichFavoriteForDisplay } from "@/lib/favorite-reminder";
 import ProfileClient from "./ProfileClient";
 
@@ -16,7 +16,13 @@ export default async function ProfilePage() {
   // Get language preference from cookie or default to 'zh'
   const cookieStore = await cookies();
   const langCookie = cookieStore.get('aifaq-lang');
-  const lang = (langCookie?.value === 'en' ? 'en' : 'zh') as "zh" | "en";
+  let lang = (langCookie?.value === 'en' ? 'en' : 'zh') as "zh" | "en";
+  if (session.user.id) {
+    const prefs = await getUserPreferences(session.user.id);
+    if (prefs?.language) {
+      lang = prefs.language;
+    }
+  }
 
   // Fetch favorites directly from database
   await initDB();

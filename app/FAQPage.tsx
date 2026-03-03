@@ -6,8 +6,38 @@ import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
 import FAQList from "@/components/FAQList";
 import DetailModal from "@/components/DetailModal";
 import type { FAQItem, VoteType } from "@/src/types/faq";
+import {
+  buildConflictKey,
+  buildPrefsHash,
+  shouldPromptImport,
+  type UserPreferencesSnapshot,
+} from "@/lib/preferences-sync";
 
 const LS_VOTED = "aifaq-voted";
+const LS_PREFS = "aifaq-prefs-v2";
+const LS_PREFS_SYNC = "aifaq-prefs-sync-v2";
+
+interface LocalPreferences {
+  language?: "zh" | "en";
+  pageSize?: number;
+  defaultDetailed?: boolean;
+  focusCategories: string[];
+  updatedAt: string;
+}
+
+interface PreferenceSyncMeta {
+  lastSyncedServerUpdatedAt: string | null;
+  lastSyncedHash: string | null;
+  dismissedConflictKey: string | null;
+}
+
+interface ServerPreferencesResponse {
+  language: "zh" | "en" | null;
+  page_size: number | null;
+  default_detailed: boolean | null;
+  focus_categories: string[];
+  updated_at: string | null;
+}
 
 function loadVotedMap(): Map<number, VoteType> {
   if (typeof window === "undefined") return new Map();
@@ -16,12 +46,12 @@ function loadVotedMap(): Map<number, VoteType> {
     if (raw) {
       const obj = JSON.parse(raw) as Record<string, VoteType>;
       const map = new Map<number, VoteType>();
-      for (const [k, v] of Object.entries(obj)) {
-        map.set(Number(k), v);
-      }
+      for (const [k, v] of Object.entries(obj)) map.set(Number(k), v);
       return map;
     }
-  } catch { /* ignore */ }
+  } catch {
+    // ignore
+  }
   return new Map();
 }
 
@@ -31,13 +61,154 @@ function saveVotedMap(map: Map<number, VoteType>): void {
   localStorage.setItem(LS_VOTED, JSON.stringify(obj));
 }
 
+function toSnapshot(prefs: LocalPreferences): UserPreferencesSnapshot {
+  return {
+    language: prefs.language,
+    pageSize: prefs.pageSize,
+    defaultDetailed: prefs.defaultDetailed,
+    focusCategories: prefs.focusCategories,
+    updatedAt: prefs.updatedAt,
+  };
+}
+
+function saveLegacyPreferenceKeys(prefs: LocalPreferences): void {
+  if (prefs.language) localStorage.setItem("aifaq-lang", prefs.language);
+  if (prefs.pageSize !== undefined) {
+    localStorage.setItem("aifaq-pageSize", String(prefs.pageSize));
+    localStorage.setItem("aifaq-pagesize", String(prefs.pageSize));
+  }
+  if (prefs.defaultDetailed !== undefined) {
+    const value = String(prefs.defaultDetailed);
+    localStorage.setItem("aifaq-defaultDetailed", value);
+    localStorage.setItem("aifaq-global-detailed", value);
+  }
+  localStorage.setItem("aifaq-focus-categories", JSON.stringify(prefs.focusCategories));
+}
+
+function saveLocalPreferences(prefs: LocalPreferences): void {
+  localStorage.setItem(LS_PREFS, JSON.stringify(prefs));
+  saveLegacyPreferenceKeys(prefs);
+}
+
+function loadLocalPreferences(): LocalPreferences {
+  if (typeof window === "undefined") {
+    return { focusCategories: [], updatedAt: new Date().toISOString() };
+  }
+  try {
+    const raw = localStorage.getItem(LS_PREFS);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<LocalPreferences>;
+      return {
+        language: parsed.language === "en" ? "en" : parsed.language === "zh" ? "zh" : undefined,
+        pageSize: typeof parsed.pageSize === "number" ? parsed.pageSize : undefined,
+        defaultDetailed:
+          typeof parsed.defaultDetailed === "boolean" ? parsed.defaultDetailed : undefined,
+        focusCategories: Array.isArray(parsed.focusCategories) ? parsed.focusCategories : [],
+        updatedAt:
+          typeof parsed.updatedAt === "string" ? parsed.updatedAt : new Date().toISOString(),
+      };
+    }
+  } catch {
+    // ignore invalid json
+  }
+
+  const languageRaw = localStorage.getItem("aifaq-lang");
+  const pageSizeRaw = localStorage.getItem("aifaq-pageSize") ?? localStorage.getItem("aifaq-pagesize");
+  const defaultDetailedRaw =
+    localStorage.getItem("aifaq-defaultDetailed") ?? localStorage.getItem("aifaq-global-detailed");
+  const focusRaw = localStorage.getItem("aifaq-focus-categories");
+
+  let focusCategories: string[] = [];
+  try {
+    if (focusRaw) {
+      const parsed = JSON.parse(focusRaw) as unknown;
+      if (Array.isArray(parsed)) {
+        focusCategories = parsed.filter((item): item is string => typeof item === "string");
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  const migrated: LocalPreferences = {
+    language: languageRaw === "en" ? "en" : languageRaw === "zh" ? "zh" : undefined,
+    pageSize: pageSizeRaw ? Number(pageSizeRaw) : undefined,
+    defaultDetailed: defaultDetailedRaw === null ? undefined : defaultDetailedRaw === "true",
+    focusCategories,
+    updatedAt: new Date().toISOString(),
+  };
+
+  saveLocalPreferences(migrated);
+  return migrated;
+}
+
+function loadPreferenceSyncMeta(): PreferenceSyncMeta {
+  if (typeof window === "undefined") {
+    return {
+      lastSyncedServerUpdatedAt: null,
+      lastSyncedHash: null,
+      dismissedConflictKey: null,
+    };
+  }
+  try {
+    const raw = localStorage.getItem(LS_PREFS_SYNC);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<PreferenceSyncMeta>;
+      return {
+        lastSyncedServerUpdatedAt:
+          typeof parsed.lastSyncedServerUpdatedAt === "string"
+            ? parsed.lastSyncedServerUpdatedAt
+            : null,
+        lastSyncedHash: typeof parsed.lastSyncedHash === "string" ? parsed.lastSyncedHash : null,
+        dismissedConflictKey:
+          typeof parsed.dismissedConflictKey === "string" ? parsed.dismissedConflictKey : null,
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return {
+    lastSyncedServerUpdatedAt: null,
+    lastSyncedHash: null,
+    dismissedConflictKey: null,
+  };
+}
+
+function savePreferenceSyncMeta(meta: PreferenceSyncMeta): void {
+  localStorage.setItem(LS_PREFS_SYNC, JSON.stringify(meta));
+}
+
+function normalizeServerPreferences(data: ServerPreferencesResponse): LocalPreferences {
+  return {
+    language: data.language ?? undefined,
+    pageSize: data.page_size ?? undefined,
+    defaultDetailed: data.default_detailed ?? undefined,
+    focusCategories: data.focus_categories ?? [],
+    updatedAt: data.updated_at ?? new Date().toISOString(),
+  };
+}
+
+function hasMeaningfulLocalPreferences(prefs: LocalPreferences): boolean {
+  return (
+    prefs.language !== undefined ||
+    prefs.pageSize !== undefined ||
+    prefs.defaultDetailed !== undefined ||
+    prefs.focusCategories.length > 0
+  );
+}
+
 interface FAQPageProps {
   items: FAQItem[];
 }
 
 function FAQPageInner({ items }: FAQPageProps) {
   const { data: session } = useSession();
-  const [lang, setLang] = useState<"zh" | "en">("zh");
+  const [preferences, setPreferences] = useState<LocalPreferences>(() =>
+    loadLocalPreferences()
+  );
+  const [lang, setLang] = useState<"zh" | "en">(
+    preferences.language === "en" ? "en" : "zh"
+  );
   const [votedMap, setVotedMap] = useState<Map<number, VoteType>>(loadVotedMap);
   const [fingerprint, setFingerprint] = useState("");
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
@@ -46,19 +217,82 @@ function FAQPageInner({ items }: FAQPageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalItem, setModalItem] = useState<FAQItem | null>(null);
 
-  // Refs for stable vote callbacks
+  // Refs for stable callbacks
   const votedMapRef = useRef(votedMap);
   const fingerprintRef = useRef(fingerprint);
-  useEffect(() => { votedMapRef.current = votedMap; }, [votedMap]);
-  useEffect(() => { fingerprintRef.current = fingerprint; }, [fingerprint]);
+  const preferencesRef = useRef(preferences);
+  useEffect(() => {
+    votedMapRef.current = votedMap;
+  }, [votedMap]);
+  useEffect(() => {
+    fingerprintRef.current = fingerprint;
+  }, [fingerprint]);
+  useEffect(() => {
+    preferencesRef.current = preferences;
+  }, [preferences]);
+
+  const applyPreferencesLocalOnly = useCallback((next: LocalPreferences) => {
+    saveLocalPreferences(next);
+    setPreferences(next);
+    if (next.language) setLang(next.language);
+  }, []);
+
+  const patchRemotePreferences = useCallback(
+    async (patch: {
+      language?: "zh" | "en";
+      page_size?: number;
+      default_detailed?: boolean;
+      focus_categories?: string[];
+    }) => {
+      if (!session?.user?.id) return;
+      if (Object.keys(patch).length === 0) return;
+      await fetch("/api/user/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      }).catch(() => {});
+    },
+    [session?.user?.id]
+  );
+
+  const updatePreferences = useCallback(
+    async (
+      patch: Partial<Pick<LocalPreferences, "language" | "pageSize" | "defaultDetailed" | "focusCategories">>,
+      syncServer = true
+    ) => {
+      const current = preferencesRef.current;
+      const next: LocalPreferences = {
+        language: patch.language ?? current.language,
+        pageSize: patch.pageSize ?? current.pageSize,
+        defaultDetailed: patch.defaultDetailed ?? current.defaultDetailed,
+        focusCategories: patch.focusCategories ?? current.focusCategories,
+        updatedAt: new Date().toISOString(),
+      };
+      applyPreferencesLocalOnly(next);
+
+      if (!syncServer || !session?.user?.id) return;
+
+      const remotePatch: {
+        language?: "zh" | "en";
+        page_size?: number;
+        default_detailed?: boolean;
+        focus_categories?: string[];
+      } = {};
+      if (patch.language !== undefined) remotePatch.language = patch.language;
+      if (patch.pageSize !== undefined) remotePatch.page_size = patch.pageSize;
+      if (patch.defaultDetailed !== undefined) remotePatch.default_detailed = patch.defaultDetailed;
+      if (patch.focusCategories !== undefined) remotePatch.focus_categories = patch.focusCategories;
+
+      await patchRemotePreferences(remotePatch);
+    },
+    [applyPreferencesLocalOnly, patchRemotePreferences, session?.user?.id]
+  );
 
   // Load fingerprint on mount (only needed for anonymous users)
   useEffect(() => {
     if (session?.user) return; // logged-in users don't need fingerprint
     import("@fingerprintjs/fingerprintjs").then((FP) =>
-      FP.load().then((fp) =>
-        fp.get().then((r) => setFingerprint(r.visitorId))
-      )
+      FP.load().then((fp) => fp.get().then((r) => setFingerprint(r.visitorId)))
     );
   }, [session]);
 
@@ -66,31 +300,122 @@ function FAQPageInner({ items }: FAQPageProps) {
   useEffect(() => {
     if (!fingerprint) return;
     fetch(`/api/faq/votes?fingerprint=${fingerprint}`)
-      .then((res) => res.ok ? res.json() : null)
+      .then((res) => (res.ok ? res.json() : null))
       .then((data: Record<string, string> | null) => {
         if (!data) return;
         const map = new Map<number, VoteType>();
         for (const [k, v] of Object.entries(data)) {
-          if (v === "upvote" || v === "downvote") {
-            map.set(Number(k), v as VoteType);
-          }
+          if (v === "upvote" || v === "downvote") map.set(Number(k), v as VoteType);
         }
         setVotedMap(map);
         saveVotedMap(map);
       })
-      .catch(() => { /* network error, use localStorage fallback */ });
+      .catch(() => {
+        // network error, use localStorage fallback
+      });
   }, [fingerprint]);
 
   // Load favorites when logged in
   useEffect(() => {
     if (!session?.user) return;
     fetch("/api/user/favorites")
-      .then((res) => res.ok ? res.json() : null)
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data?.favorites) setFavorites(new Set(data.favorites));
+        if (!Array.isArray(data?.favorites)) return;
+        const ids = data.favorites
+          .map((entry: unknown) => {
+            if (typeof entry === "number") return entry;
+            if (entry && typeof entry === "object" && "faq_id" in entry) {
+              const faqId = (entry as { faq_id: unknown }).faq_id;
+              return typeof faqId === "number" ? faqId : null;
+            }
+            return null;
+          })
+          .filter((id: number | null): id is number => id !== null);
+        setFavorites(new Set(ids));
       })
       .catch(() => {});
   }, [session]);
+
+  // Login sync: DB is source-of-truth, with optional local import
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const run = async (): Promise<void> => {
+      const res = await fetch("/api/user/preferences");
+      if (!res.ok) return;
+      const data = (await res.json()) as ServerPreferencesResponse;
+      const serverPrefs = normalizeServerPreferences(data);
+      const serverHash = buildPrefsHash(toSnapshot(serverPrefs));
+
+      const localPrefs = preferencesRef.current;
+      const localHash = buildPrefsHash(toSnapshot(localPrefs));
+      const syncMeta = loadPreferenceSyncMeta();
+      const hasLocalPrefs = hasMeaningfulLocalPreferences(localPrefs);
+      const localHasUnsyncedChanges =
+        hasLocalPrefs && (syncMeta.lastSyncedHash === null || syncMeta.lastSyncedHash !== localHash);
+
+      const prompt = shouldPromptImport({
+        userId: session.user.id,
+        hasLocalPrefs,
+        localHash,
+        serverHash,
+        localHasUnsyncedChanges,
+        dismissedConflictKey: syncMeta.dismissedConflictKey,
+      });
+
+      if (prompt) {
+        const confirmText =
+          lang === "zh"
+            ? "检测到你本地有未同步偏好，是否导入到账号？"
+            : "Unsynced local preferences detected. Import them to your account?";
+        const accepted = window.confirm(confirmText);
+        if (accepted) {
+          const importRes = await fetch("/api/user/preferences/import", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              snapshot: {
+                language: localPrefs.language ?? null,
+                page_size: localPrefs.pageSize ?? null,
+                default_detailed: localPrefs.defaultDetailed ?? null,
+                focus_categories: localPrefs.focusCategories ?? [],
+                updated_at: localPrefs.updatedAt,
+              },
+            }),
+          });
+          if (importRes.ok) {
+            const imported = normalizeServerPreferences(
+              (await importRes.json()) as ServerPreferencesResponse
+            );
+            applyPreferencesLocalOnly(imported);
+            savePreferenceSyncMeta({
+              lastSyncedServerUpdatedAt: imported.updatedAt,
+              lastSyncedHash: buildPrefsHash(toSnapshot(imported)),
+              dismissedConflictKey: null,
+            });
+            return;
+          }
+        } else {
+          const key = buildConflictKey(session.user.id, localHash, serverHash);
+          savePreferenceSyncMeta({
+            lastSyncedServerUpdatedAt: serverPrefs.updatedAt,
+            lastSyncedHash: serverHash,
+            dismissedConflictKey: key,
+          });
+        }
+      }
+
+      applyPreferencesLocalOnly(serverPrefs);
+      savePreferenceSyncMeta({
+        lastSyncedServerUpdatedAt: serverPrefs.updatedAt,
+        lastSyncedHash: serverHash,
+        dismissedConflictKey: syncMeta.dismissedConflictKey,
+      });
+    };
+
+    void run();
+  }, [applyPreferencesLocalOnly, lang, session?.user?.id]);
 
   // --- Vote handlers (stable via refs) ---
   const handleVote = useCallback(
@@ -199,7 +524,6 @@ function FAQPageInner({ items }: FAQPageProps) {
     setTimeout(() => setModalItem(null), 100);
   }, []);
 
-  // Modal-specific vote wrappers (bind faqId from modalItem)
   const handleModalVote = useCallback(
     (type: VoteType, reason?: string, detail?: string) => {
       if (modalItem) handleVote(modalItem.id, type, reason, detail);
@@ -211,6 +535,43 @@ function FAQPageInner({ items }: FAQPageProps) {
     if (modalItem) handleRevokeVote(modalItem.id);
   }, [modalItem, handleRevokeVote]);
 
+  const handleLanguageChange = useCallback(
+    (nextLang: "zh" | "en") => {
+      setLang(nextLang);
+      void updatePreferences({ language: nextLang }, true);
+    },
+    [updatePreferences]
+  );
+
+  const handleListPreferenceChange = useCallback(
+    (patch: { pageSize?: number; defaultDetailed?: boolean }) => {
+      const nextPatch: Partial<LocalPreferences> = {};
+      if (patch.pageSize !== undefined && patch.pageSize !== preferencesRef.current.pageSize) {
+        nextPatch.pageSize = patch.pageSize;
+      }
+      if (
+        patch.defaultDetailed !== undefined &&
+        patch.defaultDetailed !== preferencesRef.current.defaultDetailed
+      ) {
+        nextPatch.defaultDetailed = patch.defaultDetailed;
+      }
+      if (Object.keys(nextPatch).length > 0) {
+        void updatePreferences(nextPatch, true);
+      }
+    },
+    [updatePreferences]
+  );
+
+  const handleFocusEmpty = useCallback(() => {
+    if (session?.user?.id) {
+      const confirmText =
+        lang === "zh" ? "你还没有设置关注方向，去我的学习中设置？" : "No focus set yet. Go to My Learning to set it?";
+      if (window.confirm(confirmText)) window.location.href = "/profile";
+      return;
+    }
+    void signIn("github", { callbackUrl: "/profile" });
+  }, [lang, session?.user?.id]);
+
   const modalCurrentVote = modalItem ? (votedMap.get(modalItem.id) ?? null) : null;
 
   return (
@@ -218,7 +579,7 @@ function FAQPageInner({ items }: FAQPageProps) {
       <FAQList
         items={items}
         lang={lang}
-        onLangChange={setLang}
+        onLangChange={handleLanguageChange}
         votedMap={votedMap}
         onVote={handleVote}
         onRevokeVote={handleRevokeVote}
@@ -228,6 +589,11 @@ function FAQPageInner({ items }: FAQPageProps) {
         onSignOut={() => signOut()}
         favorites={favorites}
         onToggleFavorite={handleToggleFavorite}
+        focusCategories={preferences.focusCategories}
+        onFocusEmpty={handleFocusEmpty}
+        initialPageSize={preferences.pageSize}
+        initialGlobalDetailed={preferences.defaultDetailed}
+        onPreferenceChange={handleListPreferenceChange}
       />
 
       <DetailModal

@@ -8,6 +8,7 @@ import type { FAQItem, VoteType } from "@/src/types/faq";
 import FavoriteCard from "@/components/FavoriteCard";
 import Toast from "@/components/Toast";
 import DetailModal from "@/components/DetailModal";
+import taxonomy from "@/data/tag-taxonomy.json";
 
 const LS_VOTED = "aifaq-voted";
 
@@ -607,17 +608,118 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
       ((typeof window !== "undefined" ? localStorage.getItem("aifaq-lang") : null) as
         | "zh"
         | "en") || lang,
-    pageSize: Number(typeof window !== "undefined" ? localStorage.getItem("aifaq-pageSize") : null) || 20,
+    pageSize:
+      Number(typeof window !== "undefined" ? localStorage.getItem("aifaq-pageSize") : null) || 20,
     defaultDetailed:
-      (typeof window !== "undefined" ? localStorage.getItem("aifaq-defaultDetailed") : null) === "true",
+      (typeof window !== "undefined" ? localStorage.getItem("aifaq-defaultDetailed") : null) ===
+      "true",
+    focusCategories:
+      typeof window !== "undefined" && localStorage.getItem("aifaq-focus-categories")
+        ? (() => {
+            try {
+              const parsed = JSON.parse(
+                localStorage.getItem("aifaq-focus-categories") || "[]"
+              ) as unknown;
+              return Array.isArray(parsed)
+                ? parsed.filter((item): item is string => typeof item === "string")
+                : [];
+            } catch {
+              return [];
+            }
+          })()
+        : [],
   });
 
-  const updateSetting = <K extends keyof typeof settings>(
+  const availableCategories = taxonomy.categories.map((category) => category.name);
+
+  const saveLocalPreferences = useCallback((next: typeof settings): void => {
+    localStorage.setItem("aifaq-lang", next.lang);
+    localStorage.setItem("aifaq-pageSize", String(next.pageSize));
+    localStorage.setItem("aifaq-pagesize", String(next.pageSize));
+    localStorage.setItem("aifaq-defaultDetailed", String(next.defaultDetailed));
+    localStorage.setItem("aifaq-global-detailed", String(next.defaultDetailed));
+    localStorage.setItem("aifaq-focus-categories", JSON.stringify(next.focusCategories));
+    localStorage.setItem(
+      "aifaq-prefs-v2",
+      JSON.stringify({
+        language: next.lang,
+        pageSize: next.pageSize,
+        defaultDetailed: next.defaultDetailed,
+        focusCategories: next.focusCategories,
+        updatedAt: new Date().toISOString(),
+      })
+    );
+  }, []);
+
+  const patchRemote = useCallback(async (patch: Record<string, unknown>) => {
+    try {
+      await fetch("/api/user/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+    } catch {
+      // keep local settings if network fails
+    }
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/user/preferences")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((remote) => {
+        if (!remote) return;
+        setSettings((prev) => {
+          const next = {
+            lang: (remote.language === "en" || remote.language === "zh"
+              ? remote.language
+              : prev.lang) as "zh" | "en",
+            pageSize:
+              typeof remote.page_size === "number" ? remote.page_size : prev.pageSize,
+            defaultDetailed:
+              typeof remote.default_detailed === "boolean"
+                ? remote.default_detailed
+                : prev.defaultDetailed,
+            focusCategories: Array.isArray(remote.focus_categories)
+              ? remote.focus_categories.filter(
+                  (item: unknown): item is string => typeof item === "string"
+                )
+              : prev.focusCategories,
+          };
+          saveLocalPreferences(next);
+          return next;
+        });
+      })
+      .catch(() => {});
+  }, [saveLocalPreferences]);
+
+  const updateSetting = <K extends "lang" | "pageSize" | "defaultDetailed">(
     key: K,
     value: (typeof settings)[K]
   ) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-    localStorage.setItem(`aifaq-${key}`, String(value));
+    setSettings((prev) => {
+      const next = { ...prev, [key]: value };
+      saveLocalPreferences(next);
+      return next;
+    });
+    if (key === "lang") {
+      void patchRemote({ language: value });
+    } else if (key === "pageSize") {
+      void patchRemote({ page_size: value });
+    } else if (key === "defaultDetailed") {
+      void patchRemote({ default_detailed: value });
+    }
+  };
+
+  const toggleFocusCategory = (category: string) => {
+    setSettings((prev) => {
+      const nextCategories = prev.focusCategories.includes(category)
+        ? prev.focusCategories.filter((item) => item !== category)
+        : [...prev.focusCategories, category];
+      const next = { ...prev, focusCategories: nextCategories };
+      saveLocalPreferences(next);
+      void patchRemote({ focus_categories: nextCategories });
+      return next;
+    });
   };
 
   return (
@@ -716,6 +818,30 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
               >
                 {t("detailed", lang)}
               </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-subtext">
+              {t("myFocus", lang)}
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {availableCategories.map((category) => {
+                const selected = settings.focusCategories.includes(category);
+                return (
+                  <button
+                    key={category}
+                    onClick={() => toggleFocusCategory(category)}
+                    className={`rounded-full px-3 py-1.5 text-xs transition-colors ${
+                      selected
+                        ? "bg-primary text-white"
+                        : "border-[0.5px] border-border text-subtext hover:bg-surface"
+                    }`}
+                  >
+                    {category}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
