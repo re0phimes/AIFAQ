@@ -59,7 +59,7 @@ export default function TagFilter({
   const hasSelection = selectedCategories.length > 0 || selectedTags.length > 0;
 
   return (
-    <div className="rounded-xl border-[0.5px] border-border bg-panel p-3">
+    <div className="rounded-xl border-[0.5px] border-border bg-panel p-2.5">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-medium text-subtext">
           {t("tagFilter", lang)}

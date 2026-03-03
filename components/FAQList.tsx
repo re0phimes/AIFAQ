@@ -359,14 +359,14 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
   return (
     <>
       <div
-        className={`sticky top-0 z-20 -mx-4 bg-bg/95 px-4 pb-3 backdrop-blur-sm
+        className={`sticky top-0 z-20 -mx-4 bg-bg/95 px-4 pb-2 backdrop-blur-sm
           transition-transform duration-300 md:-mx-8 md:px-8 ${
             headerVisible ? "translate-y-0" : "-translate-y-full"
           }`}
       >
-        <header className="mb-4 flex items-center justify-between pt-2">
+        <header className="mb-2 flex items-center justify-between pt-1">
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <h1 className="font-brand text-3xl font-bold text-text">AIFAQ</h1>
               <a
                 href="https://www.phimes.top"
@@ -378,16 +378,16 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
                 <span className="text-[10px]">↗</span>
               </a>
             </div>
-            <p className="mt-1 text-sm text-subtext">
+            <p className="mt-0.5 text-sm text-subtext">
               {lang === "zh" ? "AI/ML 常见问题知识库" : "AI/ML FAQ Knowledge Base"}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {session?.user ? (
               <div className="relative" ref={userDropdownRef}>
                 <button
                   onClick={() => setShowUserDropdown(!showUserDropdown)}
-                  className="flex items-center gap-2 rounded-full border-[0.5px] border-border px-3 py-1.5 hover:bg-surface"
+                  className="flex items-center gap-2 rounded-full border-[0.5px] border-border px-3 py-1 hover:bg-surface"
                 >
                   {session.user.image && (
                     <img src={session.user.image} alt="" className="h-6 w-6 rounded-full" />
@@ -426,7 +426,7 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
             ) : (
               <button
                 onClick={onSignIn}
-                className="flex items-center gap-1.5 rounded-full border-[0.5px] border-border px-3 py-1.5 text-xs text-subtext hover:bg-surface"
+                className="flex items-center gap-1.5 rounded-full border-[0.5px] border-border px-3 py-1 text-xs text-subtext hover:bg-surface"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
@@ -461,7 +461,7 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
           onModeChange={setSearchMode}
           lang={lang}
         />
-        <div className="mt-3">
+        <div className="mt-2">
           <TagFilter
             taxonomy={taxonomy as TagTaxonomy}
             allTags={allTags}
