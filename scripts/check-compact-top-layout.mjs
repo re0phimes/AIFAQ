@@ -68,6 +68,24 @@ const checks = {
       expected: "className=\"flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-3\"",
     },
   ],
+  "home-pagination": [
+    {
+      file: "components/FAQList.tsx",
+      expected: "if (typeof window === \"undefined\") return 10;",
+    },
+    {
+      file: "components/FAQList.tsx",
+      expected: "const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;",
+    },
+    {
+      file: "components/FAQList.tsx",
+      expected: "window.scrollTo({ top: 0 });",
+    },
+    {
+      file: "components/FAQList.tsx",
+      expected: "min-h-[calc(100vh-18rem)]",
+    },
+  ],
 };
 
 const selected = scope === "all" ? Object.values(checks).flat() : checks[scope] ?? [];
