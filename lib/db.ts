@@ -1,5 +1,9 @@
 import { sql } from "@vercel/postgres";
 import type { Reference, FAQImage } from "@/src/types/faq";
+import {
+  mergePreferences,
+  type UserPreferencesSnapshot,
+} from "./preferences-sync";
 
 let schemaReady = false;
 
@@ -197,6 +201,19 @@ export async function initDB(): Promise<void> {
       tier        VARCHAR(20) DEFAULT 'free',
       created_at  TIMESTAMPTZ DEFAULT NOW(),
       updated_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  // Account-level preferences (language, pagination, focus categories)
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_preferences (
+      user_id           TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      language          VARCHAR(5),
+      page_size         INTEGER,
+      default_detailed  BOOLEAN,
+      focus_categories  TEXT[] DEFAULT '{}',
+      created_at        TIMESTAMPTZ DEFAULT NOW(),
+      updated_at        TIMESTAMPTZ DEFAULT NOW()
     )
   `;
 }
@@ -690,4 +707,124 @@ export async function getUserTier(userId: string): Promise<string> {
 export async function setUserTier(userId: string, tier: string): Promise<void> {
   await ensureSchema();
   await sql`UPDATE users SET tier = ${tier}, updated_at = NOW() WHERE id = ${userId}`;
+}
+
+export interface DBUserPreferences {
+  user_id: string;
+  language: "zh" | "en" | null;
+  page_size: number | null;
+  default_detailed: boolean | null;
+  focus_categories: string[];
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface DBUserPreferencesPatch {
+  language?: "zh" | "en" | null;
+  page_size?: number | null;
+  default_detailed?: boolean | null;
+  focus_categories?: string[] | null;
+}
+
+export interface DBUserPreferencesImportInput extends DBUserPreferencesPatch {
+  updated_at?: string | null;
+}
+
+function rowToUserPreferences(row: Record<string, unknown>): DBUserPreferences {
+  return {
+    user_id: row.user_id as string,
+    language: (row.language as "zh" | "en" | null) ?? null,
+    page_size: (row.page_size as number | null) ?? null,
+    default_detailed: (row.default_detailed as boolean | null) ?? null,
+    focus_categories: (row.focus_categories as string[]) ?? [],
+    created_at: new Date(row.created_at as string),
+    updated_at: new Date(row.updated_at as string),
+  };
+}
+
+function escapePgArrayValue(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function toTextArrayLiteral(values: string[]): string {
+  return `{${values.map((value) => `"${escapePgArrayValue(value)}"`).join(",")}}`;
+}
+
+export async function getUserPreferences(
+  userId: string
+): Promise<DBUserPreferences | null> {
+  await ensureSchema();
+  const result = await sql`
+    SELECT * FROM user_preferences WHERE user_id = ${userId}
+  `;
+  if (result.rows.length === 0) return null;
+  return rowToUserPreferences(result.rows[0]);
+}
+
+export async function upsertUserPreferences(
+  userId: string,
+  patch: DBUserPreferencesPatch
+): Promise<DBUserPreferences> {
+  await ensureSchema();
+  const current = await getUserPreferences(userId);
+
+  const language =
+    patch.language !== undefined ? patch.language : current?.language ?? null;
+  const pageSize =
+    patch.page_size !== undefined ? patch.page_size : current?.page_size ?? null;
+  const defaultDetailed =
+    patch.default_detailed !== undefined
+      ? patch.default_detailed
+      : current?.default_detailed ?? null;
+  const focusCategories =
+    patch.focus_categories !== undefined
+      ? patch.focus_categories ?? []
+      : current?.focus_categories ?? [];
+  const focusLiteral = toTextArrayLiteral(focusCategories);
+
+  const result = await sql`
+    INSERT INTO user_preferences (user_id, language, page_size, default_detailed, focus_categories)
+    VALUES (${userId}, ${language}, ${pageSize}, ${defaultDetailed}, ${focusLiteral}::text[])
+    ON CONFLICT (user_id) DO UPDATE SET
+      language = ${language},
+      page_size = ${pageSize},
+      default_detailed = ${defaultDetailed},
+      focus_categories = ${focusLiteral}::text[],
+      updated_at = NOW()
+    RETURNING *
+  `;
+  return rowToUserPreferences(result.rows[0]);
+}
+
+export async function importUserPreferences(
+  userId: string,
+  local: DBUserPreferencesImportInput
+): Promise<DBUserPreferences> {
+  await ensureSchema();
+  const server = await getUserPreferences(userId);
+
+  const localSnapshot: UserPreferencesSnapshot = {
+    language: local.language ?? undefined,
+    pageSize: local.page_size ?? undefined,
+    defaultDetailed: local.default_detailed ?? undefined,
+    focusCategories: local.focus_categories ?? [],
+    updatedAt: local.updated_at ?? new Date().toISOString(),
+  };
+
+  const serverSnapshot: UserPreferencesSnapshot = {
+    language: server?.language ?? undefined,
+    pageSize: server?.page_size ?? undefined,
+    defaultDetailed: server?.default_detailed ?? undefined,
+    focusCategories: server?.focus_categories ?? [],
+    updatedAt: server?.updated_at.toISOString() ?? new Date(0).toISOString(),
+  };
+
+  const merged = mergePreferences(localSnapshot, serverSnapshot);
+
+  return upsertUserPreferences(userId, {
+    language: merged.language ?? null,
+    page_size: merged.pageSize ?? null,
+    default_detailed: merged.defaultDetailed ?? null,
+    focus_categories: merged.focusCategories,
+  });
 }
