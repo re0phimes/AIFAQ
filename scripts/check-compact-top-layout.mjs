@@ -4,11 +4,9 @@ const scopeArg = process.argv.find((arg) => arg.startsWith("--scope="));
 const scope = scopeArg ? scopeArg.split("=")[1] : "all";
 
 const checks = {
-  smoke: [
-    {
-      file: "app/page.tsx",
-      expected: "__PLACEHOLDER_COMPACT_CLASS__",
-    },
+  "outer-shell": [
+    { file: "app/page.tsx", expected: "py-4 md:py-6" },
+    { file: "app/profile/page.tsx", expected: "py-4 md:py-6" },
   ],
 };
 

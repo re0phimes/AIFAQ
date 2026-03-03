@@ -82,7 +82,7 @@ export default async function ProfilePage() {
   };
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-6 md:max-w-4xl md:px-8 md:py-8">
+    <main className="mx-auto max-w-2xl px-4 py-4 md:py-6 md:max-w-4xl md:px-8">
       <ProfileClient
         favorites={data.favorites || []}
         stats={data.stats || { total: 0, unread: 0, learning: 0, mastered: 0, stale: 0 }}
