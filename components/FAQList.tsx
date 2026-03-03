@@ -478,7 +478,7 @@ export default function FAQList({ items, lang, onLangChange, votedMap, onVote, o
 
       <div className="flex gap-4">
         {/* Main content */}
-        <div className="min-w-0 flex-1 space-y-4 min-h-[calc(100vh-18rem)] md:min-h-[calc(100vh-16rem)]">
+        <div className="min-w-0 flex-1 space-y-4">
 
         {/* Toolbar: compare, expand/collapse, info */}
         <div className="flex items-center justify-between">

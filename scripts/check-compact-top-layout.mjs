@@ -81,10 +81,6 @@ const checks = {
       file: "components/FAQList.tsx",
       expected: "window.scrollTo({ top: 0 });",
     },
-    {
-      file: "components/FAQList.tsx",
-      expected: "min-h-[calc(100vh-18rem)]",
-    },
   ],
 };
 
