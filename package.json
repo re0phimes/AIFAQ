@@ -14,6 +14,7 @@
     "migrate-content": "npx tsx -r ./scripts/env-loader.js scripts/migrate-content.ts",
     "faq:pull": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/pull.ts",
     "faq:push": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/push.ts",
+    "faq:fix-version-offset": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/fix-version-offset.ts",
     "faq:evaluate": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/evaluate.ts",
     "faq:answer-and-stage": "npx tsx -r ./scripts/env-loader.js tools/faq-sync/answer-and-stage.ts",
     "check:compact-top": "node scripts/check-compact-top-layout.mjs"

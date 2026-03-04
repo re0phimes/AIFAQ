@@ -30,6 +30,7 @@ export interface FAQItem {
   difficulty?: "beginner" | "intermediate" | "advanced" | null;
   level?: 1 | 2;
   currentVersion?: number;
+  createdAt?: string; // ISO date string
   lastUpdatedAt?: string; // ISO date string
 }
 

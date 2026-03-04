@@ -228,6 +228,8 @@ function FAQItem({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const detailed = detailedOverride ?? globalDetailed;
   const hasTimelinessWarning = (item.downvoteCount ?? 0) >= 3;
+  const isNewlyCreated = item.createdAt &&
+    (RENDER_TIME_TS - new Date(item.createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000;
   const isRecentlyUpdated = item.currentVersion && item.currentVersion > 1 && item.lastUpdatedAt &&
     (RENDER_TIME_TS - new Date(item.lastUpdatedAt).getTime()) < 30 * 24 * 60 * 60 * 1000;
 
@@ -280,6 +282,12 @@ function FAQItem({
                   px-1.5 py-0.5 align-middle text-[10px] text-amber-700"
                   title={lang === "en" ? "Multiple reports of outdated/inaccurate content" : "多人反馈此内容可能过期或不准确"}>
                   {t("pendingUpdate", lang)}
+                </span>
+              )}
+              {isNewlyCreated && (
+                <span className="ml-1.5 inline-block rounded bg-emerald-100
+                  px-1.5 py-0.5 align-middle text-[10px] text-emerald-700">
+                  {t("newlyAdded", lang)}
                 </span>
               )}
               {isRecentlyUpdated && (

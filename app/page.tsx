@@ -40,6 +40,7 @@ export default async function Home() {
       difficulty: item.difficulty,
       level: item.level,
       currentVersion: item.current_version,
+      createdAt: item.created_at?.toISOString(),
       lastUpdatedAt: item.last_updated_at?.toISOString(),
     }));
   } catch {
