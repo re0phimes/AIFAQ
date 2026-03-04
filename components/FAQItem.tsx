@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, memo } from "react";
 import Image from "next/image";
 import MarkdownContent from "./MarkdownContent";
 import ReferenceList from "./ReferenceList";
+import { useActionDialog } from "./useActionDialog";
 import type { FAQItem as FAQItemType, VoteType } from "@/src/types/faq";
 import { t, getDownvoteReasons, translateTag } from "@/lib/i18n";
 
@@ -219,6 +220,7 @@ function FAQItem({
   isAuthenticated,
   userTier,
 }: FAQItemProps) {
+  const { showAlert, dialogNode } = useActionDialog();
   const [showDownvotePanel, setShowDownvotePanel] = useState(false);
   const [detailedOverride, setDetailedOverride] = useState<boolean | null>(null);
   const [showVersions, setShowVersions] = useState(false);
@@ -488,8 +490,11 @@ function FAQItem({
                     if (navigator.vibrate) {
                       navigator.vibrate(50);
                     }
-                    // Show login prompt
-                    alert(lang === 'zh' ? '请先登录后再收藏' : 'Please sign in to favorite');
+                    void showAlert({
+                      title: t("loginRequiredTitle", lang),
+                      message: lang === "zh" ? "请先登录后再收藏" : "Please sign in to favorite",
+                      confirmText: t("ok", lang),
+                    });
                     return;
                   }
                   onToggleFavorite?.(item.id);
@@ -522,6 +527,7 @@ function FAQItem({
           </div>
         </div>
       </div>
+      {dialogNode}
     </article>
   );
 }
