@@ -60,22 +60,6 @@ body {
   animation: fadeInUp 0.3s ease-out both;
 }
 
-/* Smooth expand/collapse via CSS grid-rows trick */
-.answer-wrapper {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 300ms ease;
-}
-
-.answer-wrapper.open {
-  grid-template-rows: 1fr;
-}
-
-.answer-wrapper > div {
-  overflow: hidden;
-  min-height: 0;
-}
-
 /* Expanded answer: independent scroll only for very long content */
 .answer-scroll {
   overflow-y: auto;

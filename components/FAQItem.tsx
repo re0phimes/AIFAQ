@@ -354,12 +354,10 @@ function FAQItem({
         </button>
       </div>
 
-      <div className={`answer-wrapper ${isOpen ? "open" : ""}`}>
-        {isOpen && (
-          <div>
-            <div className={`answer-scroll px-4 pb-4 ${
-              showCheckbox ? "pl-10 md:pl-14" : "pl-4 md:pl-5"
-            }`}>
+      {isOpen && (
+        <div className={`answer-scroll px-4 pb-4 ${
+          showCheckbox ? "pl-10 md:pl-14" : "pl-4 md:pl-5"
+        }`}>
               {item.answerBrief && (
                 <div className="mb-3 flex gap-1">
                   <button
@@ -529,10 +527,8 @@ function FAQItem({
                   onCancel={() => setShowDownvotePanel(false)}
                 />
               )}
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
       {dialogNode}
     </article>
   );
