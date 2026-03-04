@@ -92,6 +92,12 @@ const labels = {
   startLearning: { zh: "开始学习", en: "Start Learning" },
   noFavorites: { zh: "暂无收藏", en: "No favorites yet" },
   saved: { zh: "已收藏", en: "Saved" },
+  imageGallery: { zh: "图片画廊", en: "Image gallery" },
+  openImage: { zh: "打开图片", en: "Open image" },
+  prevImage: { zh: "上一张图片", en: "Previous image" },
+  nextImage: { zh: "下一张图片", en: "Next image" },
+  closeLightbox: { zh: "关闭大图", en: "Close lightbox" },
+  imageThumbnail: { zh: "缩略图", en: "Thumbnail" },
 } as const;
 
 export function t(key: keyof typeof labels, lang: Lang): string {
