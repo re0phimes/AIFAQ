@@ -1,5 +1,7 @@
 import FAQPage from "./FAQPage";
+import { getServerSession } from "@/auth";
 import { getPublishedFaqItems } from "@/lib/db";
+import { resolveAllowedLevels } from "@/lib/faq-level-access";
 import type { FAQItem } from "@/src/types/faq";
 
 export const revalidate = 60;
@@ -7,8 +9,20 @@ export const revalidate = 60;
 export default async function Home() {
   let items: FAQItem[] = [];
   try {
+    const session = await getServerSession();
+    const allowedLevels = new Set(
+      resolveAllowedLevels(
+        session?.user
+          ? { role: session.user.role, tier: session.user.tier }
+          : undefined,
+        "all"
+      )
+    );
+
     const dbItems = await getPublishedFaqItems();
-    items = dbItems.map((item) => ({
+    items = dbItems
+      .filter((item) => allowedLevels.has(item.level ?? 1))
+      .map((item) => ({
       id: item.id,
       question: item.question,
       questionEn: item.question_en ?? undefined,
@@ -24,6 +38,7 @@ export default async function Home() {
       upvoteCount: item.upvote_count,
       downvoteCount: item.downvote_count,
       difficulty: item.difficulty,
+      level: item.level,
       currentVersion: item.current_version,
       lastUpdatedAt: item.last_updated_at?.toISOString(),
     }));
