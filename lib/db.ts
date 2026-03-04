@@ -324,16 +324,22 @@ export async function updateFaqStatus(
 ): Promise<void> {
   if (data?.answer !== undefined) {
     const current = await getFaqItemById(id);
-    if (current?.answer) {
-      await createVersion(id, current.current_version, {
-        answer: current.answer,
-        answer_brief: current.answer_brief,
-        answer_en: current.answer_en,
-        answer_brief_en: current.answer_brief_en,
+    const hasExistingAnswer = Boolean(current?.answer?.trim());
+    const shouldBumpVersion = hasExistingAnswer;
+    const oldVersion = current?.current_version ?? 1;
+
+    if (shouldBumpVersion) {
+      await createVersion(id, oldVersion, {
+        answer: current?.answer ?? "",
+        answer_brief: current?.answer_brief,
+        answer_en: current?.answer_en,
+        answer_brief_en: current?.answer_brief_en,
         change_reason: data.change_reason,
       });
     }
-    const newVersion = (current?.current_version ?? 1) + 1;
+    const newVersion = shouldBumpVersion ? oldVersion + 1 : oldVersion;
+    const lastUpdatedAt =
+      shouldBumpVersion ? new Date().toISOString() : current?.last_updated_at?.toISOString() ?? null;
     const tagsLiteral = `{${(data.tags ?? []).map((t) => `"${t}"`).join(",")}}`;
     const categoriesLiteral = `{${(data.categories ?? []).map((c) => `"${c}"`).join(",")}}`;
     await sql`
@@ -350,7 +356,7 @@ export async function updateFaqStatus(
           images = ${JSON.stringify(data.images ?? [])}::jsonb,
           error_message = NULL,
           current_version = ${newVersion},
-          last_updated_at = NOW(),
+          last_updated_at = ${lastUpdatedAt},
           updated_at = NOW()
       WHERE id = ${id}
     `;
