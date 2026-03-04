@@ -1,5 +1,12 @@
 # AIFAQ Project Notes
 
+## 工作约定（高优先级）
+
+- `Claude.md` 是任务真源（Single Source of Truth）。
+- 每次会话开始必须先读取 `Claude.md` 的 `当前重点 TODO`。
+- `todo.md` 是讨论与执行视图，先记讨论，定稿后回写 `Claude.md`。
+- 任务完成时同步更新 `Claude.md` 与 `todo.md`，以 `Claude.md` 为准。
+
 ## 项目目的
 
 AIFAQ 是一个 AI/ML FAQ 知识库项目，目标是：
@@ -31,36 +38,70 @@ AIFAQ 是一个 AI/ML FAQ 知识库项目，目标是：
 - `scripts/` / `tools/`
   - 数据初始化、分析、内容同步脚本
 
-## 当前重点 TODO
+## 近期已完成
 
 1. 收藏日期提示与“尽快内化”提醒
-- 需求：在收藏卡片显示时间信息，例如“14 天前收藏/学习”
-- 触发规则建议：
-  - 若收藏后 14 天未查看（或仍处于 `unread`），显示提醒标签
-  - 标签文案建议：`已 2 周未回顾，建议尽快内化`
-- 数据字段可用：
-  - `created_at`（收藏时间）
-  - `last_viewed_at`（最近查看时间）
-  - `learning_status`（未读/学习中/已内化）
-- 实现建议：
-  - 新增相对时间格式函数（天/周）
-  - 在 `FavoriteCard` 中展示时间与提醒标签
-  - 在 `ProfileClient` 中统一计算触发条件，避免重复逻辑
+- 已落地相对时间与提醒逻辑（14 天阈值）。
+- 已在收藏卡片展示时间标签和提醒标签。
+- 已在个人页统一统计 stale 数量并展示提醒条。
+- 相关文件：
+  - `lib/favorite-reminder.ts`
+  - `lib/favorite-reminder.test.ts`
+  - `components/FavoriteCard.tsx`
+  - `app/profile/ProfileClient.tsx`
+  - `lib/i18n.ts`
 
-2. 样式与字体占比优化（当前偏大）
-- 问题：部分页面标题和组件字号过大，信息密度偏低
-- 目标：保证层级清晰，同时提升阅读效率和首屏内容承载
-- 调整建议：
-  - 降低主标题级别（如 `text-3xl -> text-2xl`）
-  - 卡片标题与正文分别下调一级
-  - 统一移动端与桌面端字阶与行高比例
-  - 保留关键按钮可点击面积，不牺牲可用性
-- 优先页面：
+2. 样式与字体占比优化
+- 个人页、收藏卡片、FAQ 卡片的字号层级已下调并统一（移动端/桌面端）。
+- 保留了按钮点击面积与交互可用性。
+- 相关文件：
   - `app/profile/ProfileClient.tsx`
   - `components/FavoriteCard.tsx`
   - `components/FAQItem.tsx`
 
+## 当前重点 TODO
+
+1. Admin Review 退回自动重生成
+- 退回后立即自动触发重生成。
+- 退回原因为固定枚举（可多选）+ 备注。
+- 固定枚举:
+  - `images_missing`
+  - `content_incomplete`
+  - `formula_missing`
+  - `reference_weak`
+  - `format_issue`
+  - `language_issue`
+  - `policy_risk`
+
+2. Agent 触发与执行隔离
+- 通过独立 `self-hosted runner` 触发 Codex/Claude Code skills。
+- 主业务运行时环境不直接执行 agent。
+
+3. 后台批量 API（一期）
+- 范围仅限:
+  - `publish`
+  - `reject`
+  - `regenerate`
+  - `set_level`
+
+4. 历史信息查看
+- 优先实现“内容版本 diff 历史”查看。
+
+5. 开源脱敏（严格模式）
+- 密钥、身份标识、IP、敏感原文、内部 prompt 默认脱敏并最小化落盘。
+
+6. 相似问题识别（BERT，两段式）
+- 提交阶段: 相似问题提示，不阻断。
+- Review 阶段: 强提示并要求处理（合并/保留决策）。
+
+7. 平台接入范围（一期）
+- 仅接入:
+  - `self-hosted agent-runner`
+  - `1个向量库`
+- 其他平台先留接口，不在一期强接入。
+
 ## 备注
 
 - 当前项目已切换到收藏页内展开/弹窗模式（尽量避免依赖详情页跳转）
-- 上述 TODO 可作为下一轮 UI/学习流程优化的主任务
+- 最近已完成 FAQ 图片 gallery/lightbox 改造与交互性能修复（含 INP 优化）。
+- 讨论与执行视图见 `todo.md`。
