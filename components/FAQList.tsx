@@ -34,7 +34,15 @@ interface FAQListProps {
   onVote: (faqId: number, type: VoteType, reason?: string, detail?: string) => void;
   onRevokeVote: (faqId: number) => void;
   onOpenItem?: (item: FAQItemType) => void;
-  session?: { user?: { id?: string; name?: string | null; image?: string | null; tier?: string } } | null;
+  session?: {
+    user?: {
+      id?: string;
+      name?: string | null;
+      image?: string | null;
+      tier?: string;
+      role?: string;
+    };
+  } | null;
   onSignIn?: () => void;
   onSignOut?: () => void;
   favorites?: Set<number>;
@@ -105,6 +113,7 @@ export default function FAQList({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(() => initialPageSize ?? loadPageSize());
   const [sortMode, setSortMode] = useState<SortMode>("default");
+  const [levelFilter, setLevelFilter] = useState<"all" | 1 | 2>("all");
   const [globalDetailed, setGlobalDetailed] = useState(() => initialGlobalDetailed ?? loadDefaultDetailed());
   const [showFocusOnly, setShowFocusOnly] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
@@ -211,6 +220,8 @@ export default function FAQList({
 
   // Filter logic
   const filtered = useMemo(() => {
+    const canFilterByLevel =
+      session?.user?.tier === "premium" || session?.user?.role === "admin";
     let result = items;
 
     // Focus filter (big category)
@@ -264,8 +275,27 @@ export default function FAQList({
       );
     }
 
+    if (canFilterByLevel && levelFilter !== "all") {
+      result = result.filter((item) => (item.level ?? 1) === levelFilter);
+    }
+
     return result;
-  }, [items, searchQuery, searchMode, selectedTags, selectedCategories, categoryTagsMap, showFocusOnly, focusCategories]);
+  }, [
+    items,
+    searchQuery,
+    searchMode,
+    selectedTags,
+    selectedCategories,
+    categoryTagsMap,
+    showFocusOnly,
+    focusCategories,
+    session?.user?.tier,
+    session?.user?.role,
+    levelFilter,
+  ]);
+
+  const canFilterByLevel =
+    session?.user?.tier === "premium" || session?.user?.role === "admin";
 
   // Sort logic
   const sorted = useMemo(() => {
@@ -599,6 +629,49 @@ export default function FAQList({
               </button>
             </div>
             <div className="flex items-center gap-1 ml-2 border-l border-border pl-2">
+              {canFilterByLevel && (
+                <div className="flex items-center gap-1 mr-2 border-r border-border pr-2">
+                  <button
+                    onClick={() => {
+                      setLevelFilter("all");
+                      setCurrentPage(1);
+                    }}
+                    className={`rounded-full px-2.5 py-1.5 text-xs transition-colors ${
+                      levelFilter === "all"
+                        ? "bg-primary text-white"
+                        : "text-subtext hover:bg-surface"
+                    }`}
+                  >
+                    {t("levelAll", lang)}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLevelFilter(1);
+                      setCurrentPage(1);
+                    }}
+                    className={`rounded-full px-2.5 py-1.5 text-xs transition-colors ${
+                      levelFilter === 1
+                        ? "bg-primary text-white"
+                        : "text-subtext hover:bg-surface"
+                    }`}
+                  >
+                    {t("level1", lang)}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLevelFilter(2);
+                      setCurrentPage(1);
+                    }}
+                    className={`rounded-full px-2.5 py-1.5 text-xs transition-colors ${
+                      levelFilter === 2
+                        ? "bg-primary text-white"
+                        : "text-subtext hover:bg-surface"
+                    }`}
+                  >
+                    {t("level2", lang)}
+                  </button>
+                </div>
+              )}
               <span className="text-[11px] text-subtext">{t("sort", lang)}</span>
               {(["default", "date", "difficulty"] as const).map((mode) => (
                 <button

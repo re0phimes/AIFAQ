@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { sql } from "@vercel/postgres";
 import { getUserPreferences, initDB } from "@/lib/db";
 import { computeFavoriteStats, enrichFavoriteForDisplay } from "@/lib/favorite-reminder";
+import { resolveAllowedLevels } from "@/lib/faq-level-access";
 import ProfileClient from "./ProfileClient";
 
 export default async function ProfilePage() {
@@ -26,6 +27,10 @@ export default async function ProfilePage() {
 
   // Fetch favorites directly from database
   await initDB();
+  const allowedLevels = resolveAllowedLevels(
+    { role: session.user.role, tier: session.user.tier },
+    "all"
+  );
   const result = await sql`
     SELECT
       uf.faq_id,
@@ -49,6 +54,7 @@ export default async function ProfilePage() {
     FROM user_favorites uf
     LEFT JOIN faq_items fi ON uf.faq_id = fi.id
     WHERE uf.user_id = ${session.user.id}
+      AND fi.level = ANY(${allowedLevels})
     ORDER BY uf.created_at DESC
   `;
 

@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
-import { initDB, castVote, castVoteAuth, revokeVote, revokeVoteAuth } from "@/lib/db";
+import {
+  initDB,
+  castVote,
+  castVoteAuth,
+  getFaqItemById,
+  revokeVote,
+  revokeVoteAuth,
+} from "@/lib/db";
 import { auth } from "@/auth";
+import { canAccessFaqLevel } from "@/lib/faq-level-access";
 
 const VALID_TYPES = new Set(["upvote", "downvote"]);
 
@@ -32,6 +40,16 @@ export async function POST(
   try {
     await initDB();
     const session = await auth();
+    const item = await getFaqItemById(faqId);
+    if (!item) {
+      return NextResponse.json({ error: "FAQ not found" }, { status: 404 });
+    }
+    const viewer = session?.user
+      ? { role: session.user.role, tier: session.user.tier }
+      : undefined;
+    if (!canAccessFaqLevel(viewer, item.level ?? 1)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     const userId = session?.user?.id;
 
     if (userId) {
@@ -73,6 +91,16 @@ export async function DELETE(
   try {
     await initDB();
     const session = await auth();
+    const item = await getFaqItemById(faqId);
+    if (!item) {
+      return NextResponse.json({ error: "FAQ not found" }, { status: 404 });
+    }
+    const viewer = session?.user
+      ? { role: session.user.role, tier: session.user.tier }
+      : undefined;
+    if (!canAccessFaqLevel(viewer, item.level ?? 1)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     const userId = session?.user?.id;
 
     if (userId) {

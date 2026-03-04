@@ -8,6 +8,7 @@ type FaqStatus = "pending" | "processing" | "review" | "published" | "rejected" 
 
 interface FaqItem {
   id: number;
+  level: 1 | 2;
   question: string;
   question_en: string | null;
   answer_raw: string;
@@ -68,6 +69,12 @@ const FILTER_TABS = [
   { key: "failed", label: "失败" },
 ] as const;
 
+const LEVEL_FILTER_TABS = [
+  { key: "all", label: "全部级别" },
+  { key: "1", label: "L1" },
+  { key: "2", label: "L2" },
+] as const;
+
 interface VersionItem {
   id: number;
   faq_id: number;
@@ -85,6 +92,7 @@ export default function ReviewPage() {
   const [items, setItems] = useState<FaqItem[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [levelFilter, setLevelFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [previewTab, setPreviewTab] = useState<"raw" | "brief" | "detailed" | "en" | "versions">("detailed");
   const [actionLoading, setActionLoading] = useState(false);
@@ -139,8 +147,11 @@ export default function ReviewPage() {
         (i) => i.question.toLowerCase().includes(q) || i.question_en?.toLowerCase().includes(q)
       );
     }
+    if (levelFilter !== "all") {
+      result = result.filter((item) => String(item.level ?? 1) === levelFilter);
+    }
     return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [items, statusFilter, searchQuery]);
+  }, [items, statusFilter, searchQuery, levelFilter]);
 
   const selectedItem = useMemo(
     () => items.find((i) => i.id === selectedId) ?? null,
@@ -183,6 +194,26 @@ export default function ReviewPage() {
     }
   }
 
+  async function handleLevelChange(id: number, level: 1 | 2) {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/admin/faq/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set_level", level: level }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert(body.error ?? `操作失败 (${res.status})`);
+      }
+    } catch {
+      alert("网络错误，请重试");
+    } finally {
+      setActionLoading(false);
+      fetchItems();
+    }
+  }
+
   function formatDate(dateStr: string) {
     const d = new Date(dateStr);
     return `${d.getMonth() + 1}/${d.getDate()}`;
@@ -217,7 +248,7 @@ export default function ReviewPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Stats bar */}
-      <div className="mb-4 flex gap-2">
+      <div className="mb-2 flex gap-2">
         {FILTER_TABS.map((tab) => (
           <button
             key={tab.key}
@@ -229,6 +260,21 @@ export default function ReviewPage() {
             }`}
           >
             {tab.label} ({stats[tab.key] ?? 0})
+          </button>
+        ))}
+      </div>
+      <div className="mb-4 flex gap-2">
+        {LEVEL_FILTER_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setLevelFilter(tab.key)}
+            className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
+              levelFilter === tab.key
+                ? "bg-[var(--color-text)] text-white"
+                : "bg-[var(--color-panel)] text-[var(--color-subtext)] hover:bg-[var(--color-border)]"
+            }`}
+          >
+            {tab.label}
           </button>
         ))}
       </div>
@@ -272,6 +318,7 @@ export default function ReviewPage() {
                   <div className="mt-1 flex items-center gap-2 text-xs text-[var(--color-subtext)]">
                     <span>{formatDate(item.created_at)}</span>
                     <span className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px]">v{item.current_version ?? 1}</span>
+                    <span className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px]">L{item.level ?? 1}</span>
                     {item.tags.length > 0 && <span>{item.tags.length} tags</span>}
                     {item.reviewed_at && <span>审批: {formatDate(item.reviewed_at)}</span>}
                   </div>
@@ -306,12 +353,29 @@ export default function ReviewPage() {
                     <span className="rounded bg-[var(--color-surface)] px-2 py-0.5 font-mono text-xs text-[var(--color-subtext)]">
                       v{selectedItem.current_version ?? 1}
                     </span>
+                    <span className="rounded bg-[var(--color-surface)] px-2 py-0.5 font-mono text-xs text-[var(--color-subtext)]">
+                      L{selectedItem.level ?? 1}
+                    </span>
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE_STYLES[selectedItem.status]}`}>
                       {STATUS_LABELS[selectedItem.status]}
                     </span>
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleLevelChange(selectedItem.id, 1)}
+                    disabled={actionLoading || selectedItem.level === 1}
+                    className="rounded-lg bg-[var(--color-surface)] px-3 py-1.5 text-xs text-[var(--color-subtext)] hover:bg-[var(--color-border)] disabled:opacity-50"
+                  >
+                    设为 L1
+                  </button>
+                  <button
+                    onClick={() => handleLevelChange(selectedItem.id, 2)}
+                    disabled={actionLoading || selectedItem.level === 2}
+                    className="rounded-lg bg-[var(--color-surface)] px-3 py-1.5 text-xs text-[var(--color-subtext)] hover:bg-[var(--color-border)] disabled:opacity-50"
+                  >
+                    设为 L2
+                  </button>
                   {selectedItem.status === "review" && (
                     <>
                       <button onClick={() => handleAction(selectedItem.id, "publish")} disabled={actionLoading}

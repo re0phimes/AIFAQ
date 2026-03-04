@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getServerSession } from "@/auth";
 import { getFaqItemById, getUserPreferences } from "@/lib/db";
+import { canAccessFaqLevel } from "@/lib/faq-level-access";
 import { sql } from "@vercel/postgres";
 import { cookies } from "next/headers";
 import FAQDetailClient from "./FAQDetailClient";
@@ -20,13 +21,19 @@ export default async function FAQDetailPage({
   if (!faqItem) {
     notFound();
   }
+  const session = await getServerSession();
+  const viewer = session?.user
+    ? { role: session.user.role, tier: session.user.tier }
+    : undefined;
+  if (!canAccessFaqLevel(viewer, faqItem.level ?? 1)) {
+    notFound();
+  }
 
   // Get language preference from cookie or default to 'zh'
   const cookieStore = await cookies();
   const langCookie = cookieStore.get('aifaq-lang');
   let lang = (langCookie?.value === 'en' ? 'en' : 'zh') as "zh" | "en";
 
-  const session = await getServerSession();
   if (session?.user?.id) {
     const prefs = await getUserPreferences(session.user.id);
     if (prefs?.language) {

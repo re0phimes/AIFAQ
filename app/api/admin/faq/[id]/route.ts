@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth";
-import { getFaqItemById, updateFaqStatus, getPublishedFaqItems } from "@/lib/db";
+import { getFaqItemById, updateFaqLevel, updateFaqStatus, getPublishedFaqItems } from "@/lib/db";
 import { analyzeFAQ } from "@/lib/ai";
 import { extractCandidateImages } from "@/lib/image-extractor";
 import { waitUntil } from "@vercel/functions";
@@ -24,6 +24,14 @@ export async function PATCH(
     await updateFaqStatus(numId, "pending");
     waitUntil(retryAnalysis(numId, item.question, item.answer_raw));
     return NextResponse.json({ ok: true });
+  }
+  if (body.action === "set_level") {
+    if (![1, 2].includes(body.level)) {
+      return NextResponse.json({ error: "Invalid level" }, { status: 400 });
+    }
+    await updateFaqLevel(numId, body.level as 1 | 2);
+    const updated = await getFaqItemById(numId);
+    return NextResponse.json(updated);
   }
 
   // Review workflow actions

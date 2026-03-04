@@ -199,6 +199,14 @@ interface FAQPageProps {
   items: FAQItem[];
 }
 
+interface FAQListSessionUser {
+  id?: string;
+  name?: string | null;
+  image?: string | null;
+  tier?: string;
+  role?: string;
+}
+
 function FAQPageInner({ items }: FAQPageProps) {
   const { data: session } = useSession();
   const [preferences, setPreferences] = useState<LocalPreferences>(() =>
@@ -607,6 +615,17 @@ function FAQPageInner({ items }: FAQPageProps) {
   }, [lang, session?.user?.id, showConfirm]);
 
   const modalCurrentVote = modalItem ? (votedMap.get(modalItem.id) ?? null) : null;
+  const listSession: { user?: FAQListSessionUser } | null = session
+    ? {
+        user: {
+          id: session.user?.id,
+          name: session.user?.name ?? null,
+          image: session.user?.image ?? null,
+          tier: session.user?.tier,
+          role: session.user?.role,
+        },
+      }
+    : null;
 
   return (
     <>
@@ -618,7 +637,7 @@ function FAQPageInner({ items }: FAQPageProps) {
         onVote={handleVote}
         onRevokeVote={handleRevokeVote}
         onOpenItem={handleOpenItem}
-        session={session}
+        session={listSession}
         onSignIn={() => signIn("github")}
         onSignOut={() => signOut()}
         favorites={favorites}
