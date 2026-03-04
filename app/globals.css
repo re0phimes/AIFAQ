@@ -254,11 +254,37 @@ body {
   backface-visibility: hidden;
 }
 
+@keyframes lightbox-shake-left {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(2px); }
+}
+
+@keyframes lightbox-shake-right {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(8px); }
+  40% { transform: translateX(-6px); }
+  60% { transform: translateX(4px); }
+  80% { transform: translateX(-2px); }
+}
+
+.lightbox-shake-left {
+  animation: lightbox-shake-left 180ms ease-out;
+}
+
+.lightbox-shake-right {
+  animation: lightbox-shake-right 180ms ease-out;
+}
+
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
   .animate-modal-in-fast,
-  .faq-item-enter {
+  .faq-item-enter,
+  .lightbox-shake-left,
+  .lightbox-shake-right {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
