@@ -60,6 +60,7 @@ const labels = {
   myFavorites: { zh: "我的收藏", en: "My Favorites" },
   myFocus: { zh: "我的关注", en: "My Focus" },
   verifiedVote: { zh: "已认证用户投票", en: "Verified user vote" },
+  newlyAdded: { zh: "新增", en: "New" },
   updated: { zh: "30天内有更新", en: "Updated within 30 days" },
   visitMainSite: { zh: "访问主站", en: "Visit Main Site" },
   viewHistory: { zh: "查看历史版本", en: "View answer history" },
