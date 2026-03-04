@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/auth";
 import { sql } from "@vercel/postgres";
-import { initDB } from "@/lib/db";
+import { canAccessFaqLevel } from "@/lib/faq-level-access";
+import { getFaqItemById, initDB } from "@/lib/db";
 
 export async function PATCH(
   request: Request,
@@ -20,6 +21,18 @@ export async function PATCH(
 
   try {
     await initDB();
+    const item = await getFaqItemById(faqId);
+    if (!item) {
+      return NextResponse.json({ error: "FAQ not found" }, { status: 404 });
+    }
+    const viewer = {
+      role: session.user.role,
+      tier: session.user.tier,
+    } as const;
+    if (!canAccessFaqLevel(viewer, item.level ?? 1)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await request.json();
     const { status } = body;
 
