@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MarkdownContent from "./MarkdownContent";
 import ReferenceList from "./ReferenceList";
 import ImageGallery from "./ImageGallery";
@@ -25,13 +25,43 @@ export default function ReadingView({
   const [globalDetailed, setGlobalDetailed] = useState(false);
   const [itemDetailOverrides, setItemDetailOverrides] = useState<Map<number, boolean>>(new Map());
   const [lightboxState, setLightboxState] = useState<{ itemId: number; index: number } | null>(null);
+  const [isPreparingPrint, setIsPreparingPrint] = useState(false);
+  const isMountedRef = useRef(true);
+  const printRafOuterRef = useRef<number | null>(null);
+  const printRafInnerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (printRafOuterRef.current !== null) {
+        window.cancelAnimationFrame(printRafOuterRef.current);
+      }
+      if (printRafInnerRef.current !== null) {
+        window.cancelAnimationFrame(printRafInnerRef.current);
+      }
+    };
+  }, []);
 
   function isDetailed(id: number): boolean {
     return itemDetailOverrides.get(id) ?? globalDetailed;
   }
 
   function handlePrint(): void {
-    window.print();
+    if (isPreparingPrint) return;
+    setIsPreparingPrint(true);
+
+    // Let the pressed state paint first, then open native print dialog.
+    printRafOuterRef.current = window.requestAnimationFrame(() => {
+      printRafInnerRef.current = window.requestAnimationFrame(() => {
+        try {
+          window.print();
+        } finally {
+          if (isMountedRef.current) {
+            setIsPreparingPrint(false);
+          }
+        }
+      });
+    });
   }
 
   function handleExpandAll(): void {
@@ -112,9 +142,11 @@ export default function ReadingView({
           </button>
           <button
             onClick={handlePrint}
+            disabled={isPreparingPrint}
             className="flex items-center gap-1.5 rounded-full bg-primary px-3
               py-1.5 text-sm font-medium text-white transition-colors
-              hover:bg-primary-hover"
+              hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+            aria-busy={isPreparingPrint}
           >
             <svg
               className="h-4 w-4"
@@ -129,7 +161,7 @@ export default function ReadingView({
                 d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
-            {t("exportPdf", lang)}
+            {isPreparingPrint ? `${t("exportPdf", lang)}...` : t("exportPdf", lang)}
           </button>
         </div>
       </div>
