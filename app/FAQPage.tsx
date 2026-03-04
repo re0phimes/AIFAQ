@@ -5,13 +5,17 @@ import { flushSync } from "react-dom";
 import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
 import FAQList from "@/components/FAQList";
 import DetailModal from "@/components/DetailModal";
+import { useActionDialog } from "@/components/useActionDialog";
 import type { FAQItem, VoteType } from "@/src/types/faq";
 import {
   buildConflictKey,
   buildPrefsHash,
+  finalizeSyncMeta,
   shouldPromptImport,
+  type PreferenceSyncMeta,
   type UserPreferencesSnapshot,
 } from "@/lib/preferences-sync";
+import { t } from "@/lib/i18n";
 
 const LS_VOTED = "aifaq-voted";
 const LS_PREFS = "aifaq-prefs-v2";
@@ -23,12 +27,6 @@ interface LocalPreferences {
   defaultDetailed?: boolean;
   focusCategories: string[];
   updatedAt: string;
-}
-
-interface PreferenceSyncMeta {
-  lastSyncedServerUpdatedAt: string | null;
-  lastSyncedHash: string | null;
-  dismissedConflictKey: string | null;
 }
 
 interface ServerPreferencesResponse {
@@ -212,6 +210,7 @@ function FAQPageInner({ items }: FAQPageProps) {
   const [votedMap, setVotedMap] = useState<Map<number, VoteType>>(loadVotedMap);
   const [fingerprint, setFingerprint] = useState("");
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
+  const { showConfirm, dialogNode } = useActionDialog();
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -221,6 +220,9 @@ function FAQPageInner({ items }: FAQPageProps) {
   const votedMapRef = useRef(votedMap);
   const fingerprintRef = useRef(fingerprint);
   const preferencesRef = useRef(preferences);
+  const langRef = useRef(lang);
+  const syncInFlightRef = useRef(false);
+  const lastHandledConflictKeyRef = useRef<string | null>(null);
   useEffect(() => {
     votedMapRef.current = votedMap;
   }, [votedMap]);
@@ -230,6 +232,13 @@ function FAQPageInner({ items }: FAQPageProps) {
   useEffect(() => {
     preferencesRef.current = preferences;
   }, [preferences]);
+  useEffect(() => {
+    langRef.current = lang;
+  }, [lang]);
+  useEffect(() => {
+    lastHandledConflictKeyRef.current = null;
+    syncInFlightRef.current = false;
+  }, [session?.user?.id]);
 
   const applyPreferencesLocalOnly = useCallback((next: LocalPreferences) => {
     saveLocalPreferences(next);
@@ -342,80 +351,98 @@ function FAQPageInner({ items }: FAQPageProps) {
     if (!session?.user?.id) return;
 
     const run = async (): Promise<void> => {
-      const res = await fetch("/api/user/preferences");
-      if (!res.ok) return;
-      const data = (await res.json()) as ServerPreferencesResponse;
-      const serverPrefs = normalizeServerPreferences(data);
-      const serverHash = buildPrefsHash(toSnapshot(serverPrefs));
+      if (syncInFlightRef.current) return;
+      syncInFlightRef.current = true;
+      try {
+        const res = await fetch("/api/user/preferences");
+        if (!res.ok) return;
+        const data = (await res.json()) as ServerPreferencesResponse;
+        const serverPrefs = normalizeServerPreferences(data);
+        const serverHash = buildPrefsHash(toSnapshot(serverPrefs));
 
-      const localPrefs = preferencesRef.current;
-      const localHash = buildPrefsHash(toSnapshot(localPrefs));
-      const syncMeta = loadPreferenceSyncMeta();
-      const hasLocalPrefs = hasMeaningfulLocalPreferences(localPrefs);
-      const localHasUnsyncedChanges =
-        hasLocalPrefs && (syncMeta.lastSyncedHash === null || syncMeta.lastSyncedHash !== localHash);
+        const localPrefs = preferencesRef.current;
+        const localHash = buildPrefsHash(toSnapshot(localPrefs));
+        const syncMeta = loadPreferenceSyncMeta();
+        const hasLocalPrefs = hasMeaningfulLocalPreferences(localPrefs);
+        const localHasUnsyncedChanges =
+          hasLocalPrefs && (syncMeta.lastSyncedHash === null || syncMeta.lastSyncedHash !== localHash);
 
-      const prompt = shouldPromptImport({
-        userId: session.user.id,
-        hasLocalPrefs,
-        localHash,
-        serverHash,
-        localHasUnsyncedChanges,
-        dismissedConflictKey: syncMeta.dismissedConflictKey,
-      });
+        const prompt = shouldPromptImport({
+          userId: session.user.id,
+          hasLocalPrefs,
+          localHash,
+          serverHash,
+          localHasUnsyncedChanges,
+          dismissedConflictKey: syncMeta.dismissedConflictKey,
+        });
 
-      if (prompt) {
-        const confirmText =
-          lang === "zh"
-            ? "检测到你本地有未同步偏好，是否导入到账号？"
-            : "Unsynced local preferences detected. Import them to your account?";
-        const accepted = window.confirm(confirmText);
-        if (accepted) {
-          const importRes = await fetch("/api/user/preferences/import", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              snapshot: {
-                language: localPrefs.language ?? null,
-                page_size: localPrefs.pageSize ?? null,
-                default_detailed: localPrefs.defaultDetailed ?? null,
-                focus_categories: localPrefs.focusCategories ?? [],
-                updated_at: localPrefs.updatedAt,
-              },
-            }),
+        const conflictKey = prompt ? buildConflictKey(session.user.id, localHash, serverHash) : null;
+        const shouldShowPrompt = conflictKey !== null && conflictKey !== lastHandledConflictKeyRef.current;
+
+        let accepted = false;
+        if (shouldShowPrompt) {
+          const currentLang = langRef.current;
+          const confirmText =
+            currentLang === "zh"
+              ? "检测到你本地有未同步偏好，是否导入到账号？"
+              : "Unsynced local preferences detected. Import them to your account?";
+          accepted = await showConfirm({
+            title: t("syncPromptTitle", currentLang),
+            message: confirmText,
+            confirmText: t("confirm", currentLang),
+            cancelText: t("cancel", currentLang),
           });
-          if (importRes.ok) {
-            const imported = normalizeServerPreferences(
-              (await importRes.json()) as ServerPreferencesResponse
-            );
-            applyPreferencesLocalOnly(imported);
-            savePreferenceSyncMeta({
-              lastSyncedServerUpdatedAt: imported.updatedAt,
-              lastSyncedHash: buildPrefsHash(toSnapshot(imported)),
-              dismissedConflictKey: null,
+          lastHandledConflictKeyRef.current = conflictKey;
+          if (accepted) {
+            const importRes = await fetch("/api/user/preferences/import", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                snapshot: {
+                  language: localPrefs.language ?? null,
+                  page_size: localPrefs.pageSize ?? null,
+                  default_detailed: localPrefs.defaultDetailed ?? null,
+                  focus_categories: localPrefs.focusCategories ?? [],
+                  updated_at: localPrefs.updatedAt,
+                },
+              }),
             });
-            return;
+            if (importRes.ok) {
+              const imported = normalizeServerPreferences(
+                (await importRes.json()) as ServerPreferencesResponse
+              );
+              applyPreferencesLocalOnly(imported);
+              savePreferenceSyncMeta(
+                finalizeSyncMeta({
+                  previous: syncMeta,
+                  serverUpdatedAt: imported.updatedAt,
+                  serverHash: buildPrefsHash(toSnapshot(imported)),
+                  dismissedConflictKey: null,
+                })
+              );
+              return;
+            }
           }
-        } else {
-          const key = buildConflictKey(session.user.id, localHash, serverHash);
-          savePreferenceSyncMeta({
-            lastSyncedServerUpdatedAt: serverPrefs.updatedAt,
-            lastSyncedHash: serverHash,
-            dismissedConflictKey: key,
-          });
         }
-      }
 
-      applyPreferencesLocalOnly(serverPrefs);
-      savePreferenceSyncMeta({
-        lastSyncedServerUpdatedAt: serverPrefs.updatedAt,
-        lastSyncedHash: serverHash,
-        dismissedConflictKey: syncMeta.dismissedConflictKey,
-      });
+        const dismissedConflictKey = shouldShowPrompt && !accepted ? conflictKey : undefined;
+
+        applyPreferencesLocalOnly(serverPrefs);
+        savePreferenceSyncMeta(
+          finalizeSyncMeta({
+            previous: syncMeta,
+            serverUpdatedAt: serverPrefs.updatedAt,
+            serverHash,
+            dismissedConflictKey,
+          })
+        );
+      } finally {
+        syncInFlightRef.current = false;
+      }
     };
 
     void run();
-  }, [applyPreferencesLocalOnly, lang, session?.user?.id]);
+  }, [applyPreferencesLocalOnly, session?.user?.id, showConfirm]);
 
   // --- Vote handlers (stable via refs) ---
   const handleVote = useCallback(
@@ -566,11 +593,18 @@ function FAQPageInner({ items }: FAQPageProps) {
     if (session?.user?.id) {
       const confirmText =
         lang === "zh" ? "你还没有设置关注方向，去我的学习中设置？" : "No focus set yet. Go to My Learning to set it?";
-      if (window.confirm(confirmText)) window.location.href = "/profile";
+      void showConfirm({
+        title: t("focusNotSetTitle", lang),
+        message: confirmText,
+        confirmText: t("confirm", lang),
+        cancelText: t("cancel", lang),
+      }).then((accepted) => {
+        if (accepted) window.location.href = "/profile";
+      });
       return;
     }
     void signIn("github", { callbackUrl: "/profile" });
-  }, [lang, session?.user?.id]);
+  }, [lang, session?.user?.id, showConfirm]);
 
   const modalCurrentVote = modalItem ? (votedMap.get(modalItem.id) ?? null) : null;
 
@@ -610,6 +644,8 @@ function FAQPageInner({ items }: FAQPageProps) {
         onToggleFavorite={() => modalItem && handleToggleFavorite(modalItem.id)}
         isAuthenticated={!!session?.user}
       />
+
+      {dialogNode}
     </>
   );
 }

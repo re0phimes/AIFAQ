@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import SyncMarkdownContent from "@/components/SyncMarkdownContent";
+import { useActionDialog } from "@/components/useActionDialog";
 
 type FaqStatus = "pending" | "processing" | "review" | "published" | "rejected" | "ready" | "failed";
 
@@ -80,6 +81,7 @@ interface VersionItem {
 }
 
 export default function ReviewPage() {
+  const { showAlert, dialogNode } = useActionDialog();
   const [items, setItems] = useState<FaqItem[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -163,10 +165,18 @@ export default function ReviewPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        alert(body.error ?? `操作失败 (${res.status})`);
+        await showAlert({
+          title: "操作失败",
+          message: body.error ?? `操作失败 (${res.status})`,
+          confirmText: "我知道了",
+        });
       }
     } catch {
-      alert("网络错误，请重试");
+      await showAlert({
+        title: "网络错误",
+        message: "网络错误，请重试",
+        confirmText: "我知道了",
+      });
     } finally {
       setActionLoading(false);
       fetchItems();
@@ -496,6 +506,7 @@ export default function ReviewPage() {
           )}
         </div>
       </div>
+      {dialogNode}
     </div>
   );
 }

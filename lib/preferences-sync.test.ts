@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import {
   buildConflictKey,
   buildPrefsHash,
+  finalizeSyncMeta,
   mergePreferences,
+  type PreferenceSyncMeta,
   shouldPromptImport,
   type UserPreferencesSnapshot,
 } from "./preferences-sync";
@@ -140,4 +142,40 @@ test("shouldPromptImport returns false when local has no unsynced changes", () =
   });
 
   assert.equal(should, false);
+});
+
+test("finalizeSyncMeta keeps newly dismissed conflict key", () => {
+  const previous: PreferenceSyncMeta = {
+    lastSyncedServerUpdatedAt: "2026-03-03T00:00:00.000Z",
+    lastSyncedHash: "old-hash",
+    dismissedConflictKey: null,
+  };
+
+  const next = finalizeSyncMeta({
+    previous,
+    serverUpdatedAt: "2026-03-04T00:00:00.000Z",
+    serverHash: "server-new-hash",
+    dismissedConflictKey: "u1:localA:server-new-hash",
+  });
+
+  assert.equal(next.dismissedConflictKey, "u1:localA:server-new-hash");
+  assert.equal(next.lastSyncedHash, "server-new-hash");
+  assert.equal(next.lastSyncedServerUpdatedAt, "2026-03-04T00:00:00.000Z");
+});
+
+test("finalizeSyncMeta falls back to previous dismissed key", () => {
+  const previous: PreferenceSyncMeta = {
+    lastSyncedServerUpdatedAt: "2026-03-03T00:00:00.000Z",
+    lastSyncedHash: "old-hash",
+    dismissedConflictKey: "u1:localA:server-old-hash",
+  };
+
+  const next = finalizeSyncMeta({
+    previous,
+    serverUpdatedAt: "2026-03-04T00:00:00.000Z",
+    serverHash: "server-new-hash",
+  });
+
+  assert.equal(next.dismissedConflictKey, "u1:localA:server-old-hash");
+  assert.equal(next.lastSyncedHash, "server-new-hash");
 });

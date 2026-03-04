@@ -17,6 +17,12 @@ export interface ShouldPromptImportInput {
   dismissedConflictKey: string | null;
 }
 
+export interface PreferenceSyncMeta {
+  lastSyncedServerUpdatedAt: string | null;
+  lastSyncedHash: string | null;
+  dismissedConflictKey: string | null;
+}
+
 function parseUpdatedAt(value: string | undefined): number {
   if (!value) return 0;
   const t = Date.parse(value);
@@ -70,6 +76,22 @@ export function shouldPromptImport(input: ShouldPromptImportInput): boolean {
   const conflictKey = buildConflictKey(input.userId, input.localHash, input.serverHash);
   if (input.dismissedConflictKey === conflictKey) return false;
   return true;
+}
+
+export function finalizeSyncMeta(input: {
+  previous: PreferenceSyncMeta;
+  serverUpdatedAt: string | null;
+  serverHash: string | null;
+  dismissedConflictKey?: string | null;
+}): PreferenceSyncMeta {
+  return {
+    lastSyncedServerUpdatedAt: input.serverUpdatedAt,
+    lastSyncedHash: input.serverHash,
+    dismissedConflictKey:
+      input.dismissedConflictKey !== undefined
+        ? input.dismissedConflictKey
+        : input.previous.dismissedConflictKey,
+  };
 }
 
 export function mergePreferences(
