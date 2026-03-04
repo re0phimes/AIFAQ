@@ -28,6 +28,7 @@ export interface FAQItem {
   upvoteCount: number;
   downvoteCount: number;
   difficulty?: "beginner" | "intermediate" | "advanced" | null;
+  level?: 1 | 2;
   currentVersion?: number;
   lastUpdatedAt?: string; // ISO date string
 }

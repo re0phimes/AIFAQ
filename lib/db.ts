@@ -31,6 +31,7 @@ export interface DBFaqItem {
   downvote_count: number;
   date: string;
   difficulty: "beginner" | "intermediate" | "advanced" | null;
+  level: 1 | 2;
   status: "pending" | "processing" | "review" | "published" | "rejected" | "ready" | "failed";
   error_message: string | null;
   created_at: Date;
@@ -62,6 +63,18 @@ export async function initDB(): Promise<void> {
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS downvote_count INTEGER DEFAULT 0`;
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS date VARCHAR(10) DEFAULT ''`;
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS difficulty VARCHAR(20)`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS level SMALLINT DEFAULT 1`;
+  await sql`UPDATE faq_items SET level = 1 WHERE level IS NULL`;
+  await sql`ALTER TABLE faq_items ALTER COLUMN level SET NOT NULL`;
+  await sql`
+    DO $$ BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'faq_items_level_check'
+      ) THEN
+        ALTER TABLE faq_items ADD CONSTRAINT faq_items_level_check CHECK (level IN (1,2));
+      END IF;
+    END $$;
+  `;
 
   // Bilingual + image columns
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS answer_brief TEXT`;
@@ -362,6 +375,16 @@ export async function updateFaqStatus(
   }
 }
 
+export async function updateFaqLevel(id: number, level: 1 | 2): Promise<void> {
+  await ensureSchema();
+  await sql`
+    UPDATE faq_items
+    SET level = ${level},
+        updated_at = NOW()
+    WHERE id = ${id}
+  `;
+}
+
 export async function getAllFaqItems(): Promise<DBFaqItem[]> {
   await ensureSchema();
   const result = await sql`
@@ -409,6 +432,7 @@ function rowToFaqItem(row: Record<string, unknown>): DBFaqItem {
     downvote_count: (row.downvote_count as number) ?? 0,
     date: (row.date as string) ?? "",
     difficulty: (row.difficulty as DBFaqItem["difficulty"]) ?? null,
+    level: (row.level as 1 | 2) ?? 1,
     status: row.status as DBFaqItem["status"],
     error_message: row.error_message as string | null,
     created_at: new Date(row.created_at as string),
