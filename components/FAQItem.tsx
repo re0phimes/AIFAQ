@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, memo } from "react";
 import MarkdownContent from "./MarkdownContent";
+import AsyncMarkdownContent from "./AsyncMarkdownContent";
 import ReferenceList from "./ReferenceList";
 import ImageGallery from "./ImageGallery";
 import ImageLightbox from "./ImageLightbox";
@@ -354,181 +355,183 @@ function FAQItem({
       </div>
 
       <div className={`answer-wrapper ${isOpen ? "open" : ""}`}>
-        <div>
-          <div className={`answer-scroll px-4 pb-4 ${
-            showCheckbox ? "pl-10 md:pl-14" : "pl-4 md:pl-5"
-          }`}>
-            {item.answerBrief && (
-              <div className="mb-3 flex gap-1">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setDetailedOverride(false); }}
-                  className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
-                    !detailed
-                      ? "bg-primary text-white"
-                      : "border-[0.5px] border-border text-subtext hover:bg-surface"
-                  }`}
-                >
-                  {t("brief", lang)}
-                </button>
+        {isOpen && (
+          <div>
+            <div className={`answer-scroll px-4 pb-4 ${
+              showCheckbox ? "pl-10 md:pl-14" : "pl-4 md:pl-5"
+            }`}>
+              {item.answerBrief && (
+                <div className="mb-3 flex gap-1">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDetailedOverride(false); }}
+                    className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                      !detailed
+                        ? "bg-primary text-white"
+                        : "border-[0.5px] border-border text-subtext hover:bg-surface"
+                    }`}
+                  >
+                    {t("brief", lang)}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onOpenModal) {
+                        onOpenModal(item);
+                      } else {
+                        setDetailedOverride(true);
+                      }
+                    }}
+                    className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                      detailed
+                        ? "bg-primary text-white"
+                        : "border-[0.5px] border-border text-subtext hover:bg-surface"
+                    }`}
+                  >
+                    {t("detailed", lang)}
+                  </button>
+                </div>
+              )}
+              <AsyncMarkdownContent
+                className="prose prose-sm max-w-none text-text
+                  [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5
+                  [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm
+                  [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:p-4
+                  [&_pre_code]:bg-transparent [&_pre_code]:p-0
+                  [&_.katex-display]:overflow-x-auto
+                  [&_.katex-display]:py-2"
+                content={detailed
+                  ? (lang === "en" && item.answerEn ? item.answerEn : item.answer)
+                  : (lang === "en" && item.answerBriefEn
+                      ? item.answerBriefEn
+                      : (item.answerBrief ?? item.answer))}
+              />
+              {detailed && item.images && item.images.length > 0 && (
+                <>
+                  <ImageGallery
+                    images={item.images}
+                    lang={lang}
+                    onOpen={(index) => setLightboxIndex(index)}
+                  />
+                  {lightboxIndex !== null && (
+                    <ImageLightbox
+                      isOpen
+                      images={item.images}
+                      initialIndex={lightboxIndex}
+                      lang={lang}
+                      onClose={() => setLightboxIndex(null)}
+                    />
+                  )}
+                </>
+              )}
+              <ReferenceList references={item.references} lang={lang} />
+              {/* Vote buttons — up/down 互斥 */}
+              <div className="mt-3 flex items-center gap-3 border-t border-border/50 pt-3">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (onOpenModal) {
-                      onOpenModal(item);
+                    if (currentVote === "upvote") {
+                      onRevokeVote(item.id);
                     } else {
-                      setDetailedOverride(true);
+                      onVote(item.id, "upvote");
                     }
                   }}
-                  className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
-                    detailed
-                      ? "bg-primary text-white"
-                      : "border-[0.5px] border-border text-subtext hover:bg-surface"
-                  }`}
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1
+                    text-xs transition-colors ${
+                      currentVote === "upvote"
+                        ? "bg-green-50 text-green-700"
+                        : "text-subtext hover:bg-surface"
+                    }`}
                 >
-                  {t("detailed", lang)}
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z M2 13h2v9H2z" />
+                  </svg>
+                                  {t("helpful", lang)}
+                  {(item.upvoteCount ?? 0) > 0 && (
+                    <span className="font-mono text-[10px]">{item.upvoteCount}</span>
+                  )}
+                  {isAuthenticated && currentVote === "upvote" && (
+                    <svg className="h-3 w-3 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 0l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5z" />
+                    </svg>
+                  )}
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (currentVote === "downvote") {
+                      onRevokeVote(item.id);
+                      setShowDownvotePanel(false);
+                    } else {
+                      setShowDownvotePanel((v) => !v);
+                    }
+                  }}
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1
+                    text-xs transition-colors ${
+                      currentVote === "downvote"
+                        ? "bg-red-50 text-red-600"
+                        : "text-subtext hover:bg-surface"
+                    }`}
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z M22 2h-2v9h2z" />
+                  </svg>
+                                  {t("report", lang)}
+                  {(item.downvoteCount ?? 0) > 0 && (
+                    <span className="font-mono text-[10px]">{item.downvoteCount}</span>
+                  )}
+                </button>
+
+                {/* Favorite button - shown for all users */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isAuthenticated) {
+                      // Trigger haptic feedback if available
+                      if (navigator.vibrate) {
+                        navigator.vibrate(50);
+                      }
+                      void showAlert({
+                        title: t("loginRequiredTitle", lang),
+                        message: lang === "zh" ? "请先登录后再收藏" : "Please sign in to favorite",
+                        confirmText: t("ok", lang),
+                      });
+                      return;
+                    }
+                    onToggleFavorite?.(item.id);
+                  }}
+                  className={`ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-1
+                    text-xs transition-colors ${
+                      isFavorited
+                        ? "bg-amber-50 text-amber-600"
+                        : "text-subtext hover:bg-surface"
+                    }`}
+                  title={isAuthenticated ? (isFavorited ? "取消收藏" : "收藏") : (lang === 'zh' ? "登录后收藏" : "Sign in to favorite")}
+                >
+                  <svg className="h-3.5 w-3.5" fill={isFavorited ? "currentColor" : "none"}
+                    stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.562.562 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                  </svg>
                 </button>
               </div>
-            )}
-            <MarkdownContent
-              className="prose prose-sm max-w-none text-text
-                [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5
-                [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm
-                [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:p-4
-                [&_pre_code]:bg-transparent [&_pre_code]:p-0
-                [&_.katex-display]:overflow-x-auto
-                [&_.katex-display]:py-2"
-              content={detailed
-                ? (lang === "en" && item.answerEn ? item.answerEn : item.answer)
-                : (lang === "en" && item.answerBriefEn
-                    ? item.answerBriefEn
-                    : (item.answerBrief ?? item.answer))}
-            />
-            {detailed && item.images && item.images.length > 0 && (
-              <>
-                <ImageGallery
-                  images={item.images}
+              {showDownvotePanel && currentVote !== "downvote" && (
+                <DownvotePanel
                   lang={lang}
-                  onOpen={(index) => setLightboxIndex(index)}
-                />
-                {lightboxIndex !== null && (
-                  <ImageLightbox
-                    isOpen
-                    images={item.images}
-                    initialIndex={lightboxIndex}
-                    lang={lang}
-                    onClose={() => setLightboxIndex(null)}
-                  />
-                )}
-              </>
-            )}
-            <ReferenceList references={item.references} lang={lang} />
-            {/* Vote buttons — up/down 互斥 */}
-            <div className="mt-3 flex items-center gap-3 border-t border-border/50 pt-3">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (currentVote === "upvote") {
-                    onRevokeVote(item.id);
-                  } else {
-                    onVote(item.id, "upvote");
-                  }
-                }}
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1
-                  text-xs transition-colors ${
-                    currentVote === "upvote"
-                      ? "bg-green-50 text-green-700"
-                      : "text-subtext hover:bg-surface"
-                  }`}
-              >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor"
-                  viewBox="0 0 24 24" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                    d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z M2 13h2v9H2z" />
-                </svg>
-                                {t("helpful", lang)}
-                {(item.upvoteCount ?? 0) > 0 && (
-                  <span className="font-mono text-[10px]">{item.upvoteCount}</span>
-                )}
-                {isAuthenticated && currentVote === "upvote" && (
-                  <svg className="h-3 w-3 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 0l1.5 8.5L22 12l-8.5 1.5L12 22l-1.5-8.5L2 12l8.5-1.5z" />
-                  </svg>
-                )}
-              </button>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (currentVote === "downvote") {
-                    onRevokeVote(item.id);
+                  onSubmit={(reason, detail) => {
+                    onVote(item.id, "downvote", reason, detail);
                     setShowDownvotePanel(false);
-                  } else {
-                    setShowDownvotePanel((v) => !v);
-                  }
-                }}
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1
-                  text-xs transition-colors ${
-                    currentVote === "downvote"
-                      ? "bg-red-50 text-red-600"
-                      : "text-subtext hover:bg-surface"
-                  }`}
-              >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor"
-                  viewBox="0 0 24 24" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                    d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z M22 2h-2v9h2z" />
-                </svg>
-                                {t("report", lang)}
-                {(item.downvoteCount ?? 0) > 0 && (
-                  <span className="font-mono text-[10px]">{item.downvoteCount}</span>
-                )}
-              </button>
-
-              {/* Favorite button - shown for all users */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!isAuthenticated) {
-                    // Trigger haptic feedback if available
-                    if (navigator.vibrate) {
-                      navigator.vibrate(50);
-                    }
-                    void showAlert({
-                      title: t("loginRequiredTitle", lang),
-                      message: lang === "zh" ? "请先登录后再收藏" : "Please sign in to favorite",
-                      confirmText: t("ok", lang),
-                    });
-                    return;
-                  }
-                  onToggleFavorite?.(item.id);
-                }}
-                className={`ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-1
-                  text-xs transition-colors ${
-                    isFavorited
-                      ? "bg-amber-50 text-amber-600"
-                      : "text-subtext hover:bg-surface"
-                  }`}
-                title={isAuthenticated ? (isFavorited ? "取消收藏" : "收藏") : (lang === 'zh' ? "登录后收藏" : "Sign in to favorite")}
-              >
-                <svg className="h-3.5 w-3.5" fill={isFavorited ? "currentColor" : "none"}
-                  stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                    d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.562.562 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-                </svg>
-              </button>
+                  }}
+                  onCancel={() => setShowDownvotePanel(false)}
+                />
+              )}
             </div>
-            {showDownvotePanel && currentVote !== "downvote" && (
-              <DownvotePanel
-                lang={lang}
-                onSubmit={(reason, detail) => {
-                  onVote(item.id, "downvote", reason, detail);
-                  setShowDownvotePanel(false);
-                }}
-                onCancel={() => setShowDownvotePanel(false)}
-              />
-            )}
           </div>
-        </div>
+        )}
       </div>
       {dialogNode}
     </article>
