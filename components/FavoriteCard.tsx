@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { t, translateTag } from "@/lib/i18n";
-import Image from "next/image";
 import type { FAQItem } from "@/src/types/faq";
 import MarkdownContent from "@/components/MarkdownContent";
 import ReferenceList from "@/components/ReferenceList";
+import ImageGallery from "@/components/ImageGallery";
+import ImageLightbox from "@/components/ImageLightbox";
 
 interface FavoriteCardProps {
   item: {
@@ -43,6 +45,7 @@ export default function FavoriteCard({
     lang === "en" && faq.answerBriefEn
       ? faq.answerBriefEn
       : faq.answerBrief ?? faq.answer;
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   // Status badge config
   const statusConfig = {
@@ -171,29 +174,22 @@ export default function FavoriteCard({
             content={briefContent}
           />
           {faq.images && faq.images.length > 0 && (
-            <div className="mt-4 space-y-3">
-              {faq.images.map((img, i) => (
-                <figure key={i} className="overflow-hidden rounded-lg border-[0.5px] border-border">
-                  <a href={img.url} target="_blank" rel="noopener noreferrer">
-                    <Image
-                      src={img.url}
-                      alt={img.caption}
-                      width={1200}
-                      height={800}
-                      className="h-auto w-full object-contain"
-                      loading="lazy"
-                      unoptimized
-                    />
-                  </a>
-                  <figcaption className="bg-surface/50 px-3 py-2 text-xs text-subtext">
-                    {img.caption}
-                    <span className="ml-2 text-[10px] text-subtext/60">
-                      [{img.source === "blog" ? t("blog", lang) : t("paper", lang)}]
-                    </span>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
+            <>
+              <ImageGallery
+                images={faq.images}
+                lang={lang}
+                onOpen={(index) => setLightboxIndex(index)}
+              />
+              {lightboxIndex !== null && (
+                <ImageLightbox
+                  isOpen
+                  images={faq.images}
+                  initialIndex={lightboxIndex}
+                  lang={lang}
+                  onClose={() => setLightboxIndex(null)}
+                />
+              )}
+            </>
           )}
           <ReferenceList references={faq.references} lang={lang} />
         </div>

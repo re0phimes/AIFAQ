@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useCallback, memo } from "react";
+import { useEffect, useCallback, useState, memo } from "react";
 import AsyncMarkdownContent from "./AsyncMarkdownContent";
 import ReferenceList from "./ReferenceList";
+import ImageGallery from "./ImageGallery";
+import ImageLightbox from "./ImageLightbox";
 import type { FAQItem as FAQItemType, VoteType } from "@/src/types/faq";
 import { t, translateTag } from "@/lib/i18n";
 
@@ -35,14 +37,21 @@ function DetailModal({
   onToggleFavorite,
   isAuthenticated,
 }: DetailModalProps) {
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const closeModal = useCallback(() => {
+    setLightboxIndex(null);
+    onClose();
+  }, [onClose]);
+
   // Handle ESC key
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
+      if (e.key === "Escape" && isOpen && lightboxIndex === null) {
+        closeModal();
       }
     },
-    [isOpen, onClose]
+    [closeModal, isOpen, lightboxIndex]
   );
 
   useEffect(() => {
@@ -77,7 +86,7 @@ function DetailModal({
         {/* Backdrop - 无动画，静态背景 */}
         <div
           className="absolute inset-0 bg-black/60"
-          onClick={onClose}
+          onClick={closeModal}
           aria-hidden="true"
         />
 
@@ -122,12 +131,12 @@ function DetailModal({
       role="dialog"
     >
       {/* Backdrop - 静态背景，无动画 */}
-      <div
-        className="absolute inset-0 bg-black/60"
-        onClick={onClose}
-        aria-hidden="true"
-        style={{ contain: 'strict' }}
-      />
+        <div
+          className="absolute inset-0 bg-black/60"
+          onClick={closeModal}
+          aria-hidden="true"
+          style={{ contain: 'strict' }}
+        />
 
       {/* Modal content - 仅使用 GPU 加速的动画属性 */}
       <div
@@ -174,7 +183,7 @@ function DetailModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={closeModal}
             className="shrink-0 rounded-full p-1.5 text-subtext transition-colors hover:bg-surface hover:text-text"
             aria-label={lang === "zh" ? "关闭" : "Close"}
           >
@@ -203,29 +212,23 @@ function DetailModal({
 
           {/* Images */}
           {item.images && item.images.length > 0 && (
-            <div className="mt-6 space-y-3">
-              {item.images.map((img, i) => (
-                <figure
-                  key={i}
-                  className="overflow-hidden rounded-lg border-[0.5px] border-border"
-                >
-                  <a href={img.url} target="_blank" rel="noopener noreferrer">
-                    <img
-                      src={img.url}
-                      alt={img.caption}
-                      className="w-full object-contain"
-                      loading="lazy"
-                    />
-                  </a>
-                  <figcaption className="bg-surface/50 px-3 py-2 text-xs text-subtext">
-                    {img.caption}
-                    <span className="ml-2 text-[10px] text-subtext/60">
-                      [{img.source === "blog" ? t("blog", lang) : t("paper", lang)}]
-                    </span>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
+            <>
+              <ImageGallery
+                images={item.images}
+                lang={lang}
+                onOpen={(index) => setLightboxIndex(index)}
+                className="mt-6"
+              />
+              {lightboxIndex !== null && (
+                <ImageLightbox
+                  isOpen
+                  images={item.images}
+                  initialIndex={lightboxIndex}
+                  lang={lang}
+                  onClose={() => setLightboxIndex(null)}
+                />
+              )}
+            </>
           )}
 
           <ReferenceList references={item.references} lang={lang} />

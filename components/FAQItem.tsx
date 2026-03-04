@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef, memo } from "react";
-import Image from "next/image";
 import MarkdownContent from "./MarkdownContent";
 import ReferenceList from "./ReferenceList";
+import ImageGallery from "./ImageGallery";
+import ImageLightbox from "./ImageLightbox";
 import { useActionDialog } from "./useActionDialog";
 import type { FAQItem as FAQItemType, VoteType } from "@/src/types/faq";
 import { t, getDownvoteReasons, translateTag } from "@/lib/i18n";
@@ -224,6 +225,7 @@ function FAQItem({
   const [showDownvotePanel, setShowDownvotePanel] = useState(false);
   const [detailedOverride, setDetailedOverride] = useState<boolean | null>(null);
   const [showVersions, setShowVersions] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const detailed = detailedOverride ?? globalDetailed;
   const hasTimelinessWarning = (item.downvoteCount ?? 0) >= 3;
   const isRecentlyUpdated = item.currentVersion && item.currentVersion > 1 && item.lastUpdatedAt &&
@@ -394,29 +396,22 @@ function FAQItem({
                     : (item.answerBrief ?? item.answer))}
             />
             {detailed && item.images && item.images.length > 0 && (
-              <div className="mt-4 space-y-3">
-                {item.images.map((img, i) => (
-                  <figure key={i} className="overflow-hidden rounded-lg border-[0.5px] border-border">
-                    <a href={img.url} target="_blank" rel="noopener noreferrer">
-                      <Image
-                        src={img.url}
-                        alt={img.caption}
-                        width={1200}
-                        height={800}
-                        className="h-auto w-full object-contain"
-                        loading="lazy"
-                        unoptimized
-                      />
-                    </a>
-                    <figcaption className="bg-surface/50 px-3 py-2 text-xs text-subtext">
-                      {img.caption}
-                      <span className="ml-2 text-[10px] text-subtext/60">
-                            [{img.source === "blog" ? t("blog", lang) : t("paper", lang)}]
-                      </span>
-                    </figcaption>
-                  </figure>
-                ))}
-              </div>
+              <>
+                <ImageGallery
+                  images={item.images}
+                  lang={lang}
+                  onOpen={(index) => setLightboxIndex(index)}
+                />
+                {lightboxIndex !== null && (
+                  <ImageLightbox
+                    isOpen
+                    images={item.images}
+                    initialIndex={lightboxIndex}
+                    lang={lang}
+                    onClose={() => setLightboxIndex(null)}
+                  />
+                )}
+              </>
             )}
             <ReferenceList references={item.references} lang={lang} />
             {/* Vote buttons — up/down 互斥 */}

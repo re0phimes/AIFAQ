@@ -3,6 +3,8 @@
 import { useState } from "react";
 import MarkdownContent from "./MarkdownContent";
 import ReferenceList from "./ReferenceList";
+import ImageGallery from "./ImageGallery";
+import ImageLightbox from "./ImageLightbox";
 import type { FAQItem } from "@/src/types/faq";
 import { t, translateTag, itemsCount } from "@/lib/i18n";
 
@@ -22,6 +24,7 @@ export default function ReadingView({
   const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set());
   const [globalDetailed, setGlobalDetailed] = useState(false);
   const [itemDetailOverrides, setItemDetailOverrides] = useState<Map<number, boolean>>(new Map());
+  const [lightboxState, setLightboxState] = useState<{ itemId: number; index: number } | null>(null);
 
   function isDetailed(id: number): boolean {
     return itemDetailOverrides.get(id) ?? globalDetailed;
@@ -40,6 +43,7 @@ export default function ReadingView({
   }
 
   function toggleCollapse(id: number): void {
+    setLightboxState((prev) => (prev?.itemId === id ? null : prev));
     setCollapsedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -188,6 +192,7 @@ export default function ReadingView({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      setLightboxState((prev) => (prev?.itemId === item.id ? null : prev));
                       onRemove(item.id);
                     }}
                     className="rounded p-1 text-subtext
@@ -258,21 +263,23 @@ export default function ReadingView({
                           : (item.answerBrief ?? item.answer))}
                   />
                   {isDetailed(item.id) && item.images && item.images.length > 0 && (
-                    <div className="mt-4 space-y-3 print:hidden">
-                      {item.images.map((img, i) => (
-                        <figure key={i} className="overflow-hidden rounded-lg border-[0.5px] border-border">
-                          <a href={img.url} target="_blank" rel="noopener noreferrer">
-                            <img src={img.url} alt={img.caption} className="w-full object-contain" loading="lazy" />
-                          </a>
-                          <figcaption className="bg-surface/50 px-3 py-2 text-xs text-subtext">
-                            {img.caption}
-                            <span className="ml-2 text-[10px] text-subtext/60">
-                              [{img.source === "blog" ? t("blog", lang) : t("paper", lang)}]
-                            </span>
-                          </figcaption>
-                        </figure>
-                      ))}
-                    </div>
+                    <>
+                      <ImageGallery
+                        images={item.images}
+                        lang={lang}
+                        onOpen={(index) => setLightboxState({ itemId: item.id, index })}
+                        className="print:hidden"
+                      />
+                      {lightboxState?.itemId === item.id && (
+                        <ImageLightbox
+                          isOpen
+                          images={item.images}
+                          initialIndex={lightboxState.index}
+                          lang={lang}
+                          onClose={() => setLightboxState(null)}
+                        />
+                      )}
+                    </>
                   )}
                   <ReferenceList references={item.references} lang={lang} />
                 </div>
