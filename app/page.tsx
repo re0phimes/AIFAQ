@@ -44,11 +44,11 @@ export default async function Home() {
       lastUpdatedAt: item.last_updated_at?.toISOString(),
     }));
   } catch {
-    // DB not available — empty list fallback
+    // DB not available - empty list fallback
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-4 md:py-6 md:max-w-4xl md:px-8">
+    <main id="top" className="mx-auto max-w-2xl px-4 py-4 md:py-6 md:max-w-4xl md:px-8">
       <FAQPage items={items} />
     </main>
   );

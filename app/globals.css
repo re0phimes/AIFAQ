@@ -10,6 +10,8 @@
   --color-surface: var(--app-color-surface);
   --color-border: var(--app-color-border);
   --color-panel: var(--app-color-panel);
+  --color-brand-ai: var(--app-color-brand-ai);
+  --color-brand-faq: var(--app-color-brand-faq);
   --font-brand: "Rubik", sans-serif;
   --font-sans: "Noto Sans SC", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
@@ -25,6 +27,8 @@
   --app-color-surface: #f5f5f5;
   --app-color-border: #e5e5e5;
   --app-color-panel: #ffffff;
+  --app-color-brand-ai: #a32233;
+  --app-color-brand-faq: #b58a2f;
 }
 
 :root[data-theme="dark"] {
@@ -37,8 +41,9 @@
   --app-color-surface: #171717;
   --app-color-border: #2a2a2a;
   --app-color-panel: #121212;
+  --app-color-brand-ai: #d95d6a;
+  --app-color-brand-faq: #d7b45d;
 }
-
 body {
   background: var(--color-bg);
   color: var(--color-text);
