@@ -437,11 +437,11 @@ export default function FAQList({
                 className="flex items-center gap-1 rounded-full border-[0.5px] border-border px-2.5 py-1 text-xs text-subtext hover:bg-surface transition-colors"
               >
                 {t("visitMainSite", lang)}
-                <span className="text-[10px]">↗</span>
+                <span className="text-[10px]">{"\u2197"}</span>
               </a>
             </div>
             <p className="mt-0.5 text-sm text-subtext">
-              {lang === "zh" ? "AI/ML 常见问题知识库" : "AI/ML FAQ Knowledge Base"}
+              {lang === "zh" ? "AI/ML \u5e38\u89c1\u95ee\u9898\u77e5\u8bc6\u5e93" : "AI/ML FAQ Knowledge Base"}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -504,7 +504,7 @@ export default function FAQList({
                   lang === "zh" ? "bg-primary text-white" : "text-subtext hover:bg-surface"
                 }`}
               >
-                中文
+                {"\u4e2d\u6587"}
               </button>
               <button
                 onClick={() => onLangChange("en")}
@@ -587,7 +587,7 @@ export default function FAQList({
                       : "border-[0.5px] border-border text-amber-600 hover:bg-amber-50"
                   }`}
               >
-                <span className="mr-1">★</span>
+                <span className="mr-1">{"\u2605"}</span>
                 {t("myFocus", lang)}
               </button>
             </>
