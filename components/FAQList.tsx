@@ -131,7 +131,7 @@ export default function FAQList({
   useEffect(() => { globalDetailedRef.current = globalDetailed; }, [globalDetailed]);
 
   // Hide header on scroll down, show on scroll up, or when tab is open
-  // 使用 ref 避免频繁重新订阅 scroll 事件
+  // 浣跨敤 ref 閬垮厤棰戠箒閲嶆柊璁㈤槄 scroll 浜嬩欢
   const openItemsSizeRef = useRef(openItems.size);
 
   useEffect(() => {
@@ -209,7 +209,7 @@ export default function FAQList({
     return { allTags: sorted, tagCounts: freq };
   }, [items]);
 
-  // 构建 category -> tags 映射
+  // 鏋勫缓 category -> tags 鏄犲皠
   const categoryTagsMap = useMemo(() => {
     const map = new Map<string, Set<string>>();
     for (const cat of (taxonomy as TagTaxonomy).categories) {
@@ -691,6 +691,7 @@ export default function FAQList({
                 </button>
               ))}
             </div>
+          </div>
           </div>
           <div className="shrink-0 text-xs text-subtext sm:text-right">
             {paginationInfo(sorted.length, safePage, totalPages, lang)}

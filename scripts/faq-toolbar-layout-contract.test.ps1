@@ -12,6 +12,18 @@ function Assert-Contains {
   }
 }
 
+function Assert-Matches {
+  param(
+    [string]$Content,
+    [string]$Pattern,
+    [string]$Message
+  )
+
+  if (-not [regex]::IsMatch($Content, $Pattern)) {
+    throw $Message
+  }
+}
+
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 $faqListPath = Join-Path $repoRoot 'components/FAQList.tsx'
 $source = Get-Content $faqListPath -Raw
@@ -19,6 +31,7 @@ $source = Get-Content $faqListPath -Raw
 Assert-Contains $source '<div className="flex flex-wrap items-start justify-between gap-3">' 'Missing wrapping toolbar shell.'
 Assert-Contains $source '<div className="min-w-0 flex-1">' 'Missing flexible left toolbar region.'
 Assert-Contains $source '<div className="flex flex-wrap items-center gap-2">' 'Missing wrapping toolbar action cluster.'
+Assert-Matches $source '            </div>\r?\n          </div>\r?\n          </div>\r?\n          <div className="shrink-0 text-xs text-subtext sm:text-right">' 'Missing wrapper close before the summary block.'
 Assert-Contains $source '<div className="shrink-0 text-xs text-subtext sm:text-right">' 'Missing dedicated pagination summary block.'
 Assert-Contains $source '{paginationInfo(sorted.length, safePage, totalPages, lang)}' 'Missing pagination summary content.'
 Assert-Contains $source '<span className="text-[10px]">{"\u2197"}</span>' 'Missing valid external-link glyph span.'
