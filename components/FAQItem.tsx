@@ -227,6 +227,7 @@ function FAQItem({
   const [detailedOverride, setDetailedOverride] = useState<boolean | null>(null);
   const [showVersions, setShowVersions] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  useEffect(() => { setDetailedOverride(null); }, [globalDetailed]);
   const detailed = detailedOverride ?? globalDetailed;
   const hasTimelinessWarning = (item.downvoteCount ?? 0) >= 3;
   const isNewlyCreated = item.createdAt &&
