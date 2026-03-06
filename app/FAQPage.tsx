@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
+import type { Session } from "next-auth";
 import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
 import FAQList from "@/components/FAQList";
 import DetailModal from "@/components/DetailModal";
@@ -197,6 +198,7 @@ function hasMeaningfulLocalPreferences(prefs: LocalPreferences): boolean {
 
 interface FAQPageProps {
   items: FAQItem[];
+  initialSession?: Session | null;
 }
 
 interface FAQListSessionUser {
@@ -208,7 +210,7 @@ interface FAQListSessionUser {
 }
 
 function FAQPageInner({ items }: FAQPageProps) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [preferences, setPreferences] = useState<LocalPreferences>(() =>
     loadLocalPreferences()
   );
@@ -638,6 +640,7 @@ function FAQPageInner({ items }: FAQPageProps) {
         onRevokeVote={handleRevokeVote}
         onOpenItem={handleOpenItem}
         session={listSession}
+        authStatus={status}
         onSignIn={() => signIn("github")}
         onSignOut={() => signOut()}
         favorites={favorites}
@@ -669,9 +672,9 @@ function FAQPageInner({ items }: FAQPageProps) {
   );
 }
 
-export default function FAQPage({ items }: FAQPageProps) {
+export default function FAQPage({ items, initialSession }: FAQPageProps) {
   return (
-    <SessionProvider>
+    <SessionProvider session={initialSession}>
       <FAQPageInner items={items} />
     </SessionProvider>
   );

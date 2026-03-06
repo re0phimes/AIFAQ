@@ -43,6 +43,7 @@ interface FAQListProps {
       role?: string;
     };
   } | null;
+  authStatus?: "loading" | "authenticated" | "unauthenticated";
   onSignIn?: () => void;
   onSignOut?: () => void;
   favorites?: Set<number>;
@@ -92,6 +93,7 @@ export default function FAQList({
   onRevokeVote,
   onOpenItem,
   session,
+  authStatus,
   onSignIn,
   onSignOut,
   favorites,
@@ -429,7 +431,12 @@ export default function FAQList({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {session?.user ? (
+            {authStatus === "loading" ? (
+              <div
+                aria-hidden="true"
+                className="h-8 w-28 rounded-full border-[0.5px] border-border bg-surface/60"
+              />
+            ) : session?.user ? (
               <div className="relative" ref={userDropdownRef}>
                 <button
                   onClick={() => setShowUserDropdown(!showUserDropdown)}
