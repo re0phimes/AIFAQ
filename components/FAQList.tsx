@@ -122,13 +122,6 @@ export default function FAQList({
   // Modal state removed - now managed by parent (FAQPage)
   const lastScrollY = useRef(0);
 
-  // Refs for stable callbacks - avoid re-creating functions on every render
-  const itemsRef = useRef(items);
-  const globalDetailedRef = useRef(globalDetailed);
-
-  // Sync refs with state
-  useEffect(() => { itemsRef.current = items; }, [items]);
-  useEffect(() => { globalDetailedRef.current = globalDetailed; }, [globalDetailed]);
 
   // Hide header on scroll down, show on scroll up, or when tab is open
   // 浣跨敤 ref 閬垮厤棰戠箒閲嶆柊璁㈤槄 scroll 浜嬩欢
@@ -349,22 +342,13 @@ export default function FAQList({
   }
 
   const handleToggleItem = useCallback((id: number): void => {
-    // Detailed mode: directly open modal, don't expand tab
-    if (globalDetailedRef.current) {
-      const item = itemsRef.current.find((i) => i.id === id);
-      if (item && onOpenItem) {
-        onOpenItem(item);
-      }
-      return;
-    }
-    // Brief mode: toggle tab expansion
     setOpenItems((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  }, [onOpenItem]);
+  }, []);
 
   const handleToggleSelect = useCallback((id: number): void => {
     setSelectedItems((prev) => {
