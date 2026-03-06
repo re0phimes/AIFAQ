@@ -554,8 +554,9 @@ export default function FAQList({
         <div className="min-w-0 flex-1 space-y-4">
 
         {/* Toolbar: compare, expand/collapse, info */}
-        <div className="flex items-center justify-between">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
             {/* Group 1: Compare */}
             <button
               onClick={handleToggleCompare}
@@ -691,9 +692,9 @@ export default function FAQList({
               ))}
             </div>
           </div>
-          <p className="text-xs text-subtext">
+          <div className="shrink-0 text-xs text-subtext sm:text-right">
             {paginationInfo(sorted.length, safePage, totalPages, lang)}
-          </p>
+          </div>
         </div>
 
         {sorted.length === 0 ? (
