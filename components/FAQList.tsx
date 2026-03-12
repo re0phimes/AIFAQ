@@ -13,7 +13,9 @@ import BrandLogo from "./BrandLogo";
 import ThemeToggle from "./ThemeToggle";
 import { t, paginationInfo } from "@/lib/i18n";
 import {
+  getFacetLabel,
   getFacetOptions,
+  getPrimaryCategoryLabel,
   getPrimaryCategoryOptions,
   type PrimaryCategoryKey,
 } from "@/lib/taxonomy";
@@ -29,6 +31,48 @@ const DIFFICULTY_ORDER: Record<string, number> = {
   intermediate: 1,
   advanced: 2,
 };
+
+function buildTaxonomySearchText(item: FAQItemType): string {
+  const tokens: string[] = [];
+
+  if (item.primaryCategory) {
+    tokens.push(
+      item.primaryCategory,
+      getPrimaryCategoryLabel(item.primaryCategory, "zh"),
+      getPrimaryCategoryLabel(item.primaryCategory, "en")
+    );
+  }
+
+  if (item.secondaryCategory) {
+    tokens.push(
+      item.secondaryCategory,
+      getPrimaryCategoryLabel(item.secondaryCategory, "zh"),
+      getPrimaryCategoryLabel(item.secondaryCategory, "en")
+    );
+  }
+
+  for (const topic of item.topics ?? []) {
+    tokens.push(topic, getFacetLabel("topic", topic, "zh"), getFacetLabel("topic", topic, "en"));
+  }
+
+  for (const pattern of item.patterns ?? []) {
+    tokens.push(
+      pattern,
+      getFacetLabel("pattern", pattern, "zh"),
+      getFacetLabel("pattern", pattern, "en")
+    );
+  }
+
+  for (const tool of item.toolStack ?? []) {
+    tokens.push(
+      tool,
+      getFacetLabel("tool_stack", tool, "zh"),
+      getFacetLabel("tool_stack", tool, "en")
+    );
+  }
+
+  return tokens.join(" ").toLowerCase();
+}
 
 interface FAQListProps {
   items: FAQItemType[];
@@ -110,7 +154,6 @@ export default function FAQList({
 }: FAQListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMode, setSearchMode] = useState<SearchMode>("combined");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<PrimaryCategoryKey[]>([]);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [selectedPatterns, setSelectedPatterns] = useState<string[]>([]);
@@ -197,19 +240,6 @@ export default function FAQList({
     }
   }, [showUserDropdown]);
 
-  const { allTags, tagCounts } = useMemo(() => {
-    const freq = new Map<string, number>();
-    for (const item of items) {
-      for (const tag of item.tags) {
-        freq.set(tag, (freq.get(tag) ?? 0) + 1);
-      }
-    }
-    const sorted = [...freq.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .map(([tag]) => tag);
-    return { allTags: sorted, tagCounts: freq };
-  }, [items]);
-
   const categoryOptions = useMemo(
     () =>
       getPrimaryCategoryOptions().map((category) => ({
@@ -278,11 +308,6 @@ export default function FAQList({
 
     if (q) {
       switch (searchMode) {
-        case "tag":
-          result = result.filter((item) =>
-            item.tags.some((tag) => tag.toLowerCase().includes(q))
-          );
-          break;
         case "content":
           result = result.filter(
             (item) =>
@@ -296,16 +321,10 @@ export default function FAQList({
             (item) =>
               item.question.toLowerCase().includes(q) ||
               item.answer.toLowerCase().includes(q) ||
-              item.tags.some((tag) => tag.toLowerCase().includes(q))
+              buildTaxonomySearchText(item).includes(q)
           );
           break;
       }
-    }
-
-    if (selectedTags.length > 0) {
-      result = result.filter((item) =>
-        selectedTags.some((tag) => item.tags.includes(tag))
-      );
     }
 
     if (selectedCategories.length > 0) {
@@ -337,7 +356,6 @@ export default function FAQList({
     items,
     searchQuery,
     searchMode,
-    selectedTags,
     selectedCategories,
     selectedTopics,
     selectedPatterns,
@@ -407,13 +425,6 @@ export default function FAQList({
   function handleTogglePattern(pattern: string): void {
     setSelectedPatterns((prev) =>
       prev.includes(pattern) ? prev.filter((item) => item !== pattern) : [...prev, pattern]
-    );
-    setCurrentPage(1);
-  }
-
-  function handleToggleTag(tag: string): void {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
     setCurrentPage(1);
   }
@@ -609,19 +620,14 @@ export default function FAQList({
             categoryCounts={categoryCounts}
             topicCounts={topicCounts}
             patternCounts={patternCounts}
-            allTags={allTags}
-            tagCounts={tagCounts}
             selectedCategories={selectedCategories}
             selectedTopics={selectedTopics}
             selectedPatterns={selectedPatterns}
-            selectedTags={selectedTags}
             onToggleCategory={handleToggleCategory}
             onToggleTopic={handleToggleTopic}
             onTogglePattern={handleTogglePattern}
-            onToggleTag={handleToggleTag}
             lang={lang}
             onClearAll={() => {
-              setSelectedTags([]);
               setSelectedCategories([]);
               setSelectedTopics([]);
               setSelectedPatterns([]);

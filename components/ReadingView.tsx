@@ -6,7 +6,7 @@ import ReferenceList from "./ReferenceList";
 import ImageGallery from "./ImageGallery";
 import ImageLightbox from "./ImageLightbox";
 import type { FAQItem } from "@/src/types/faq";
-import { t, translateTag, itemsCount } from "@/lib/i18n";
+import { t, itemsCount } from "@/lib/i18n";
 import { getFacetLabel, getPrimaryCategoryLabel } from "@/lib/taxonomy";
 
 interface ReadingViewProps {
@@ -219,15 +219,6 @@ export default function ReadingView({
                           className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-text"
                         >
                           {pill.label}
-                        </span>
-                      ))}
-                      {item.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full border-[0.5px] border-border bg-panel px-2 py-0.5
-                            font-medium text-xs text-primary"
-                        >
-                          {translateTag(tag, lang)}
                         </span>
                       ))}
                     </div>

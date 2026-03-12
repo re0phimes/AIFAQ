@@ -8,7 +8,7 @@ import ImageGallery from "./ImageGallery";
 import ImageLightbox from "./ImageLightbox";
 import { useActionDialog } from "./useActionDialog";
 import type { FAQItem as FAQItemType, VoteType } from "@/src/types/faq";
-import { t, getDownvoteReasons, translateTag } from "@/lib/i18n";
+import { t, getDownvoteReasons } from "@/lib/i18n";
 import { getFacetLabel, getPrimaryCategoryLabel } from "@/lib/taxonomy";
 
 const RENDER_TIME_TS = Date.now();
@@ -372,16 +372,6 @@ function FAQItem({
                   )}
                 </span>
               )}
-              {item.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="hidden rounded-full border-[0.5px] border-border bg-panel px-1.5 py-0.5
-                    text-[11px] font-medium text-primary
-                    md:inline-block"
-                >
-                  {translateTag(tag, lang)}
-                </span>
-              ))}
             </div>
           </div>
           <svg

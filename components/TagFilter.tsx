@@ -1,6 +1,6 @@
 "use client";
 
-import { t, translateTag } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 import { getFacetLabel, getPrimaryCategoryLabel } from "@/lib/taxonomy";
 import type { Lang, PrimaryCategoryKey } from "@/src/types/faq";
 
@@ -14,16 +14,12 @@ interface TagFilterProps {
   categoryCounts: Map<PrimaryCategoryKey, number>;
   topicCounts: FacetCount[];
   patternCounts: FacetCount[];
-  allTags: string[];
-  tagCounts: Map<string, number>;
   selectedCategories: PrimaryCategoryKey[];
   selectedTopics: string[];
   selectedPatterns: string[];
-  selectedTags: string[];
   onToggleCategory: (category: PrimaryCategoryKey) => void;
   onToggleTopic: (topic: string) => void;
   onTogglePattern: (pattern: string) => void;
-  onToggleTag: (tag: string) => void;
   onClearAll: () => void;
   lang?: Lang;
 }
@@ -45,24 +41,19 @@ export default function TagFilter({
   categoryCounts,
   topicCounts,
   patternCounts,
-  allTags,
-  tagCounts,
   selectedCategories,
   selectedTopics,
   selectedPatterns,
-  selectedTags,
   onToggleCategory,
   onToggleTopic,
   onTogglePattern,
-  onToggleTag,
   onClearAll,
   lang = "zh",
 }: TagFilterProps) {
   const hasSelection =
     selectedCategories.length > 0 ||
     selectedTopics.length > 0 ||
-    selectedPatterns.length > 0 ||
-    selectedTags.length > 0;
+    selectedPatterns.length > 0;
 
   return (
     <div className="rounded-xl border-[0.5px] border-border bg-panel p-2.5">
@@ -142,32 +133,6 @@ export default function TagFilter({
                   }`}
                 >
                   {getFacetLabel("topic", key, lang)}
-                  <span className={`text-[9px] ${selected ? "text-white/70" : "text-subtext"}`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {allTags.length > 0 && (
-        <div className="mt-2 border-t border-border/50 pt-2">
-          <SectionLabel zh="叶子标签" en="Leaf Tags" lang={lang} />
-          <div className="flex max-h-28 flex-wrap gap-1 overflow-y-auto pr-1">
-            {allTags.map((tag) => {
-              const selected = selectedTags.includes(tag);
-              const count = tagCounts.get(tag) ?? 0;
-              return (
-                <button
-                  key={tag}
-                  onClick={() => onToggleTag(tag)}
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[11px] leading-none transition-colors duration-150 ${
-                    selected ? "bg-primary/80 text-white" : "bg-surface text-text hover:bg-surface"
-                  }`}
-                >
-                  {translateTag(tag, lang)}
                   <span className={`text-[9px] ${selected ? "text-white/70" : "text-subtext"}`}>
                     {count}
                   </span>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@/lib/i18n";
+import { getFacetLabel, getPrimaryCategoryLabel } from "@/lib/taxonomy";
 import MarkdownContent from "@/components/MarkdownContent";
 import type { FAQItem } from "@/src/types/faq";
 
@@ -16,6 +17,22 @@ interface FAQDetailClientProps {
 export default function FAQDetailClient({ faq, isFavorited, learningStatus, lang }: FAQDetailClientProps) {
   const router = useRouter();
   const [updating, setUpdating] = useState(false);
+  const taxonomyPills = [
+    faq.primaryCategory
+      ? { key: `primary:${faq.primaryCategory}`, label: getPrimaryCategoryLabel(faq.primaryCategory, lang) }
+      : null,
+    faq.secondaryCategory
+      ? { key: `secondary:${faq.secondaryCategory}`, label: getPrimaryCategoryLabel(faq.secondaryCategory, lang) }
+      : null,
+    ...(faq.patterns ?? []).slice(0, 1).map((pattern) => ({
+      key: `pattern:${pattern}`,
+      label: getFacetLabel("pattern", pattern, lang),
+    })),
+    ...(faq.topics ?? []).slice(0, 2).map((topic) => ({
+      key: `topic:${topic}`,
+      label: getFacetLabel("topic", topic, lang),
+    })),
+  ].filter((pill): pill is { key: string; label: string } => pill !== null);
 
   const handleMarkMastered = async () => {
     setUpdating(true);
@@ -41,13 +58,15 @@ export default function FAQDetailClient({ faq, isFavorited, learningStatus, lang
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-text">{faq.question}</h1>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {faq.tags.map(tag => (
-              <span key={tag} className="rounded-full bg-surface px-2 py-1 text-xs text-subtext">
-                {tag}
-              </span>
-            ))}
-          </div>
+          {taxonomyPills.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {taxonomyPills.map((pill) => (
+                <span key={pill.key} className="rounded-full bg-surface px-2 py-1 text-xs text-subtext">
+                  {pill.label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {isFavorited && learningStatus === 'learning' && (

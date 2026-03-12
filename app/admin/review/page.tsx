@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import SyncMarkdownContent from "@/components/SyncMarkdownContent";
 import { useActionDialog } from "@/components/useActionDialog";
+import { getFacetLabel, getPrimaryCategoryLabel } from "@/lib/taxonomy";
 
 type FaqStatus = "pending" | "processing" | "review" | "published" | "rejected" | "ready" | "failed";
 
@@ -90,6 +91,26 @@ interface VersionItem {
   change_reason: string | null;
   votes: { upvote_count: number; downvote_count: number };
   created_at: string;
+}
+
+function TaxonomyPill({
+  label,
+  tone = "neutral",
+}: {
+  label: string;
+  tone?: "neutral" | "accent";
+}) {
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 text-xs ${
+        tone === "accent"
+          ? "bg-[var(--color-text)] text-white"
+          : "bg-[var(--color-surface)] text-[var(--color-subtext)]"
+      }`}
+    >
+      {label}
+    </span>
+  );
 }
 
 export default function ReviewPage() {
@@ -324,7 +345,6 @@ export default function ReviewPage() {
                     <span>{formatDate(item.created_at)}</span>
                     <span className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px]">v{item.current_version ?? 1}</span>
                     <span className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px]">L{item.level ?? 1}</span>
-                    {item.tags.length > 0 && <span>{item.tags.length} tags</span>}
                     {item.reviewed_at && <span>审批: {formatDate(item.reviewed_at)}</span>}
                   </div>
                 </div>
@@ -514,22 +534,42 @@ export default function ReviewPage() {
                 {/* Metadata */}
                 {previewTab !== "versions" && (
                 <div className="mt-6 space-y-3 border-t border-[var(--color-border)] pt-4">
-                  {selectedItem.tags.length > 0 && (
+                  {(selectedItem.primary_category ||
+                    selectedItem.secondary_category ||
+                    selectedItem.patterns.length > 0 ||
+                    selectedItem.topics.length > 0 ||
+                    selectedItem.tool_stack.length > 0) && (
                     <div>
-                      <p className="mb-1 text-xs font-medium text-[var(--color-subtext)]">标签</p>
+                      <p className="mb-1 text-xs font-medium text-[var(--color-subtext)]">新标签体系</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {selectedItem.tags.map((tag) => (
-                          <span key={tag} className="rounded-full bg-[var(--color-surface)] px-2 py-0.5 text-xs text-[var(--color-subtext)]">{tag}</span>
+                        {selectedItem.primary_category && (
+                          <TaxonomyPill
+                            label={`主类: ${getPrimaryCategoryLabel(selectedItem.primary_category, "zh")}`}
+                            tone="accent"
+                          />
+                        )}
+                        {selectedItem.secondary_category && (
+                          <TaxonomyPill
+                            label={`辅类: ${getPrimaryCategoryLabel(selectedItem.secondary_category, "zh")}`}
+                          />
+                        )}
+                        {selectedItem.patterns.map((pattern) => (
+                          <TaxonomyPill
+                            key={`pattern:${pattern}`}
+                            label={`模式: ${getFacetLabel("pattern", pattern, "zh")}`}
+                          />
                         ))}
-                      </div>
-                    </div>
-                  )}
-                  {selectedItem.categories.length > 0 && (
-                    <div>
-                      <p className="mb-1 text-xs font-medium text-[var(--color-subtext)]">分类</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {selectedItem.categories.map((cat) => (
-                          <span key={cat} className="rounded-full bg-[var(--color-surface)] px-2 py-0.5 text-xs text-[var(--color-subtext)]">{cat}</span>
+                        {selectedItem.topics.map((topic) => (
+                          <TaxonomyPill
+                            key={`topic:${topic}`}
+                            label={`主题: ${getFacetLabel("topic", topic, "zh")}`}
+                          />
+                        ))}
+                        {selectedItem.tool_stack.map((tool) => (
+                          <TaxonomyPill
+                            key={`tool:${tool}`}
+                            label={`工具: ${getFacetLabel("tool_stack", tool, "zh")}`}
+                          />
                         ))}
                       </div>
                     </div>

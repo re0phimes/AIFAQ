@@ -2,7 +2,7 @@
 
 import { t } from "@/lib/i18n";
 
-export type SearchMode = "combined" | "tag" | "content";
+export type SearchMode = "combined" | "content";
 
 interface SearchBarProps {
   value: string;
@@ -12,17 +12,15 @@ interface SearchBarProps {
   lang?: "zh" | "en";
 }
 
-const MODE_KEYS: SearchMode[] = ["combined", "tag", "content"];
+const MODE_KEYS: SearchMode[] = ["combined", "content"];
 
 const MODE_LABEL_KEYS = {
   combined: "searchCombined",
-  tag: "searchTag",
   content: "searchContent",
 } as const;
 
 const PLACEHOLDER_KEYS = {
   combined: "searchPlaceholderCombined",
-  tag: "searchPlaceholderTag",
   content: "searchPlaceholderContent",
 } as const;
 

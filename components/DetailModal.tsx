@@ -6,7 +6,7 @@ import ReferenceList from "./ReferenceList";
 import ImageGallery from "./ImageGallery";
 import ImageLightbox from "./ImageLightbox";
 import type { FAQItem as FAQItemType, VoteType } from "@/src/types/faq";
-import { t, translateTag } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 import { getFacetLabel, getPrimaryCategoryLabel } from "@/lib/taxonomy";
 
 interface DetailModalProps {
@@ -196,14 +196,6 @@ function DetailModal({
                   className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-text"
                 >
                   {pill.label}
-                </span>
-              ))}
-              {item.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full border-[0.5px] border-border bg-panel px-2 py-0.5 text-xs font-medium text-primary"
-                >
-                  {translateTag(tag, lang)}
                 </span>
               ))}
             </div>

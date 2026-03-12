@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { t, translateTag } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 import { getFacetLabel, getPrimaryCategoryLabel } from "@/lib/taxonomy";
 import type { FAQItem } from "@/src/types/faq";
 import MarkdownContent from "@/components/MarkdownContent";
@@ -135,22 +135,6 @@ export default function FavoriteCard({
             </div>
           )}
 
-          {/* Tags */}
-          {faq.tags.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {faq.tags.slice(0, 5).map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full border-[0.5px] border-border bg-panel px-1.5 py-0.5 text-[11px] font-medium text-primary"
-                >
-                  {translateTag(tag, lang)}
-                </span>
-              ))}
-              {faq.tags.length > 5 && (
-                <span className="text-[11px] text-subtext">+{faq.tags.length - 5}</span>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Right: Actions */}
