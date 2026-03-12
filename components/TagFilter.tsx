@@ -1,106 +1,100 @@
 "use client";
 
-import { useMemo } from "react";
-import type { TagTaxonomy } from "@/src/types/faq";
-import { t, translateCategory, translateTag } from "@/lib/i18n";
+import { t, translateTag } from "@/lib/i18n";
+import { getFacetLabel, getPrimaryCategoryLabel } from "@/lib/taxonomy";
+import type { Lang, PrimaryCategoryKey } from "@/src/types/faq";
+
+interface FacetCount {
+  key: string;
+  count: number;
+}
 
 interface TagFilterProps {
-  taxonomy: TagTaxonomy;
+  categories: { key: PrimaryCategoryKey; description: string }[];
+  categoryCounts: Map<PrimaryCategoryKey, number>;
+  topicCounts: FacetCount[];
+  patternCounts: FacetCount[];
   allTags: string[];
   tagCounts: Map<string, number>;
-  selectedCategories: string[];
+  selectedCategories: PrimaryCategoryKey[];
+  selectedTopics: string[];
+  selectedPatterns: string[];
   selectedTags: string[];
-  onToggleCategory: (cat: string) => void;
+  onToggleCategory: (category: PrimaryCategoryKey) => void;
+  onToggleTopic: (topic: string) => void;
+  onTogglePattern: (pattern: string) => void;
   onToggleTag: (tag: string) => void;
   onClearAll: () => void;
-  lang?: "zh" | "en";
+  lang?: Lang;
+}
+
+function SectionLabel({
+  zh,
+  en,
+  lang,
+}: {
+  zh: string;
+  en: string;
+  lang: Lang;
+}) {
+  return <p className="mb-1.5 text-[11px] font-medium text-subtext">{lang === "zh" ? zh : en}</p>;
 }
 
 export default function TagFilter({
-  taxonomy,
+  categories,
+  categoryCounts,
+  topicCounts,
+  patternCounts,
   allTags,
   tagCounts,
   selectedCategories,
+  selectedTopics,
+  selectedPatterns,
   selectedTags,
   onToggleCategory,
+  onToggleTopic,
+  onTogglePattern,
   onToggleTag,
   onClearAll,
   lang = "zh",
 }: TagFilterProps) {
-  // Count FAQs per category
-  const categoryCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const cat of taxonomy.categories) {
-      let total = 0;
-      for (const tag of cat.tags) {
-        total += tagCounts.get(tag) ?? 0;
-      }
-      counts.set(cat.name, total);
-    }
-    return counts;
-  }, [taxonomy, tagCounts]);
-
-  // Tags to show: only from selected categories
-  const visibleTags = useMemo(() => {
-    if (selectedCategories.length === 0) return [];
-    const tagSet = new Set<string>();
-    for (const cat of taxonomy.categories) {
-      if (selectedCategories.includes(cat.name)) {
-        for (const tag of cat.tags) {
-          if (allTags.includes(tag)) tagSet.add(tag);
-        }
-      }
-    }
-    return [...tagSet].sort((a, b) =>
-      (tagCounts.get(b) ?? 0) - (tagCounts.get(a) ?? 0)
-    );
-  }, [taxonomy, selectedCategories, allTags, tagCounts]);
-
-  const hasSelection = selectedCategories.length > 0 || selectedTags.length > 0;
+  const hasSelection =
+    selectedCategories.length > 0 ||
+    selectedTopics.length > 0 ||
+    selectedPatterns.length > 0 ||
+    selectedTags.length > 0;
 
   return (
     <div className="rounded-xl border-[0.5px] border-border bg-panel p-2.5">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-medium text-subtext">
-          {t("tagFilter", lang)}
-        </span>
+        <span className="text-xs font-medium text-subtext">{t("tagFilter", lang)}</span>
         {hasSelection && (
           <button
             onClick={onClearAll}
-            className="rounded-full border border-primary px-2.5 py-0.5
-              text-xs text-primary transition-colors
-              hover:bg-primary hover:text-white"
+            className="rounded-full border border-primary px-2.5 py-0.5 text-xs text-primary transition-colors hover:bg-primary hover:text-white"
           >
             {t("clearFilter", lang)}
           </button>
         )}
       </div>
 
-      {/* Level 1: Categories */}
+      <SectionLabel zh="主类" en="Primary" lang={lang} />
       <div className="flex flex-wrap gap-1.5">
-        {taxonomy.categories.map((cat) => {
-          const count = categoryCounts.get(cat.name) ?? 0;
+        {categories.map((category) => {
+          const count = categoryCounts.get(category.key) ?? 0;
           if (count === 0) return null;
-          const isSelected = selectedCategories.includes(cat.name);
+          const selected = selectedCategories.includes(category.key);
           return (
             <button
-              key={cat.name}
-              onClick={() => onToggleCategory(cat.name)}
-              title={cat.description}
-              className={`inline-flex items-center gap-1 rounded-full
-                px-2.5 py-1 text-xs leading-none transition-colors
-                duration-150 ${
-                  isSelected
-                    ? "bg-primary text-white"
-                    : "bg-surface text-text hover:bg-surface"
-                }`}
+              key={category.key}
+              onClick={() => onToggleCategory(category.key)}
+              title={category.description}
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs leading-none transition-colors duration-150 ${
+                selected ? "bg-primary text-white" : "bg-surface text-text hover:bg-surface"
+              }`}
             >
-              {translateCategory(cat.name, lang)}
-              <span
-                className={`text-[10px] ${
-                  isSelected ? "text-white/70" : "text-subtext"
-                }`}
-              >
+              {getPrimaryCategoryLabel(category.key, lang)}
+              <span className={`text-[10px] ${selected ? "text-white/70" : "text-subtext"}`}>
                 {count}
               </span>
             </button>
@@ -108,39 +102,79 @@ export default function TagFilter({
         })}
       </div>
 
-      {/* Level 2: Tags under selected categories */}
-      {visibleTags.length > 0 && (
-        <div
-          className="mt-2 flex max-h-28 flex-wrap gap-1 overflow-y-auto
-            border-t border-border/50 pt-2 pr-1"
-          style={{ WebkitOverflowScrolling: "touch" }}
-        >
-          {visibleTags.map((tag) => {
-            const isSelected = selectedTags.includes(tag);
-            const count = tagCounts.get(tag) ?? 0;
-            return (
-              <button
-                key={tag}
-                onClick={() => onToggleTag(tag)}
-                className={`inline-flex items-center gap-1 rounded-full
-                  px-2 py-0.5 font-mono text-[11px] leading-none
-                  transition-colors duration-150 ${
-                    isSelected
-                      ? "bg-primary/80 text-white"
-                      : "bg-surface text-text hover:bg-surface"
-                  }`}
-              >
-                {translateTag(tag, lang)}
-                <span
-                  className={`text-[9px] ${
-                    isSelected ? "text-white/70" : "text-subtext"
+      {patternCounts.length > 0 && (
+        <div className="mt-2 border-t border-border/50 pt-2">
+          <SectionLabel zh="模式" en="Patterns" lang={lang} />
+          <div className="flex flex-wrap gap-1.5">
+            {patternCounts.map(({ key, count }) => {
+              const selected = selectedPatterns.includes(key);
+              return (
+                <button
+                  key={key}
+                  onClick={() => onTogglePattern(key)}
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] leading-none transition-colors duration-150 ${
+                    selected ? "bg-primary/80 text-white" : "bg-surface text-text hover:bg-surface"
                   }`}
                 >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+                  {getFacetLabel("pattern", key, lang)}
+                  <span className={`text-[9px] ${selected ? "text-white/70" : "text-subtext"}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {topicCounts.length > 0 && (
+        <div className="mt-2 border-t border-border/50 pt-2">
+          <SectionLabel zh="主题" en="Topics" lang={lang} />
+          <div className="flex max-h-24 flex-wrap gap-1 overflow-y-auto pr-1">
+            {topicCounts.map(({ key, count }) => {
+              const selected = selectedTopics.includes(key);
+              return (
+                <button
+                  key={key}
+                  onClick={() => onToggleTopic(key)}
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] leading-none transition-colors duration-150 ${
+                    selected ? "bg-primary/80 text-white" : "bg-surface text-text hover:bg-surface"
+                  }`}
+                >
+                  {getFacetLabel("topic", key, lang)}
+                  <span className={`text-[9px] ${selected ? "text-white/70" : "text-subtext"}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {allTags.length > 0 && (
+        <div className="mt-2 border-t border-border/50 pt-2">
+          <SectionLabel zh="叶子标签" en="Leaf Tags" lang={lang} />
+          <div className="flex max-h-28 flex-wrap gap-1 overflow-y-auto pr-1">
+            {allTags.map((tag) => {
+              const selected = selectedTags.includes(tag);
+              const count = tagCounts.get(tag) ?? 0;
+              return (
+                <button
+                  key={tag}
+                  onClick={() => onToggleTag(tag)}
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[11px] leading-none transition-colors duration-150 ${
+                    selected ? "bg-primary/80 text-white" : "bg-surface text-text hover:bg-surface"
+                  }`}
+                >
+                  {translateTag(tag, lang)}
+                  <span className={`text-[9px] ${selected ? "text-white/70" : "text-subtext"}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

@@ -9,8 +9,44 @@ import ImageLightbox from "./ImageLightbox";
 import { useActionDialog } from "./useActionDialog";
 import type { FAQItem as FAQItemType, VoteType } from "@/src/types/faq";
 import { t, getDownvoteReasons, translateTag } from "@/lib/i18n";
+import { getFacetLabel, getPrimaryCategoryLabel } from "@/lib/taxonomy";
 
 const RENDER_TIME_TS = Date.now();
+
+function getTaxonomyPills(item: FAQItemType, lang: "zh" | "en") {
+  const pills: { key: string; label: string; kind: "category" | "facet" }[] = [];
+
+  if (item.primaryCategory) {
+    pills.push({
+      key: `primary:${item.primaryCategory}`,
+      label: getPrimaryCategoryLabel(item.primaryCategory, lang),
+      kind: "category",
+    });
+  }
+  if (item.secondaryCategory) {
+    pills.push({
+      key: `secondary:${item.secondaryCategory}`,
+      label: getPrimaryCategoryLabel(item.secondaryCategory, lang),
+      kind: "category",
+    });
+  }
+  for (const topic of item.topics?.slice(0, 2) ?? []) {
+    pills.push({
+      key: `topic:${topic}`,
+      label: getFacetLabel("topic", topic, lang),
+      kind: "facet",
+    });
+  }
+  for (const pattern of item.patterns?.slice(0, 1) ?? []) {
+    pills.push({
+      key: `pattern:${pattern}`,
+      label: getFacetLabel("pattern", pattern, lang),
+      kind: "facet",
+    });
+  }
+
+  return pills.slice(0, 4);
+}
 
 interface FAQItemProps {
   item: FAQItemType;
@@ -227,9 +263,9 @@ function FAQItem({
   const [detailedOverride, setDetailedOverride] = useState<boolean | null>(null);
   const [showVersions, setShowVersions] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  useEffect(() => { setDetailedOverride(null); }, [globalDetailed]);
   const detailed = detailedOverride ?? globalDetailed;
   const hasTimelinessWarning = (item.downvoteCount ?? 0) >= 3;
+  const taxonomyPills = getTaxonomyPills(item, lang);
   const isNewlyCreated = item.createdAt &&
     (RENDER_TIME_TS - new Date(item.createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000;
   const isRecentlyUpdated = item.currentVersion && item.currentVersion > 1 && item.lastUpdatedAt &&
@@ -303,6 +339,18 @@ function FAQItem({
               <span className="text-[10px] text-subtext md:text-[11px]">
                 {item.date}
               </span>
+              {taxonomyPills.map((pill) => (
+                <span
+                  key={pill.key}
+                  className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ${
+                    pill.kind === "category"
+                      ? "bg-surface text-text"
+                      : "border-[0.5px] border-border bg-panel text-subtext"
+                  }`}
+                >
+                  {pill.label}
+                </span>
+              ))}
               {item.currentVersion && item.currentVersion > 1 && userTier === "premium" && (
                 <span className="relative">
                   <button

@@ -1,0 +1,316 @@
+{
+  "categories": [
+    {
+      "key": "fundamentals",
+      "zh": "基础概念",
+      "en": "Fundamentals",
+      "description": "数学直觉、优化基础、表示学习基础",
+      "status": "active",
+      "aliases": ["基础", "fundamental"]
+    },
+    {
+      "key": "model_architecture",
+      "zh": "模型结构",
+      "en": "Model Architecture",
+      "description": "模型组件、结构机制、组合方式",
+      "status": "active",
+      "aliases": ["architecture", "model_structure"]
+    },
+    {
+      "key": "pretraining_data",
+      "zh": "预训练与数据",
+      "en": "Pretraining & Data",
+      "description": "语料、分词、预训练目标与持续预训练",
+      "status": "active",
+      "aliases": ["pretraining", "data"]
+    },
+    {
+      "key": "post_training_alignment",
+      "zh": "后训练与对齐",
+      "en": "Post-training & Alignment",
+      "description": "指令微调、偏好对齐、蒸馏与参数高效微调",
+      "status": "active",
+      "aliases": ["post_training", "alignment", "post-training"]
+    },
+    {
+      "key": "reinforcement_learning",
+      "zh": "强化学习",
+      "en": "Reinforcement Learning",
+      "description": "奖励驱动学习、策略优化与 RLHF 策略阶段",
+      "status": "active",
+      "aliases": ["rl", "reinforcement"]
+    },
+    {
+      "key": "retrieval_agent_systems",
+      "zh": "检索与 Agent 系统",
+      "en": "Retrieval & Agent Systems",
+      "description": "检索、RAG、工作流、工具调用、记忆与 Agent 编排",
+      "status": "active",
+      "aliases": ["retrieval_agent", "agents", "agent_systems"]
+    },
+    {
+      "key": "inference_deployment",
+      "zh": "推理与部署",
+      "en": "Inference & Deployment",
+      "description": "推理优化、量化、KV Cache、Serving 与部署",
+      "status": "active",
+      "aliases": ["inference", "deployment", "serving"]
+    },
+    {
+      "key": "evaluation_safety",
+      "zh": "评测与安全",
+      "en": "Evaluation & Safety",
+      "description": "评测、幻觉分析、红队、护栏、审核与治理",
+      "status": "active",
+      "aliases": ["evaluation", "safety", "governance"]
+    }
+  ],
+  "facets": {
+    "pattern": [
+      {
+        "key": "workflow",
+        "zh": "工作流",
+        "en": "Workflow",
+        "description": "预定义步骤编排的系统形态",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "rag",
+        "zh": "RAG",
+        "en": "RAG",
+        "description": "检索增强生成系统",
+        "status": "active",
+        "aliases": ["retrieval_augmented_generation"]
+      },
+      {
+        "key": "tool_use",
+        "zh": "工具调用",
+        "en": "Tool Use",
+        "description": "模型通过工具完成任务",
+        "status": "active",
+        "aliases": ["tooluse", "tool_calling"]
+      },
+      {
+        "key": "single_agent",
+        "zh": "单 Agent",
+        "en": "Single Agent",
+        "description": "单个 Agent 驱动的系统",
+        "status": "active",
+        "aliases": ["agent"]
+      },
+      {
+        "key": "multi_agent",
+        "zh": "多 Agent",
+        "en": "Multi-agent",
+        "description": "多个 Agent 协作的系统",
+        "status": "active",
+        "aliases": ["multiagent", "multi-agent"]
+      },
+      {
+        "key": "memory",
+        "zh": "记忆",
+        "en": "Memory",
+        "description": "对话或长期上下文记忆机制",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "planner_executor",
+        "zh": "规划-执行",
+        "en": "Planner-Executor",
+        "description": "规划与执行分离的系统模式",
+        "status": "active",
+        "aliases": ["planner", "planner_executor_pattern"]
+      },
+      {
+        "key": "human_in_the_loop",
+        "zh": "人在回路",
+        "en": "Human in the Loop",
+        "description": "人工参与审核或决策的系统模式",
+        "status": "active",
+        "aliases": ["hitl", "human_in_loop"]
+      }
+    ],
+    "topic": [
+      {
+        "key": "transformer",
+        "zh": "Transformer",
+        "en": "Transformer",
+        "description": "Transformer 架构相关主题",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "attention",
+        "zh": "注意力",
+        "en": "Attention",
+        "description": "注意力机制相关主题",
+        "status": "active",
+        "aliases": ["attention_mechanism", "注意力机制"]
+      },
+      {
+        "key": "embedding",
+        "zh": "Embedding",
+        "en": "Embedding",
+        "description": "表示向量与嵌入主题",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "rope",
+        "zh": "RoPE",
+        "en": "RoPE",
+        "description": "旋转位置编码主题",
+        "status": "active",
+        "aliases": ["rotary_position_embedding"]
+      },
+      {
+        "key": "residual_connection",
+        "zh": "残差连接",
+        "en": "Residual Connection",
+        "description": "残差与跳连相关主题",
+        "status": "active",
+        "aliases": ["residual", "skip_connection"]
+      },
+      {
+        "key": "normalization",
+        "zh": "归一化",
+        "en": "Normalization",
+        "description": "LayerNorm、RMSNorm 等归一化主题",
+        "status": "active",
+        "aliases": ["norm"]
+      },
+      {
+        "key": "lora",
+        "zh": "LoRA",
+        "en": "LoRA",
+        "description": "参数高效微调主题",
+        "status": "active",
+        "aliases": ["qlora"]
+      },
+      {
+        "key": "sft",
+        "zh": "SFT",
+        "en": "SFT",
+        "description": "监督微调主题",
+        "status": "active",
+        "aliases": ["supervised_fine_tuning", "instruction_tuning"]
+      },
+      {
+        "key": "dpo",
+        "zh": "DPO",
+        "en": "DPO",
+        "description": "直接偏好优化主题",
+        "status": "active",
+        "aliases": ["direct_preference_optimization"]
+      },
+      {
+        "key": "reward_model",
+        "zh": "奖励模型",
+        "en": "Reward Model",
+        "description": "奖励建模与偏好评分主题",
+        "status": "active",
+        "aliases": ["rm"]
+      },
+      {
+        "key": "ppo",
+        "zh": "PPO",
+        "en": "PPO",
+        "description": "近端策略优化主题",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "grpo",
+        "zh": "GRPO",
+        "en": "GRPO",
+        "description": "群体相对策略优化主题",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "kv_cache",
+        "zh": "KV Cache",
+        "en": "KV Cache",
+        "description": "自回归推理缓存主题",
+        "status": "active",
+        "aliases": ["kvcache", "kvcache"]
+      },
+      {
+        "key": "quantization",
+        "zh": "量化",
+        "en": "Quantization",
+        "description": "模型量化与低比特表示主题",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "distillation",
+        "zh": "蒸馏",
+        "en": "Distillation",
+        "description": "模型蒸馏与压缩主题",
+        "status": "active",
+        "aliases": []
+      }
+    ],
+    "tool_stack": [
+      {
+        "key": "pytorch",
+        "zh": "PyTorch",
+        "en": "PyTorch",
+        "description": "PyTorch 生态工具栈",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "transformers",
+        "zh": "Transformers",
+        "en": "Transformers",
+        "description": "Hugging Face Transformers 工具栈",
+        "status": "active",
+        "aliases": ["hf_transformers"]
+      },
+      {
+        "key": "trl",
+        "zh": "TRL",
+        "en": "TRL",
+        "description": "Hugging Face TRL 训练工具栈",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "vllm",
+        "zh": "vLLM",
+        "en": "vLLM",
+        "description": "vLLM 推理服务工具栈",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "llama_cpp",
+        "zh": "llama.cpp",
+        "en": "llama.cpp",
+        "description": "llama.cpp 本地推理工具栈",
+        "status": "active",
+        "aliases": ["llama.cpp"]
+      },
+      {
+        "key": "langchain",
+        "zh": "LangChain",
+        "en": "LangChain",
+        "description": "LangChain 应用编排工具栈",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "smolagents",
+        "zh": "smolagents",
+        "en": "smolagents",
+        "description": "smolagents Agent 工具栈",
+        "status": "active",
+        "aliases": []
+      }
+    ]
+  }
+}

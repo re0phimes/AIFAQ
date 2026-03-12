@@ -5,31 +5,35 @@ import {
   upsertUserPreferences,
   type DBUserPreferencesPatch,
 } from "@/lib/db";
-import taxonomy from "@/data/tag-taxonomy.json";
+import { normalizePrimaryCategoryKey } from "@/lib/taxonomy";
+import type { PrimaryCategoryKey } from "@/src/types/faq";
 
 const VALID_LANGUAGES = new Set(["zh", "en"]);
 const VALID_PAGE_SIZES = new Set([10, 20, 50, 100]);
-const VALID_CATEGORIES = new Set(taxonomy.categories.map((category) => category.name));
 
 function normalizeResponse(
   prefs: Awaited<ReturnType<typeof getUserPreferences>>
 ): Record<string, unknown> {
+  const focusCategories = prefs?.focus_categories
+    ?.map((category) => normalizePrimaryCategoryKey(category))
+    .filter((category): category is PrimaryCategoryKey => category !== null) ?? [];
   return {
     language: prefs?.language ?? null,
     page_size: prefs?.page_size ?? null,
     default_detailed: prefs?.default_detailed ?? null,
-    focus_categories: prefs?.focus_categories ?? [],
+    focus_categories: Array.from(new Set(focusCategories)),
     updated_at: prefs?.updated_at?.toISOString() ?? null,
   };
 }
 
-function sanitizeCategories(input: unknown): string[] | null {
+function sanitizeCategories(input: unknown): PrimaryCategoryKey[] | null {
   if (input === null) return [];
   if (!Array.isArray(input)) return null;
-  const unique = Array.from(
-    new Set(input.filter((item): item is string => typeof item === "string"))
-  );
-  return unique.filter((item) => VALID_CATEGORIES.has(item));
+  const normalized = input
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => normalizePrimaryCategoryKey(item))
+    .filter((item): item is PrimaryCategoryKey => item !== null);
+  return Array.from(new Set(normalized));
 }
 
 export async function GET(): Promise<NextResponse> {

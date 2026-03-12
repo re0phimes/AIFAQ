@@ -7,6 +7,7 @@ import ImageGallery from "./ImageGallery";
 import ImageLightbox from "./ImageLightbox";
 import type { FAQItem as FAQItemType, VoteType } from "@/src/types/faq";
 import { t, translateTag } from "@/lib/i18n";
+import { getFacetLabel, getPrimaryCategoryLabel } from "@/lib/taxonomy";
 
 interface DetailModalProps {
   item: FAQItemType | null;
@@ -124,6 +125,23 @@ function DetailModal({
     );
   }
 
+  const taxonomyPills = [
+    item.primaryCategory
+      ? { key: `primary:${item.primaryCategory}`, label: getPrimaryCategoryLabel(item.primaryCategory, lang) }
+      : null,
+    item.secondaryCategory
+      ? { key: `secondary:${item.secondaryCategory}`, label: getPrimaryCategoryLabel(item.secondaryCategory, lang) }
+      : null,
+    ...(item.patterns ?? []).slice(0, 1).map((pattern) => ({
+      key: `pattern:${pattern}`,
+      label: getFacetLabel("pattern", pattern, lang),
+    })),
+    ...(item.topics ?? []).slice(0, 2).map((topic) => ({
+      key: `topic:${topic}`,
+      label: getFacetLabel("topic", topic, lang),
+    })),
+  ].filter((pill): pill is { key: string; label: string } => pill !== null);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
@@ -172,6 +190,14 @@ function DetailModal({
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <span className="text-xs text-subtext">{item.date}</span>
+              {taxonomyPills.map((pill) => (
+                <span
+                  key={pill.key}
+                  className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-text"
+                >
+                  {pill.label}
+                </span>
+              ))}
               {item.tags.map((tag) => (
                 <span
                   key={tag}

@@ -4,7 +4,7 @@ import { createFaqItem, getAllFaqItems, getPublishedFaqItems, updateFaqStatus } 
 import { analyzeFAQ } from "@/lib/ai";
 import { waitUntil } from "@vercel/functions";
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export async function GET(): Promise<NextResponse> {
   const authed = await verifyAdmin();
   if (!authed) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -46,7 +46,12 @@ async function processAIAnalysis(id: number, question: string, answerRaw: string
       answer_brief_en: result.answer_brief_en,
       question_en: result.question_en,
       tags: result.tags,
-      categories: result.categories,
+      categories: [],
+      primary_category: result.primary_category,
+      secondary_category: result.secondary_category,
+      patterns: result.patterns,
+      topics: result.topics,
+      tool_stack: result.tool_stack,
       references: result.references,
       images: result.images,
     });

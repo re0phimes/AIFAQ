@@ -1,3 +1,6 @@
+import type { PrimaryCategoryKey } from "@/src/types/faq";
+import { normalizePrimaryCategoryKey } from "./taxonomy";
+
 export type PreferenceLang = "zh" | "en";
 
 export interface UserPreferencesSnapshot {
@@ -31,7 +34,11 @@ function parseUpdatedAt(value: string | undefined): number {
 
 function dedupeCategories(values: string[] | undefined): string[] {
   if (!values || values.length === 0) return [];
-  return Array.from(new Set(values.filter(Boolean)));
+  const normalized = values
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .map((value) => normalizePrimaryCategoryKey(value))
+    .filter((value): value is PrimaryCategoryKey => value !== null);
+  return Array.from(new Set(normalized));
 }
 
 function normalize(snapshot: Partial<UserPreferencesSnapshot>): UserPreferencesSnapshot {

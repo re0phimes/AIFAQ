@@ -1,12 +1,27 @@
-import type { Reference, FAQImage } from "@/src/types/faq";
+import type { Reference, FAQImage, PrimaryCategoryKey } from "@/src/types/faq";
 import type { CandidateImage } from "./image-extractor";
-import taxonomy from "@/data/tag-taxonomy.json";
+import {
+  getFacetOptions,
+  getPrimaryCategoryOptions,
+  normalizeFacetValue,
+  normalizePrimaryCategoryKey,
+} from "./taxonomy";
 
-const CATEGORY_NAMES = (taxonomy as { categories: { name: string }[] }).categories.map(c => c.name);
+const PRIMARY_CATEGORY_OPTIONS = getPrimaryCategoryOptions();
+const PRIMARY_CATEGORY_NAMES = PRIMARY_CATEGORY_OPTIONS.map(
+  (category) => `${category.key} (${category.zh})`
+);
+const PATTERN_OPTIONS = getFacetOptions("pattern");
+const TOPIC_OPTIONS = getFacetOptions("topic");
+const TOOL_STACK_OPTIONS = getFacetOptions("tool_stack");
 
 interface AIAnalysisResult {
   tags: string[];
-  categories: string[];
+  primary_category: PrimaryCategoryKey | null;
+  secondary_category: PrimaryCategoryKey | null;
+  patterns: string[];
+  topics: string[];
+  tool_stack: string[];
   references: Reference[];
   answer: string;
   answer_brief: string;
@@ -37,13 +52,17 @@ export async function analyzeFAQ(
 要求:
 1. tags: 为这个问答生成 2-5 个标签。尽量复用已有标签列表中的标签，保持一致性。标签应该是中文的技术术语。
 2. references: 根据问答内容，推荐 1-3 个相关的论文 (arXiv) 或技术博客文章。每个引用包含 type ("paper" 或 "blog")、title 和 url。
-3. answer: 对原始答案进行扩展和深化，补充更多推导过程、示例、对比分析，使其更完整、准确。保持 Markdown 格式，支持 LaTeX 公式 (用 $ 或 $$ 包裹)。中文输出。
-4. answer_brief: 中文简要版答案。如果原始答案不超过 500 字符，则保持原文不变；如果超过 500 字符，则压缩为不超过 500 字符的精炼摘要。
-5. answer_en: answer 的英文翻译。保持 Markdown 格式和 LaTeX 公式。
-6. answer_brief_en: answer_brief 的英文翻译。
-7. question_en: 问题的英文翻译。
-8. categories: 从以下大标签列表中选择 1-2 个最匹配的分类: ${CATEGORY_NAMES.join(", ")}
-${hasImages ? `9. images: 从候选图片列表中选择 0-3 张与答案内容最相关的图片。输出数组，每项包含 url、caption (简短中文描述)、source ("blog" 或 "paper")。选择标准：图片的 caption/alt/context 与答案内容匹配度高，优先选择架构图和流程图，避免选择数据表格截图。如果没有合适的图片，返回空数组 []。` : ""}
+3. primary_category: 从以下一级主类中选择 1 个最匹配的 canonical key: ${PRIMARY_CATEGORY_NAMES.join(", ")}
+4. secondary_category: 可选的辅类。如果没有强相关的第二主线，返回 null。只能从同一份一级主类列表里选择 canonical key。
+5. patterns: 从以下 pattern key 中选择 0-3 个: ${PATTERN_OPTIONS.map((option) => `${option.key} (${option.zh})`).join(", ")}
+6. topics: 从以下 topic key 中选择 0-4 个: ${TOPIC_OPTIONS.map((option) => `${option.key} (${option.zh})`).join(", ")}
+7. tool_stack: 从以下 tool_stack key 中选择 0-3 个: ${TOOL_STACK_OPTIONS.map((option) => `${option.key} (${option.zh})`).join(", ")}
+8. answer: 对原始答案进行扩展和深化，补充更多推导过程、示例、对比分析，使其更完整、准确。保持 Markdown 格式，支持 LaTeX 公式 (用 $ 或 $$ 包裹)。中文输出。
+9. answer_brief: 中文简要版答案。如果原始答案不超过 500 字符，则保持原文不变；如果超过 500 字符，则压缩为不超过 500 字符的精炼摘要。
+10. answer_en: answer 的英文翻译。保持 Markdown 格式和 LaTeX 公式。
+11. answer_brief_en: answer_brief 的英文翻译。
+12. question_en: 问题的英文翻译。
+${hasImages ? `13. images: 从候选图片列表中选择 0-3 张与答案内容最相关的图片。输出数组，每项包含 url、caption (简短中文描述)、source ("blog" 或 "paper")。选择标准：图片的 caption/alt/context 与答案内容匹配度高，优先选择架构图和流程图，避免选择数据表格截图。如果没有合适的图片，返回空数组 []。` : ""}
 
 已有标签列表: ${existingTags.join(", ")}
 
@@ -92,9 +111,29 @@ ${answerRaw}`;
   if (!Array.isArray(parsed.tags) || !Array.isArray(parsed.references) || typeof parsed.answer !== "string") {
     throw new Error("AI returned invalid JSON structure");
   }
-  if (!Array.isArray(parsed.categories)) {
-    parsed.categories = [];
-  }
+  parsed.primary_category =
+    typeof parsed.primary_category === "string"
+      ? normalizePrimaryCategoryKey(parsed.primary_category)
+      : null;
+  parsed.secondary_category =
+    typeof parsed.secondary_category === "string"
+      ? normalizePrimaryCategoryKey(parsed.secondary_category)
+      : null;
+  parsed.patterns = Array.isArray(parsed.patterns)
+    ? parsed.patterns
+        .map((value) => normalizeFacetValue("pattern", typeof value === "string" ? value : null))
+        .filter((value): value is string => value !== null)
+    : [];
+  parsed.topics = Array.isArray(parsed.topics)
+    ? parsed.topics
+        .map((value) => normalizeFacetValue("topic", typeof value === "string" ? value : null))
+        .filter((value): value is string => value !== null)
+    : [];
+  parsed.tool_stack = Array.isArray(parsed.tool_stack)
+    ? parsed.tool_stack
+        .map((value) => normalizeFacetValue("tool_stack", typeof value === "string" ? value : null))
+        .filter((value): value is string => value !== null)
+    : [];
 
   // Defaults for bilingual fields
   if (typeof parsed.answer_brief !== "string") parsed.answer_brief = answerRaw;

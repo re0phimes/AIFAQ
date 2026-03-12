@@ -7,7 +7,7 @@ import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
 import FAQList from "@/components/FAQList";
 import DetailModal from "@/components/DetailModal";
 import { useActionDialog } from "@/components/useActionDialog";
-import type { FAQItem, VoteType } from "@/src/types/faq";
+import type { FAQItem, PrimaryCategoryKey, VoteType } from "@/src/types/faq";
 import {
   buildConflictKey,
   buildPrefsHash,
@@ -16,6 +16,7 @@ import {
   type PreferenceSyncMeta,
   type UserPreferencesSnapshot,
 } from "@/lib/preferences-sync";
+import { normalizePrimaryCategoryKey } from "@/lib/taxonomy";
 import { t } from "@/lib/i18n";
 
 const LS_VOTED = "aifaq-voted";
@@ -70,6 +71,15 @@ function toSnapshot(prefs: LocalPreferences): UserPreferencesSnapshot {
   };
 }
 
+function normalizeFocusCategories(values: unknown): string[] {
+  if (!Array.isArray(values)) return [];
+  const normalized = values
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => normalizePrimaryCategoryKey(item))
+    .filter((item): item is PrimaryCategoryKey => item !== null);
+  return Array.from(new Set(normalized));
+}
+
 function saveLegacyPreferenceKeys(prefs: LocalPreferences): void {
   if (prefs.language) localStorage.setItem("aifaq-lang", prefs.language);
   if (prefs.pageSize !== undefined) {
@@ -102,7 +112,7 @@ function loadLocalPreferences(): LocalPreferences {
         pageSize: typeof parsed.pageSize === "number" ? parsed.pageSize : undefined,
         defaultDetailed:
           typeof parsed.defaultDetailed === "boolean" ? parsed.defaultDetailed : undefined,
-        focusCategories: Array.isArray(parsed.focusCategories) ? parsed.focusCategories : [],
+        focusCategories: normalizeFocusCategories(parsed.focusCategories),
         updatedAt:
           typeof parsed.updatedAt === "string" ? parsed.updatedAt : new Date().toISOString(),
       };
@@ -121,9 +131,7 @@ function loadLocalPreferences(): LocalPreferences {
   try {
     if (focusRaw) {
       const parsed = JSON.parse(focusRaw) as unknown;
-      if (Array.isArray(parsed)) {
-        focusCategories = parsed.filter((item): item is string => typeof item === "string");
-      }
+      focusCategories = normalizeFocusCategories(parsed);
     }
   } catch {
     // ignore
@@ -182,7 +190,7 @@ function normalizeServerPreferences(data: ServerPreferencesResponse): LocalPrefe
     language: data.language ?? undefined,
     pageSize: data.page_size ?? undefined,
     defaultDetailed: data.default_detailed ?? undefined,
-    focusCategories: data.focus_categories ?? [],
+    focusCategories: normalizeFocusCategories(data.focus_categories),
     updatedAt: data.updated_at ?? new Date().toISOString(),
   };
 }
@@ -284,7 +292,10 @@ function FAQPageInner({ items }: FAQPageProps) {
         language: patch.language ?? current.language,
         pageSize: patch.pageSize ?? current.pageSize,
         defaultDetailed: patch.defaultDetailed ?? current.defaultDetailed,
-        focusCategories: patch.focusCategories ?? current.focusCategories,
+        focusCategories:
+          patch.focusCategories !== undefined
+            ? normalizeFocusCategories(patch.focusCategories)
+            : current.focusCategories,
         updatedAt: new Date().toISOString(),
       };
       applyPreferencesLocalOnly(next);
@@ -300,7 +311,7 @@ function FAQPageInner({ items }: FAQPageProps) {
       if (patch.language !== undefined) remotePatch.language = patch.language;
       if (patch.pageSize !== undefined) remotePatch.page_size = patch.pageSize;
       if (patch.defaultDetailed !== undefined) remotePatch.default_detailed = patch.defaultDetailed;
-      if (patch.focusCategories !== undefined) remotePatch.focus_categories = patch.focusCategories;
+      if (patch.focusCategories !== undefined) remotePatch.focus_categories = next.focusCategories;
 
       await patchRemotePreferences(remotePatch);
     },

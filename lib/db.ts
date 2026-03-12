@@ -1,5 +1,10 @@
 import { sql } from "@vercel/postgres";
-import type { Reference, FAQImage } from "@/src/types/faq";
+import { normalizeFacetValue, normalizePrimaryCategoryKey } from "./taxonomy";
+import type {
+  FAQImage,
+  PrimaryCategoryKey,
+  Reference,
+} from "@/src/types/faq";
 import {
   mergePreferences,
   type UserPreferencesSnapshot,
@@ -25,6 +30,11 @@ export interface DBFaqItem {
   answer_brief_en: string | null;
   tags: string[];
   categories: string[];
+  primary_category: PrimaryCategoryKey | null;
+  secondary_category: PrimaryCategoryKey | null;
+  patterns: string[];
+  topics: string[];
+  tool_stack: string[];
   references: Reference[];
   images: FAQImage[];
   upvote_count: number;
@@ -40,6 +50,58 @@ export interface DBFaqItem {
   reviewed_by: string | null;
   current_version: number;
   last_updated_at: Date | null;
+}
+
+interface RawFaqTaxonomyFields {
+  primary_category?: unknown;
+  secondary_category?: unknown;
+  patterns?: unknown;
+  topics?: unknown;
+  tool_stack?: unknown;
+}
+
+export interface NormalizedFaqTaxonomyFields {
+  primaryCategory: PrimaryCategoryKey | null;
+  secondaryCategory: PrimaryCategoryKey | null;
+  patterns: string[];
+  topics: string[];
+  toolStack: string[];
+}
+
+function normalizeTextArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function normalizeFacetArray(
+  group: "pattern" | "topic" | "tool_stack",
+  value: unknown
+): string[] {
+  const normalized = normalizeTextArray(value)
+    .map((item) => normalizeFacetValue(group, item))
+    .filter((item): item is string => item !== null);
+  return [...new Set(normalized)];
+}
+
+export function normalizeFaqTaxonomyFields(
+  row: RawFaqTaxonomyFields
+): NormalizedFaqTaxonomyFields {
+  const primaryCategory =
+    typeof row.primary_category === "string"
+      ? normalizePrimaryCategoryKey(row.primary_category)
+      : null;
+  const secondaryCategory =
+    typeof row.secondary_category === "string"
+      ? normalizePrimaryCategoryKey(row.secondary_category)
+      : null;
+
+  return {
+    primaryCategory,
+    secondaryCategory,
+    patterns: normalizeFacetArray("pattern", row.patterns),
+    topics: normalizeFacetArray("topic", row.topics),
+    toolStack: normalizeFacetArray("tool_stack", row.tool_stack),
+  };
 }
 
 export async function initDB(): Promise<void> {
@@ -59,6 +121,11 @@ export async function initDB(): Promise<void> {
   `;
 
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS categories TEXT[] DEFAULT '{}'`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS primary_category TEXT`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS secondary_category TEXT`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS patterns TEXT[] DEFAULT '{}'`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS topics TEXT[] DEFAULT '{}'`;
+  await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS tool_stack TEXT[] DEFAULT '{}'`;
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS upvote_count INTEGER DEFAULT 0`;
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS downvote_count INTEGER DEFAULT 0`;
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS date VARCHAR(10) DEFAULT ''`;
@@ -310,6 +377,11 @@ export async function updateFaqStatus(
     answer?: string;
     tags?: string[];
     categories?: string[];
+    primary_category?: PrimaryCategoryKey | null;
+    secondary_category?: PrimaryCategoryKey | null;
+    patterns?: string[];
+    topics?: string[];
+    tool_stack?: string[];
     references?: Reference[];
     error_message?: string;
     answer_brief?: string;
@@ -342,12 +414,36 @@ export async function updateFaqStatus(
       shouldBumpVersion ? new Date().toISOString() : current?.last_updated_at?.toISOString() ?? null;
     const tagsLiteral = `{${(data.tags ?? []).map((t) => `"${t}"`).join(",")}}`;
     const categoriesLiteral = `{${(data.categories ?? []).map((c) => `"${c}"`).join(",")}}`;
+    const primaryCategory =
+      data.primary_category !== undefined
+        ? normalizePrimaryCategoryKey(data.primary_category)
+        : current?.primary_category ?? null;
+    const secondaryCategory =
+      data.secondary_category !== undefined
+        ? normalizePrimaryCategoryKey(data.secondary_category)
+        : current?.secondary_category ?? null;
+    const patternsLiteral = toTextArrayLiteral(
+      data.patterns !== undefined ? normalizeFacetArray("pattern", data.patterns) : current?.patterns ?? []
+    );
+    const topicsLiteral = toTextArrayLiteral(
+      data.topics !== undefined ? normalizeFacetArray("topic", data.topics) : current?.topics ?? []
+    );
+    const toolStackLiteral = toTextArrayLiteral(
+      data.tool_stack !== undefined
+        ? normalizeFacetArray("tool_stack", data.tool_stack)
+        : current?.tool_stack ?? []
+    );
     await sql`
       UPDATE faq_items
       SET status = ${status},
           answer = ${data.answer},
           tags = ${tagsLiteral}::text[],
           categories = ${categoriesLiteral}::text[],
+          primary_category = ${primaryCategory},
+          secondary_category = ${secondaryCategory},
+          patterns = ${patternsLiteral}::text[],
+          topics = ${topicsLiteral}::text[],
+          tool_stack = ${toolStackLiteral}::text[],
           "references" = ${JSON.stringify(data.references ?? [])}::jsonb,
           answer_brief = ${data.answer_brief ?? null},
           answer_en = ${data.answer_en ?? null},
@@ -417,6 +513,7 @@ export async function getFaqItemById(id: number): Promise<DBFaqItem | null> {
 }
 
 function rowToFaqItem(row: Record<string, unknown>): DBFaqItem {
+  const taxonomy = normalizeFaqTaxonomyFields(row);
   return {
     id: row.id as number,
     question: row.question as string,
@@ -428,6 +525,11 @@ function rowToFaqItem(row: Record<string, unknown>): DBFaqItem {
     answer_brief_en: (row.answer_brief_en as string | null) ?? null,
     tags: (row.tags as string[]) ?? [],
     categories: (row.categories as string[]) ?? [],
+    primary_category: taxonomy.primaryCategory,
+    secondary_category: taxonomy.secondaryCategory,
+    patterns: taxonomy.patterns,
+    topics: taxonomy.topics,
+    tool_stack: taxonomy.toolStack,
     references: (typeof row.references === "string"
       ? JSON.parse(row.references)
       : row.references) as Reference[],

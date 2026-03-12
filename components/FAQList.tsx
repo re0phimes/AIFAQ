@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import SearchBar, { type SearchMode } from "./SearchBar";
 import TagFilter from "./TagFilter";
 import FAQItem from "./FAQItem";
@@ -10,11 +11,14 @@ import Pagination from "./Pagination";
 import BackToTop from "./BackToTop";
 import BrandLogo from "./BrandLogo";
 import ThemeToggle from "./ThemeToggle";
-import taxonomy from "@/data/tag-taxonomy.json";
 import { t, paginationInfo } from "@/lib/i18n";
+import {
+  getFacetOptions,
+  getPrimaryCategoryOptions,
+  type PrimaryCategoryKey,
+} from "@/lib/taxonomy";
 import type {
   FAQItem as FAQItemType,
-  TagTaxonomy,
   VoteType,
 } from "@/src/types/faq";
 
@@ -107,7 +111,9 @@ export default function FAQList({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMode, setSearchMode] = useState<SearchMode>("combined");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<PrimaryCategoryKey[]>([]);
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+  const [selectedPatterns, setSelectedPatterns] = useState<string[]>([]);
   const [openItems, setOpenItems] = useState<Set<number>>(new Set());
   const [selectedItems, setSelectedItems] = useState<Set<number>>(loadSelected);
   const [view, setView] = useState<"list" | "reading">("list");
@@ -204,14 +210,55 @@ export default function FAQList({
     return { allTags: sorted, tagCounts: freq };
   }, [items]);
 
-  // 鏋勫缓 category -> tags 鏄犲皠
-  const categoryTagsMap = useMemo(() => {
-    const map = new Map<string, Set<string>>();
-    for (const cat of (taxonomy as TagTaxonomy).categories) {
-      map.set(cat.name, new Set(cat.tags));
+  const categoryOptions = useMemo(
+    () =>
+      getPrimaryCategoryOptions().map((category) => ({
+        key: category.key,
+        description: category.description,
+      })),
+    []
+  );
+
+  const topicOptions = useMemo(() => new Set(getFacetOptions("topic").map((option) => option.key)), []);
+  const patternOptions = useMemo(
+    () => new Set(getFacetOptions("pattern").map((option) => option.key)),
+    []
+  );
+
+  const { categoryCounts, topicCounts, patternCounts } = useMemo(() => {
+    const nextCategoryCounts = new Map<PrimaryCategoryKey, number>();
+    const nextTopicCounts = new Map<string, number>();
+    const nextPatternCounts = new Map<string, number>();
+
+    for (const item of items) {
+      const categories = new Set<PrimaryCategoryKey>();
+      if (item.primaryCategory) categories.add(item.primaryCategory);
+      if (item.secondaryCategory) categories.add(item.secondaryCategory);
+      for (const category of categories) {
+        nextCategoryCounts.set(category, (nextCategoryCounts.get(category) ?? 0) + 1);
+      }
+
+      for (const topic of item.topics ?? []) {
+        if (!topicOptions.has(topic)) continue;
+        nextTopicCounts.set(topic, (nextTopicCounts.get(topic) ?? 0) + 1);
+      }
+
+      for (const pattern of item.patterns ?? []) {
+        if (!patternOptions.has(pattern)) continue;
+        nextPatternCounts.set(pattern, (nextPatternCounts.get(pattern) ?? 0) + 1);
+      }
     }
-    return map;
-  }, []);
+
+    return {
+      categoryCounts: nextCategoryCounts,
+      topicCounts: [...nextTopicCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([key, count]) => ({ key, count })),
+      patternCounts: [...nextPatternCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([key, count]) => ({ key, count })),
+    };
+  }, [items, patternOptions, topicOptions]);
 
   // Filter logic
   const filtered = useMemo(() => {
@@ -219,11 +266,11 @@ export default function FAQList({
       session?.user?.tier === "premium" || session?.user?.role === "admin";
     let result = items;
 
-    // Focus filter (big category)
     if (showFocusOnly) {
       const focusSet = new Set(focusCategories);
       result = result.filter((item) =>
-        (item.categories ?? []).some((category) => focusSet.has(category))
+        (item.primaryCategory && focusSet.has(item.primaryCategory)) ||
+        (item.secondaryCategory && focusSet.has(item.secondaryCategory))
       );
     }
 
@@ -263,10 +310,21 @@ export default function FAQList({
 
     if (selectedCategories.length > 0) {
       result = result.filter((item) =>
-        selectedCategories.some((cat) => {
-          const catTags = categoryTagsMap.get(cat);
-          return catTags ? item.tags.some((tag) => catTags.has(tag)) : false;
-        })
+        selectedCategories.some(
+          (category) => item.primaryCategory === category || item.secondaryCategory === category
+        )
+      );
+    }
+
+    if (selectedTopics.length > 0) {
+      result = result.filter((item) =>
+        selectedTopics.some((topic) => item.topics?.includes(topic))
+      );
+    }
+
+    if (selectedPatterns.length > 0) {
+      result = result.filter((item) =>
+        selectedPatterns.some((pattern) => item.patterns?.includes(pattern))
       );
     }
 
@@ -281,7 +339,8 @@ export default function FAQList({
     searchMode,
     selectedTags,
     selectedCategories,
-    categoryTagsMap,
+    selectedTopics,
+    selectedPatterns,
     showFocusOnly,
     focusCategories,
     session?.user?.tier,
@@ -331,7 +390,23 @@ export default function FAQList({
 
   function handleToggleCategory(cat: string): void {
     setSelectedCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+      prev.includes(cat as PrimaryCategoryKey)
+        ? prev.filter((c) => c !== cat)
+        : [...prev, cat as PrimaryCategoryKey]
+    );
+    setCurrentPage(1);
+  }
+
+  function handleToggleTopic(topic: string): void {
+    setSelectedTopics((prev) =>
+      prev.includes(topic) ? prev.filter((item) => item !== topic) : [...prev, topic]
+    );
+    setCurrentPage(1);
+  }
+
+  function handleTogglePattern(pattern: string): void {
+    setSelectedPatterns((prev) =>
+      prev.includes(pattern) ? prev.filter((item) => item !== pattern) : [...prev, pattern]
     );
     setCurrentPage(1);
   }
@@ -443,7 +518,14 @@ export default function FAQList({
                   className="flex items-center gap-2 rounded-full border-[0.5px] border-border px-3 py-1 hover:bg-surface"
                 >
                   {session.user.image && (
-                    <img src={session.user.image} alt="" className="h-6 w-6 rounded-full" />
+                    <Image
+                      src={session.user.image}
+                      alt=""
+                      width={24}
+                      height={24}
+                      className="h-6 w-6 rounded-full"
+                      unoptimized
+                    />
                   )}
                   <span className="text-xs text-subtext">{session.user.name}</span>
                   <svg
@@ -523,17 +605,26 @@ export default function FAQList({
         />
         <div className="mt-2">
           <TagFilter
-            taxonomy={taxonomy as TagTaxonomy}
+            categories={categoryOptions}
+            categoryCounts={categoryCounts}
+            topicCounts={topicCounts}
+            patternCounts={patternCounts}
             allTags={allTags}
             tagCounts={tagCounts}
             selectedCategories={selectedCategories}
+            selectedTopics={selectedTopics}
+            selectedPatterns={selectedPatterns}
             selectedTags={selectedTags}
             onToggleCategory={handleToggleCategory}
+            onToggleTopic={handleToggleTopic}
+            onTogglePattern={handleTogglePattern}
             onToggleTag={handleToggleTag}
             lang={lang}
             onClearAll={() => {
               setSelectedTags([]);
               setSelectedCategories([]);
+              setSelectedTopics([]);
+              setSelectedPatterns([]);
               setCurrentPage(1);
             }}
           />
@@ -711,7 +802,7 @@ export default function FAQList({
             <div className="space-y-3">
               {paginatedItems.map((item, index) => (
                 <div
-                  key={item.id}
+                  key={`${item.id}-${globalDetailed ? "detailed" : "brief"}`}
                   className="faq-item-enter"
                   style={{ animationDelay: `${index * 30}ms` }}
                 >

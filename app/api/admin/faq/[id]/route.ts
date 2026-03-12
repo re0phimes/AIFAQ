@@ -58,10 +58,29 @@ export async function PATCH(
   }
 
   // Manual edit
-  if (body.question || body.answer || body.tags || body.references) {
+  if (
+    body.question ||
+    body.answer ||
+    body.tags ||
+    body.references ||
+    "categories" in body ||
+    "primary_category" in body ||
+    "secondary_category" in body ||
+    "patterns" in body ||
+    "topics" in body ||
+    "tool_stack" in body
+  ) {
     await updateFaqStatus(numId, body.status ?? item.status, {
       answer: body.answer ?? item.answer ?? undefined,
       tags: body.tags ?? item.tags,
+      categories: body.categories ?? item.categories,
+      primary_category:
+        "primary_category" in body ? body.primary_category : item.primary_category,
+      secondary_category:
+        "secondary_category" in body ? body.secondary_category : item.secondary_category,
+      patterns: "patterns" in body ? body.patterns : item.patterns,
+      topics: "topics" in body ? body.topics : item.topics,
+      tool_stack: "tool_stack" in body ? body.tool_stack : item.tool_stack,
       references: body.references ?? item.references,
     });
     const updated = await getFaqItemById(numId);
@@ -91,7 +110,12 @@ async function retryAnalysis(id: number, question: string, answerRaw: string): P
       answer_brief_en: result.answer_brief_en,
       question_en: result.question_en,
       tags: result.tags,
-      categories: result.categories,
+      categories: item?.categories ?? [],
+      primary_category: result.primary_category,
+      secondary_category: result.secondary_category,
+      patterns: result.patterns,
+      topics: result.topics,
+      tool_stack: result.tool_stack,
       references: result.references,
       images: result.images,
     });

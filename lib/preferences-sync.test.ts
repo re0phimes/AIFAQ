@@ -28,19 +28,19 @@ function snapshot(
 test("mergePreferences unions and dedupes focus categories", () => {
   const merged = mergePreferences(
     snapshot({
-      focusCategories: ["深度学习", "生成式 AI / LLM"],
+      focusCategories: ["model_architecture", "post_training_alignment"],
       updatedAt: LOCAL_NEW,
     }),
     snapshot({
-      focusCategories: ["深度学习", "机器学习基础"],
+      focusCategories: ["model_architecture", "fundamentals"],
       updatedAt: SERVER_OLD,
     })
   );
 
   assert.deepEqual(merged.focusCategories.sort(), [
-    "深度学习",
-    "生成式 AI / LLM",
-    "机器学习基础",
+    "fundamentals",
+    "model_architecture",
+    "post_training_alignment",
   ].sort());
 });
 
@@ -70,13 +70,13 @@ test("buildPrefsHash is stable regardless of focus category order", () => {
     language: "zh",
     pageSize: 20,
     defaultDetailed: false,
-    focusCategories: ["深度学习", "机器学习基础"],
+    focusCategories: ["model_architecture", "fundamentals"],
   });
   const b = snapshot({
     language: "zh",
     pageSize: 20,
     defaultDetailed: false,
-    focusCategories: ["机器学习基础", "深度学习"],
+    focusCategories: ["fundamentals", "model_architecture"],
   });
 
   assert.equal(buildPrefsHash(a), buildPrefsHash(b));
@@ -87,14 +87,14 @@ test("buildPrefsHash ignores updatedAt when preference content is the same", () 
     language: "zh",
     pageSize: 20,
     defaultDetailed: false,
-    focusCategories: ["深度学习"],
+    focusCategories: ["model_architecture"],
     updatedAt: "2026-03-03T00:00:00.000Z",
   });
   const b = snapshot({
     language: "zh",
     pageSize: 20,
     defaultDetailed: false,
-    focusCategories: ["深度学习"],
+    focusCategories: ["model_architecture"],
     updatedAt: "2026-03-03T23:59:59.000Z",
   });
 
@@ -178,4 +178,22 @@ test("finalizeSyncMeta falls back to previous dismissed key", () => {
 
   assert.equal(next.dismissedConflictKey, "u1:localA:server-old-hash");
   assert.equal(next.lastSyncedHash, "server-new-hash");
+});
+
+test("mergePreferences normalizes and drops invalid focus categories", () => {
+  const merged = mergePreferences(
+    snapshot({
+      focusCategories: ["模型结构", "invalid-category", "fundamentals"],
+      updatedAt: LOCAL_NEW,
+    }),
+    snapshot({
+      focusCategories: ["基础概念", "model_architecture"],
+      updatedAt: SERVER_OLD,
+    })
+  );
+
+  assert.deepEqual(merged.focusCategories.sort(), [
+    "fundamentals",
+    "model_architecture",
+  ]);
 });

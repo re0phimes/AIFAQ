@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { t, translateTag } from "@/lib/i18n";
+import { getFacetLabel, getPrimaryCategoryLabel } from "@/lib/taxonomy";
 import type { FAQItem } from "@/src/types/faq";
 import MarkdownContent from "@/components/MarkdownContent";
 import ReferenceList from "@/components/ReferenceList";
@@ -45,6 +46,18 @@ export default function FavoriteCard({
     lang === "en" && faq.answerBriefEn
       ? faq.answerBriefEn
       : faq.answerBrief ?? faq.answer;
+  const taxonomyPills = [
+    faq.primaryCategory
+      ? { key: `primary:${faq.primaryCategory}`, label: getPrimaryCategoryLabel(faq.primaryCategory, lang) }
+      : null,
+    faq.secondaryCategory
+      ? { key: `secondary:${faq.secondaryCategory}`, label: getPrimaryCategoryLabel(faq.secondaryCategory, lang) }
+      : null,
+    ...(faq.topics ?? []).slice(0, 2).map((topic) => ({
+      key: `topic:${topic}`,
+      label: getFacetLabel("topic", topic, lang),
+    })),
+  ].filter((pill): pill is { key: string; label: string } => pill !== null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   // Status badge config
@@ -102,6 +115,18 @@ export default function FavoriteCard({
           <div className="mt-1.5 text-[11px] text-subtext">
             {t(timeLabelKey, lang)}: {relative_time_label}
           </div>
+          {taxonomyPills.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {taxonomyPills.map((pill) => (
+                <span
+                  key={pill.key}
+                  className="rounded-full bg-surface px-1.5 py-0.5 text-[11px] font-medium text-text"
+                >
+                  {pill.label}
+                </span>
+              ))}
+            </div>
+          )}
           {needs_nudge && (
             <div className="mt-2">
               <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">

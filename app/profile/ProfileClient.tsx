@@ -4,11 +4,11 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { t } from "@/lib/i18n";
-import type { FAQItem, VoteType } from "@/src/types/faq";
+import { getPrimaryCategoryLabel, getPrimaryCategoryOptions, normalizePrimaryCategoryKey } from "@/lib/taxonomy";
+import type { FAQItem, PrimaryCategoryKey, VoteType } from "@/src/types/faq";
 import FavoriteCard from "@/components/FavoriteCard";
 import Toast from "@/components/Toast";
 import DetailModal from "@/components/DetailModal";
-import taxonomy from "@/data/tag-taxonomy.json";
 
 const LS_VOTED = "aifaq-voted";
 
@@ -602,6 +602,15 @@ interface SettingsTabProps {
   sessionUser?: { id?: string; name?: string | null; image?: string | null } | null;
 }
 
+function normalizeFocusCategories(values: unknown): PrimaryCategoryKey[] {
+  if (!Array.isArray(values)) return [];
+  const normalized = values
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => normalizePrimaryCategoryKey(item))
+    .filter((item): item is PrimaryCategoryKey => item !== null);
+  return Array.from(new Set(normalized));
+}
+
 function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
   const [settings, setSettings] = useState({
     lang:
@@ -620,9 +629,7 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
               const parsed = JSON.parse(
                 localStorage.getItem("aifaq-focus-categories") || "[]"
               ) as unknown;
-              return Array.isArray(parsed)
-                ? parsed.filter((item): item is string => typeof item === "string")
-                : [];
+              return normalizeFocusCategories(parsed);
             } catch {
               return [];
             }
@@ -630,7 +637,7 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
         : [],
   });
 
-  const availableCategories = taxonomy.categories.map((category) => category.name);
+  const availableCategories = getPrimaryCategoryOptions();
 
   const saveLocalPreferences = useCallback((next: typeof settings): void => {
     localStorage.setItem("aifaq-lang", next.lang);
@@ -680,9 +687,7 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
                 ? remote.default_detailed
                 : prev.defaultDetailed,
             focusCategories: Array.isArray(remote.focus_categories)
-              ? remote.focus_categories.filter(
-                  (item: unknown): item is string => typeof item === "string"
-                )
+              ? normalizeFocusCategories(remote.focus_categories)
               : prev.focusCategories,
           };
           saveLocalPreferences(next);
@@ -710,7 +715,7 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
     }
   };
 
-  const toggleFocusCategory = (category: string) => {
+  const toggleFocusCategory = (category: PrimaryCategoryKey) => {
     setSettings((prev) => {
       const nextCategories = prev.focusCategories.includes(category)
         ? prev.focusCategories.filter((item) => item !== category)
@@ -827,18 +832,18 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
             </label>
             <div className="flex flex-wrap gap-2">
               {availableCategories.map((category) => {
-                const selected = settings.focusCategories.includes(category);
+                const selected = settings.focusCategories.includes(category.key);
                 return (
                   <button
-                    key={category}
-                    onClick={() => toggleFocusCategory(category)}
+                    key={category.key}
+                    onClick={() => toggleFocusCategory(category.key)}
                     className={`rounded-full px-3 py-1.5 text-xs transition-colors ${
                       selected
                         ? "bg-primary text-white"
                         : "border-[0.5px] border-border text-subtext hover:bg-surface"
                     }`}
                   >
-                    {category}
+                    {getPrimaryCategoryLabel(category.key, lang)}
                   </button>
                 );
               })}

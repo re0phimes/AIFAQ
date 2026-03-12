@@ -104,7 +104,12 @@ async function processImport(
           answer_brief_en: result.answer_brief_en,
           question_en: result.question_en,
           tags: result.tags,
-          categories: result.categories,
+          categories: [],
+          primary_category: result.primary_category,
+          secondary_category: result.secondary_category,
+          patterns: result.patterns,
+          topics: result.topics,
+          tool_stack: result.tool_stack,
           references: result.references,
           images: result.images,
         });

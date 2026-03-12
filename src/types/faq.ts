@@ -1,3 +1,5 @@
+export type Lang = "zh" | "en";
+
 export interface Reference {
   type: "blog" | "paper" | "other";
   title: string;
@@ -19,6 +21,11 @@ export interface FAQItem {
   date: string;
   tags: string[];
   categories: string[];
+  primaryCategory?: PrimaryCategoryKey | null;
+  secondaryCategory?: PrimaryCategoryKey | null;
+  patterns?: string[];
+  topics?: string[];
+  toolStack?: string[];
   references: Reference[];
   answer: string;
   answerBrief?: string;
@@ -42,6 +49,41 @@ export interface TagCategory {
 
 export interface TagTaxonomy {
   categories: TagCategory[];
+}
+
+export type PrimaryCategoryKey =
+  | "fundamentals"
+  | "model_architecture"
+  | "pretraining_data"
+  | "post_training_alignment"
+  | "reinforcement_learning"
+  | "retrieval_agent_systems"
+  | "inference_deployment"
+  | "evaluation_safety";
+
+export type FAQFacetGroup = "pattern" | "topic" | "tool_stack";
+
+export interface FAQTaxonomyCategory {
+  key: PrimaryCategoryKey;
+  zh: string;
+  en: string;
+  description: string;
+  status: "active" | "deprecated";
+  aliases?: string[];
+}
+
+export interface FAQFacetOption {
+  key: string;
+  zh: string;
+  en: string;
+  description: string;
+  status: "active" | "deprecated";
+  aliases?: string[];
+}
+
+export interface FAQTaxonomy {
+  categories: FAQTaxonomyCategory[];
+  facets: Record<FAQFacetGroup, FAQFacetOption[]>;
 }
 
 export type VoteType = "upvote" | "downvote";

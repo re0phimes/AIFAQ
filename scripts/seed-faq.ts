@@ -6,6 +6,14 @@ import type { FAQItem } from "../src/types/faq";
 
 const FAQ_PATH = path.resolve(__dirname, "../data/faq.json");
 
+function escapePgArrayValue(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function toTextArrayLiteral(values: string[]): string {
+  return `{${values.map((value) => `"${escapePgArrayValue(value)}"`).join(",")}}`;
+}
+
 async function ensureQuestionUnique(): Promise<void> {
   await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS faq_items_question_unique
@@ -26,13 +34,17 @@ async function seedFaq(): Promise<void> {
   let skipped = 0;
 
   for (const item of items) {
-    const tagsLiteral = `{${item.tags.map((t) => `"${t}"`).join(",")}}`;
-    const categoriesLiteral = `{${item.categories.map((c) => `"${c}"`).join(",")}}`;
+    const tagsLiteral = toTextArrayLiteral(item.tags);
+    const categoriesLiteral = toTextArrayLiteral(item.categories);
+    const patternsLiteral = toTextArrayLiteral(item.patterns ?? []);
+    const topicsLiteral = toTextArrayLiteral(item.topics ?? []);
+    const toolStackLiteral = toTextArrayLiteral(item.toolStack ?? []);
     const refsJson = JSON.stringify(item.references);
 
     const result = await sql`
       INSERT INTO faq_items (
         question, answer_raw, answer, tags, categories,
+        primary_category, secondary_category, patterns, topics, tool_stack,
         "references", status, date, upvote_count, downvote_count
       )
       VALUES (
@@ -41,6 +53,11 @@ async function seedFaq(): Promise<void> {
         ${item.answer},
         ${tagsLiteral}::text[],
         ${categoriesLiteral}::text[],
+        ${item.primaryCategory ?? null},
+        ${item.secondaryCategory ?? null},
+        ${patternsLiteral}::text[],
+        ${topicsLiteral}::text[],
+        ${toolStackLiteral}::text[],
         ${refsJson}::jsonb,
         'published',
         ${item.date},

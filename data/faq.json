@@ -22,6 +22,14 @@
     ],
     "answer": "",
     "upvoteCount": 0,
-    "downvoteCount": 0
+    "downvoteCount": 0,
+    "primaryCategory": "model_architecture",
+    "secondaryCategory": null,
+    "patterns": [],
+    "topics": [
+      "transformer",
+      "residual_connection"
+    ],
+    "toolStack": []
   }
 ]

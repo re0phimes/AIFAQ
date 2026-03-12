@@ -7,6 +7,7 @@ import ImageGallery from "./ImageGallery";
 import ImageLightbox from "./ImageLightbox";
 import type { FAQItem } from "@/src/types/faq";
 import { t, translateTag, itemsCount } from "@/lib/i18n";
+import { getFacetLabel, getPrimaryCategoryLabel } from "@/lib/taxonomy";
 
 interface ReadingViewProps {
   items: FAQItem[];
@@ -170,6 +171,24 @@ export default function ReadingView({
       <div className="space-y-6">
         {items.map((item) => {
           const isCollapsed = collapsedIds.has(item.id);
+          const taxonomyPills = [
+            item.primaryCategory
+              ? {
+                  key: `primary:${item.primaryCategory}`,
+                  label: getPrimaryCategoryLabel(item.primaryCategory, lang),
+                }
+              : null,
+            item.secondaryCategory
+              ? {
+                  key: `secondary:${item.secondaryCategory}`,
+                  label: getPrimaryCategoryLabel(item.secondaryCategory, lang),
+                }
+              : null,
+            ...(item.topics ?? []).slice(0, 2).map((topic) => ({
+              key: `topic:${topic}`,
+              label: getFacetLabel("topic", topic, lang),
+            })),
+          ].filter((pill): pill is { key: string; label: string } => pill !== null);
           return (
             <article
               key={item.id}
@@ -194,6 +213,14 @@ export default function ReadingView({
                       <span className="text-[11px] text-subtext">
                         {item.date}
                       </span>
+                      {taxonomyPills.map((pill) => (
+                        <span
+                          key={pill.key}
+                          className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-text"
+                        >
+                          {pill.label}
+                        </span>
+                      ))}
                       {item.tags.map((tag) => (
                         <span
                           key={tag}

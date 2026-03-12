@@ -1,4 +1,5 @@
-type Lang = "zh" | "en";
+import { getPrimaryCategoryLabel } from "@/lib/taxonomy";
+import type { Lang } from "@/src/types/faq";
 
 /** UI labels for zh/en */
 const labels = {
@@ -173,8 +174,7 @@ export function translateTag(tag: string, lang: Lang): string {
   return tagMap[tag] ?? tag; // English tags (Transformer, BERT, etc.) pass through
 }
 
-/** Category name translation */
-const categoryMap: Record<string, string> = {
+const legacyCategoryMap: Record<string, string> = {
   "AI 基础概念": "AI Fundamentals",
   "机器学习基础": "ML Basics",
   "深度学习": "Deep Learning",
@@ -190,8 +190,10 @@ const categoryMap: Record<string, string> = {
 };
 
 export function translateCategory(name: string, lang: Lang): string {
+  const translated = getPrimaryCategoryLabel(name, lang);
+  if (translated !== name) return translated;
   if (lang === "zh") return name;
-  return categoryMap[name] ?? name;
+  return legacyCategoryMap[name] ?? name;
 }
 
 /** Pagination info string */

@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import type { FAQItem, Reference } from "../src/types/faq";
+import { applyTaxonomyMigration } from "./migrate-faq-taxonomy";
 
 const MD_PATH = path.resolve(__dirname, "../AI-FAQ.md");
 const OUT_PATH = path.resolve(__dirname, "../data/faq.json");
@@ -103,7 +104,7 @@ function parseFAQ(content: string, blogIndex: BlogEntry[]): FAQItem[] {
     const answerMatch = section.match(/### 答案\s*\n\n([\s\S]+)$/);
     const answer = answerMatch ? answerMatch[1].trim() : "";
 
-    items.push({
+    items.push(applyTaxonomyMigration({
       id,
       question,
       date,
@@ -113,7 +114,7 @@ function parseFAQ(content: string, blogIndex: BlogEntry[]): FAQItem[] {
       answer,
       upvoteCount: 0,
       downvoteCount: 0,
-    });
+    }));
   }
 
   return items;

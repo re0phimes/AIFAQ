@@ -18,6 +18,11 @@ interface FaqItem {
   answer_brief_en: string | null;
   tags: string[];
   categories: string[];
+  primary_category: string | null;
+  secondary_category: string | null;
+  patterns: string[];
+  topics: string[];
+  tool_stack: string[];
   references: { type: string; title: string; url?: string }[];
   images: Array<{ url: string; caption: string; source: string }>;
   upvote_count: number;

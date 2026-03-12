@@ -1,19 +1,20 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/auth";
 import { importUserPreferences } from "@/lib/db";
-import taxonomy from "@/data/tag-taxonomy.json";
+import { normalizePrimaryCategoryKey } from "@/lib/taxonomy";
+import type { PrimaryCategoryKey } from "@/src/types/faq";
 
 const VALID_LANGUAGES = new Set(["zh", "en"]);
 const VALID_PAGE_SIZES = new Set([10, 20, 50, 100]);
-const VALID_CATEGORIES = new Set(taxonomy.categories.map((category) => category.name));
 
-function sanitizeCategories(input: unknown): string[] | null {
+function sanitizeCategories(input: unknown): PrimaryCategoryKey[] | null {
   if (input === null) return [];
   if (!Array.isArray(input)) return null;
-  const unique = Array.from(
-    new Set(input.filter((item): item is string => typeof item === "string"))
-  );
-  return unique.filter((item) => VALID_CATEGORIES.has(item));
+  const normalized = input
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => normalizePrimaryCategoryKey(item))
+    .filter((item): item is PrimaryCategoryKey => item !== null);
+  return Array.from(new Set(normalized));
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -55,7 +56,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
   }
 
-  let focusCategories: string[] | undefined;
+  let focusCategories: PrimaryCategoryKey[] | undefined;
   if ("focus_categories" in snapshot) {
     const sanitized = sanitizeCategories(snapshot.focus_categories);
     if (sanitized === null) {
@@ -77,11 +78,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     updated_at: (updatedAt as string | null | undefined) ?? undefined,
   });
 
+  const normalizedFocusCategories = Array.from(
+    new Set(
+      (merged.focus_categories ?? [])
+        .map((category) => normalizePrimaryCategoryKey(category))
+        .filter((category): category is PrimaryCategoryKey => category !== null)
+    )
+  );
+
   return NextResponse.json({
     language: merged.language,
     page_size: merged.page_size,
     default_detailed: merged.default_detailed,
-    focus_categories: merged.focus_categories,
+    focus_categories: normalizedFocusCategories,
     updated_at: merged.updated_at.toISOString(),
   });
 }
