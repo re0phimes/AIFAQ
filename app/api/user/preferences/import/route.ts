@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/auth";
 import { importUserPreferences } from "@/lib/db";
-import { normalizePrimaryCategoryKey } from "@/lib/taxonomy";
+import { expandPrimaryCategoryKeys } from "@/lib/taxonomy";
 import type { PrimaryCategoryKey } from "@/src/types/faq";
 
 const VALID_LANGUAGES = new Set(["zh", "en"]);
@@ -12,8 +12,7 @@ function sanitizeCategories(input: unknown): PrimaryCategoryKey[] | null {
   if (!Array.isArray(input)) return null;
   const normalized = input
     .filter((item): item is string => typeof item === "string")
-    .map((item) => normalizePrimaryCategoryKey(item))
-    .filter((item): item is PrimaryCategoryKey => item !== null);
+    .flatMap((item) => expandPrimaryCategoryKeys(item));
   return Array.from(new Set(normalized));
 }
 
@@ -81,8 +80,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const normalizedFocusCategories = Array.from(
     new Set(
       (merged.focus_categories ?? [])
-        .map((category) => normalizePrimaryCategoryKey(category))
-        .filter((category): category is PrimaryCategoryKey => category !== null)
+        .flatMap((category) => expandPrimaryCategoryKeys(category))
     )
   );
 

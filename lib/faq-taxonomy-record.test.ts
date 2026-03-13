@@ -7,14 +7,12 @@ test("normalizes nullable taxonomy fields from DB rows", () => {
   const normalized = normalizeFaqTaxonomyFields({
     primary_category: "model_architecture",
     secondary_category: null,
-    patterns: null,
     topics: ["rope"],
     tool_stack: null,
   });
 
   assert.equal(normalized.primaryCategory, "model_architecture");
   assert.equal(normalized.secondaryCategory, null);
-  assert.deepEqual(normalized.patterns, []);
   assert.deepEqual(normalized.topics, ["rope"]);
   assert.deepEqual(normalized.toolStack, []);
 });

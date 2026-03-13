@@ -37,13 +37,6 @@ function getTaxonomyPills(item: FAQItemType, lang: "zh" | "en") {
       kind: "facet",
     });
   }
-  for (const pattern of item.patterns?.slice(0, 1) ?? []) {
-    pills.push({
-      key: `pattern:${pattern}`,
-      label: getFacetLabel("pattern", pattern, lang),
-      kind: "facet",
-    });
-  }
 
   return pills.slice(0, 4);
 }

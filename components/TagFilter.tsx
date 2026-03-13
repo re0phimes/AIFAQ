@@ -13,13 +13,10 @@ interface TagFilterProps {
   categories: { key: PrimaryCategoryKey; description: string }[];
   categoryCounts: Map<PrimaryCategoryKey, number>;
   topicCounts: FacetCount[];
-  patternCounts: FacetCount[];
   selectedCategories: PrimaryCategoryKey[];
   selectedTopics: string[];
-  selectedPatterns: string[];
   onToggleCategory: (category: PrimaryCategoryKey) => void;
   onToggleTopic: (topic: string) => void;
-  onTogglePattern: (pattern: string) => void;
   onClearAll: () => void;
   lang?: Lang;
 }
@@ -40,20 +37,14 @@ export default function TagFilter({
   categories,
   categoryCounts,
   topicCounts,
-  patternCounts,
   selectedCategories,
   selectedTopics,
-  selectedPatterns,
   onToggleCategory,
   onToggleTopic,
-  onTogglePattern,
   onClearAll,
   lang = "zh",
 }: TagFilterProps) {
-  const hasSelection =
-    selectedCategories.length > 0 ||
-    selectedTopics.length > 0 ||
-    selectedPatterns.length > 0;
+  const hasSelection = selectedCategories.length > 0 || selectedTopics.length > 0;
 
   return (
     <div className="rounded-xl border-[0.5px] border-border bg-panel p-2.5">
@@ -92,31 +83,6 @@ export default function TagFilter({
           );
         })}
       </div>
-
-      {patternCounts.length > 0 && (
-        <div className="mt-2 border-t border-border/50 pt-2">
-          <SectionLabel zh="模式" en="Patterns" lang={lang} />
-          <div className="flex flex-wrap gap-1.5">
-            {patternCounts.map(({ key, count }) => {
-              const selected = selectedPatterns.includes(key);
-              return (
-                <button
-                  key={key}
-                  onClick={() => onTogglePattern(key)}
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] leading-none transition-colors duration-150 ${
-                    selected ? "bg-primary/80 text-white" : "bg-surface text-text hover:bg-surface"
-                  }`}
-                >
-                  {getFacetLabel("pattern", key, lang)}
-                  <span className={`text-[9px] ${selected ? "text-white/70" : "text-subtext"}`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {topicCounts.length > 0 && (
         <div className="mt-2 border-t border-border/50 pt-2">

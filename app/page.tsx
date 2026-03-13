@@ -33,7 +33,6 @@ export default async function Home() {
         categories: item.categories,
         primaryCategory: item.primary_category,
         secondaryCategory: item.secondary_category,
-        patterns: item.patterns,
         topics: item.topics,
         toolStack: item.tool_stack,
         references: item.references,

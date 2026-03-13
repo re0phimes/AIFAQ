@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { t } from "@/lib/i18n";
-import { getPrimaryCategoryLabel, getPrimaryCategoryOptions, normalizePrimaryCategoryKey } from "@/lib/taxonomy";
+import { expandPrimaryCategoryKeys, getPrimaryCategoryLabel, getPrimaryCategoryOptions } from "@/lib/taxonomy";
 import type { FAQItem, PrimaryCategoryKey, VoteType } from "@/src/types/faq";
 import FavoriteCard from "@/components/FavoriteCard";
 import Toast from "@/components/Toast";
@@ -606,8 +606,7 @@ function normalizeFocusCategories(values: unknown): PrimaryCategoryKey[] {
   if (!Array.isArray(values)) return [];
   const normalized = values
     .filter((item): item is string => typeof item === "string")
-    .map((item) => normalizePrimaryCategoryKey(item))
-    .filter((item): item is PrimaryCategoryKey => item !== null);
+    .flatMap((item) => expandPrimaryCategoryKeys(item));
   return Array.from(new Set(normalized));
 }
 

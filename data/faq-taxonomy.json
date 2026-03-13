@@ -41,12 +41,20 @@
       "aliases": ["rl", "reinforcement"]
     },
     {
-      "key": "retrieval_agent_systems",
-      "zh": "检索与 Agent 系统",
-      "en": "Retrieval & Agent Systems",
-      "description": "检索、RAG、工作流、工具调用、记忆与 Agent 编排",
+      "key": "retrieval_systems",
+      "zh": "检索系统",
+      "en": "Retrieval Systems",
+      "description": "检索、RAG、召回、重排与查询改写",
       "status": "active",
-      "aliases": ["retrieval_agent", "agents", "agent_systems"]
+      "aliases": ["retrieval", "retrieval_system"]
+    },
+    {
+      "key": "agent_systems",
+      "zh": "Agent 系统",
+      "en": "Agent Systems",
+      "description": "工具调用、规划、记忆、多 Agent 与人在回路",
+      "status": "active",
+      "aliases": ["agent", "agents", "agent_systems"]
     },
     {
       "key": "inference_deployment",
@@ -66,73 +74,31 @@
     }
   ],
   "facets": {
-    "pattern": [
-      {
-        "key": "workflow",
-        "zh": "工作流",
-        "en": "Workflow",
-        "description": "预定义步骤编排的系统形态",
-        "status": "active",
-        "aliases": []
-      },
-      {
-        "key": "rag",
-        "zh": "RAG",
-        "en": "RAG",
-        "description": "检索增强生成系统",
-        "status": "active",
-        "aliases": ["retrieval_augmented_generation"]
-      },
-      {
-        "key": "tool_use",
-        "zh": "工具调用",
-        "en": "Tool Use",
-        "description": "模型通过工具完成任务",
-        "status": "active",
-        "aliases": ["tooluse", "tool_calling"]
-      },
-      {
-        "key": "single_agent",
-        "zh": "单 Agent",
-        "en": "Single Agent",
-        "description": "单个 Agent 驱动的系统",
-        "status": "active",
-        "aliases": ["agent"]
-      },
-      {
-        "key": "multi_agent",
-        "zh": "多 Agent",
-        "en": "Multi-agent",
-        "description": "多个 Agent 协作的系统",
-        "status": "active",
-        "aliases": ["multiagent", "multi-agent"]
-      },
-      {
-        "key": "memory",
-        "zh": "记忆",
-        "en": "Memory",
-        "description": "对话或长期上下文记忆机制",
-        "status": "active",
-        "aliases": []
-      },
-      {
-        "key": "planner_executor",
-        "zh": "规划-执行",
-        "en": "Planner-Executor",
-        "description": "规划与执行分离的系统模式",
-        "status": "active",
-        "aliases": ["planner", "planner_executor_pattern"]
-      },
-      {
-        "key": "human_in_the_loop",
-        "zh": "人在回路",
-        "en": "Human in the Loop",
-        "description": "人工参与审核或决策的系统模式",
-        "status": "active",
-        "aliases": ["hitl", "human_in_loop"]
-      }
-    ],
     "topic": [
+      {
+        "key": "optimization_basics",
+        "zh": "优化基础",
+        "en": "Optimization Basics",
+        "description": "优化目标、损失与训练基础",
+        "status": "active",
+        "aliases": ["optimization", "优化理论"]
+      },
+      {
+        "key": "representation_learning",
+        "zh": "表示学习",
+        "en": "Representation Learning",
+        "description": "表示、特征空间与表示学习",
+        "status": "active",
+        "aliases": ["representation"]
+      },
+      {
+        "key": "embedding",
+        "zh": "Embedding",
+        "en": "Embedding",
+        "description": "表示向量与嵌入主题",
+        "status": "active",
+        "aliases": []
+      },
       {
         "key": "transformer",
         "zh": "Transformer",
@@ -150,12 +116,12 @@
         "aliases": ["attention_mechanism", "注意力机制"]
       },
       {
-        "key": "embedding",
-        "zh": "Embedding",
-        "en": "Embedding",
-        "description": "表示向量与嵌入主题",
+        "key": "positional_encoding",
+        "zh": "位置编码",
+        "en": "Positional Encoding",
+        "description": "位置编码与上下文位置信息主题",
         "status": "active",
-        "aliases": []
+        "aliases": ["position_encoding", "位置信息"]
       },
       {
         "key": "rope",
@@ -182,12 +148,68 @@
         "aliases": ["norm"]
       },
       {
-        "key": "lora",
-        "zh": "LoRA",
-        "en": "LoRA",
-        "description": "参数高效微调主题",
+        "key": "ffn",
+        "zh": "FFN",
+        "en": "FFN",
+        "description": "前馈网络相关主题",
         "status": "active",
-        "aliases": ["qlora"]
+        "aliases": ["mlp"]
+      },
+      {
+        "key": "moe",
+        "zh": "MoE",
+        "en": "MoE",
+        "description": "专家混合相关主题",
+        "status": "active",
+        "aliases": ["mixture_of_experts"]
+      },
+      {
+        "key": "tokenizer",
+        "zh": "分词器",
+        "en": "Tokenizer",
+        "description": "分词与 tokenization 主题",
+        "status": "active",
+        "aliases": ["tokenization", "分词"]
+      },
+      {
+        "key": "corpus_data",
+        "zh": "语料数据",
+        "en": "Corpus Data",
+        "description": "语料与数据集主题",
+        "status": "active",
+        "aliases": ["corpus", "dataset"]
+      },
+      {
+        "key": "data_processing",
+        "zh": "数据处理",
+        "en": "Data Processing",
+        "description": "清洗、构造、处理与管线主题",
+        "status": "active",
+        "aliases": ["data_pipeline", "数据管线"]
+      },
+      {
+        "key": "pretraining_objective",
+        "zh": "预训练目标",
+        "en": "Pretraining Objective",
+        "description": "预训练损失与训练目标主题",
+        "status": "active",
+        "aliases": ["next_token_prediction", "masked_language_modeling"]
+      },
+      {
+        "key": "continued_pretraining",
+        "zh": "持续预训练",
+        "en": "Continued Pretraining",
+        "description": "继续预训练与领域适配主题",
+        "status": "active",
+        "aliases": ["cpt"]
+      },
+      {
+        "key": "synthetic_data",
+        "zh": "合成数据",
+        "en": "Synthetic Data",
+        "description": "合成数据与数据增强主题",
+        "status": "active",
+        "aliases": []
       },
       {
         "key": "sft",
@@ -195,7 +217,23 @@
         "en": "SFT",
         "description": "监督微调主题",
         "status": "active",
-        "aliases": ["supervised_fine_tuning", "instruction_tuning"]
+        "aliases": ["supervised_fine_tuning"]
+      },
+      {
+        "key": "instruction_tuning",
+        "zh": "指令微调",
+        "en": "Instruction Tuning",
+        "description": "指令数据与指令跟随微调主题",
+        "status": "active",
+        "aliases": ["instruction_tuning", "instructiontuning"]
+      },
+      {
+        "key": "lora",
+        "zh": "LoRA",
+        "en": "LoRA",
+        "description": "参数高效微调主题",
+        "status": "active",
+        "aliases": ["qlora"]
       },
       {
         "key": "dpo",
@@ -214,6 +252,22 @@
         "aliases": ["rm"]
       },
       {
+        "key": "distillation",
+        "zh": "蒸馏",
+        "en": "Distillation",
+        "description": "模型蒸馏与压缩主题",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "rlhf",
+        "zh": "RLHF",
+        "en": "RLHF",
+        "description": "人类反馈强化学习主题",
+        "status": "active",
+        "aliases": []
+      },
+      {
         "key": "ppo",
         "zh": "PPO",
         "en": "PPO",
@@ -230,12 +284,116 @@
         "aliases": []
       },
       {
+        "key": "rag",
+        "zh": "RAG",
+        "en": "RAG",
+        "description": "检索增强生成主题",
+        "status": "active",
+        "aliases": ["retrieval_augmented_generation"]
+      },
+      {
+        "key": "chunking",
+        "zh": "切块",
+        "en": "Chunking",
+        "description": "文档切块与分片主题",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "reranking",
+        "zh": "重排",
+        "en": "Reranking",
+        "description": "召回后重排与排序主题",
+        "status": "active",
+        "aliases": ["rerank"]
+      },
+      {
+        "key": "query_rewrite",
+        "zh": "查询改写",
+        "en": "Query Rewrite",
+        "description": "检索查询改写与重写主题",
+        "status": "active",
+        "aliases": ["query_rewriting"]
+      },
+      {
+        "key": "hybrid_search",
+        "zh": "混合检索",
+        "en": "Hybrid Search",
+        "description": "向量与关键词混合检索主题",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "knowledge_base",
+        "zh": "知识库",
+        "en": "Knowledge Base",
+        "description": "知识库组织与管理主题",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "tool_use",
+        "zh": "工具调用",
+        "en": "Tool Use",
+        "description": "模型使用工具完成任务的主题",
+        "status": "active",
+        "aliases": ["tooluse", "tool_calling", "function_calling"]
+      },
+      {
+        "key": "planning",
+        "zh": "规划",
+        "en": "Planning",
+        "description": "任务规划与执行拆分主题",
+        "status": "active",
+        "aliases": ["planner", "planner_executor", "planning_and_execution"]
+      },
+      {
+        "key": "memory",
+        "zh": "记忆",
+        "en": "Memory",
+        "description": "Agent 记忆与长期上下文主题",
+        "status": "active",
+        "aliases": ["agent_memory", "long_term_memory"]
+      },
+      {
+        "key": "single_agent",
+        "zh": "单 Agent",
+        "en": "Single Agent",
+        "description": "单 Agent 架构主题",
+        "status": "active",
+        "aliases": ["singleagent"]
+      },
+      {
+        "key": "multi_agent",
+        "zh": "多 Agent",
+        "en": "Multi-agent",
+        "description": "多 Agent 协作主题",
+        "status": "active",
+        "aliases": ["multiagent", "multi-agent"]
+      },
+      {
+        "key": "human_in_the_loop",
+        "zh": "人在回路",
+        "en": "Human in the Loop",
+        "description": "人工参与审核或决策主题",
+        "status": "active",
+        "aliases": ["hitl", "human_in_loop"]
+      },
+      {
+        "key": "computer_use",
+        "zh": "Computer Use",
+        "en": "Computer Use",
+        "description": "桌面或浏览器操作代理主题",
+        "status": "active",
+        "aliases": ["browser_use"]
+      },
+      {
         "key": "kv_cache",
         "zh": "KV Cache",
         "en": "KV Cache",
         "description": "自回归推理缓存主题",
         "status": "active",
-        "aliases": ["kvcache", "kvcache"]
+        "aliases": ["kvcache"]
       },
       {
         "key": "quantization",
@@ -243,15 +401,87 @@
         "en": "Quantization",
         "description": "模型量化与低比特表示主题",
         "status": "active",
+        "aliases": ["int4", "int8"]
+      },
+      {
+        "key": "speculative_decoding",
+        "zh": "推测解码",
+        "en": "Speculative Decoding",
+        "description": "推测式解码与加速主题",
+        "status": "active",
         "aliases": []
       },
       {
-        "key": "distillation",
-        "zh": "蒸馏",
-        "en": "Distillation",
-        "description": "模型蒸馏与压缩主题",
+        "key": "serving",
+        "zh": "Serving",
+        "en": "Serving",
+        "description": "服务化部署与请求处理主题",
         "status": "active",
         "aliases": []
+      },
+      {
+        "key": "batching",
+        "zh": "批处理",
+        "en": "Batching",
+        "description": "批处理与并发调度主题",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "context_window",
+        "zh": "上下文窗口",
+        "en": "Context Window",
+        "description": "上下文长度、窗口控制与位置上限主题",
+        "status": "active",
+        "aliases": ["context_engineering", "max_position_embeddings"]
+      },
+      {
+        "key": "benchmark",
+        "zh": "Benchmark",
+        "en": "Benchmark",
+        "description": "基准评测与测试集主题",
+        "status": "active",
+        "aliases": ["eval", "evaluation"]
+      },
+      {
+        "key": "hallucination",
+        "zh": "幻觉",
+        "en": "Hallucination",
+        "description": "幻觉与事实性偏差主题",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "guardrails",
+        "zh": "护栏",
+        "en": "Guardrails",
+        "description": "安全护栏与约束机制主题",
+        "status": "active",
+        "aliases": ["guardrail"]
+      },
+      {
+        "key": "red_teaming",
+        "zh": "红队",
+        "en": "Red Teaming",
+        "description": "攻击、越狱与对抗测试主题",
+        "status": "active",
+        "aliases": ["redteam", "jailbreak"]
+      },
+      {
+        "key": "monitoring",
+        "zh": "线上监控",
+        "en": "Monitoring",
+        "description": "线上观测、告警与质量监控主题",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "ab_testing",
+        "zh": "A/B 测试",
+        "en": "A/B Testing",
+        "description": "实验分桶与线上对比试验主题",
+        "status": "active",
+        "aliases": ["abtest", "a_b_test", "实验分桶"]
       }
     ],
     "tool_stack": [
@@ -272,6 +502,14 @@
         "aliases": ["hf_transformers"]
       },
       {
+        "key": "deepspeed",
+        "zh": "DeepSpeed",
+        "en": "DeepSpeed",
+        "description": "DeepSpeed 训练与并行工具栈",
+        "status": "active",
+        "aliases": []
+      },
+      {
         "key": "trl",
         "zh": "TRL",
         "en": "TRL",
@@ -288,12 +526,52 @@
         "aliases": []
       },
       {
+        "key": "sglang",
+        "zh": "SGLang",
+        "en": "SGLang",
+        "description": "SGLang 推理与编排工具栈",
+        "status": "active",
+        "aliases": []
+      },
+      {
         "key": "llama_cpp",
         "zh": "llama.cpp",
         "en": "llama.cpp",
         "description": "llama.cpp 本地推理工具栈",
         "status": "active",
-        "aliases": ["llama.cpp"]
+        "aliases": ["llama.cpp", "llamacpp"]
+      },
+      {
+        "key": "faiss",
+        "zh": "FAISS",
+        "en": "FAISS",
+        "description": "向量检索工具栈",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "milvus",
+        "zh": "Milvus",
+        "en": "Milvus",
+        "description": "向量数据库工具栈",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "qdrant",
+        "zh": "Qdrant",
+        "en": "Qdrant",
+        "description": "向量数据库工具栈",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "elasticsearch",
+        "zh": "Elasticsearch",
+        "en": "Elasticsearch",
+        "description": "检索和搜索引擎工具栈",
+        "status": "active",
+        "aliases": ["opensearch"]
       },
       {
         "key": "langchain",
@@ -304,10 +582,34 @@
         "aliases": []
       },
       {
+        "key": "langgraph",
+        "zh": "LangGraph",
+        "en": "LangGraph",
+        "description": "LangGraph Agent 工作流工具栈",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "llamaindex",
+        "zh": "LlamaIndex",
+        "en": "LlamaIndex",
+        "description": "检索与知识库编排工具栈",
+        "status": "active",
+        "aliases": []
+      },
+      {
         "key": "smolagents",
         "zh": "smolagents",
         "en": "smolagents",
         "description": "smolagents Agent 工具栈",
+        "status": "active",
+        "aliases": []
+      },
+      {
+        "key": "autogen",
+        "zh": "AutoGen",
+        "en": "AutoGen",
+        "description": "多 Agent 编排工具栈",
         "status": "active",
         "aliases": []
       }

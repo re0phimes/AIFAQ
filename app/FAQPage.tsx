@@ -7,7 +7,7 @@ import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
 import FAQList from "@/components/FAQList";
 import DetailModal from "@/components/DetailModal";
 import { useActionDialog } from "@/components/useActionDialog";
-import type { FAQItem, PrimaryCategoryKey, VoteType } from "@/src/types/faq";
+import type { FAQItem, VoteType } from "@/src/types/faq";
 import {
   buildConflictKey,
   buildPrefsHash,
@@ -16,7 +16,7 @@ import {
   type PreferenceSyncMeta,
   type UserPreferencesSnapshot,
 } from "@/lib/preferences-sync";
-import { normalizePrimaryCategoryKey } from "@/lib/taxonomy";
+import { expandPrimaryCategoryKeys } from "@/lib/taxonomy";
 import { t } from "@/lib/i18n";
 
 const LS_VOTED = "aifaq-voted";
@@ -75,8 +75,7 @@ function normalizeFocusCategories(values: unknown): string[] {
   if (!Array.isArray(values)) return [];
   const normalized = values
     .filter((item): item is string => typeof item === "string")
-    .map((item) => normalizePrimaryCategoryKey(item))
-    .filter((item): item is PrimaryCategoryKey => item !== null);
+    .flatMap((item) => expandPrimaryCategoryKeys(item));
   return Array.from(new Set(normalized));
 }
 

@@ -66,7 +66,6 @@ export async function PATCH(
     "categories" in body ||
     "primary_category" in body ||
     "secondary_category" in body ||
-    "patterns" in body ||
     "topics" in body ||
     "tool_stack" in body
   ) {
@@ -78,7 +77,6 @@ export async function PATCH(
         "primary_category" in body ? body.primary_category : item.primary_category,
       secondary_category:
         "secondary_category" in body ? body.secondary_category : item.secondary_category,
-      patterns: "patterns" in body ? body.patterns : item.patterns,
       topics: "topics" in body ? body.topics : item.topics,
       tool_stack: "tool_stack" in body ? body.tool_stack : item.tool_stack,
       references: body.references ?? item.references,
@@ -113,7 +111,6 @@ async function retryAnalysis(id: number, question: string, answerRaw: string): P
       categories: item?.categories ?? [],
       primary_category: result.primary_category,
       secondary_category: result.secondary_category,
-      patterns: result.patterns,
       topics: result.topics,
       tool_stack: result.tool_stack,
       references: result.references,

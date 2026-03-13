@@ -197,3 +197,21 @@ test("mergePreferences normalizes and drops invalid focus categories", () => {
     "model_architecture",
   ]);
 });
+
+test("mergePreferences expands legacy retrieval-agent focus category into both new categories", () => {
+  const merged = mergePreferences(
+    snapshot({
+      focusCategories: ["retrieval_agent_systems"],
+      updatedAt: LOCAL_NEW,
+    }),
+    snapshot({
+      focusCategories: [],
+      updatedAt: SERVER_OLD,
+    })
+  );
+
+  assert.deepEqual(merged.focusCategories.sort(), [
+    "agent_systems",
+    "retrieval_systems",
+  ]);
+});

@@ -5,7 +5,7 @@ import {
   upsertUserPreferences,
   type DBUserPreferencesPatch,
 } from "@/lib/db";
-import { normalizePrimaryCategoryKey } from "@/lib/taxonomy";
+import { expandPrimaryCategoryKeys } from "@/lib/taxonomy";
 import type { PrimaryCategoryKey } from "@/src/types/faq";
 
 const VALID_LANGUAGES = new Set(["zh", "en"]);
@@ -15,8 +15,7 @@ function normalizeResponse(
   prefs: Awaited<ReturnType<typeof getUserPreferences>>
 ): Record<string, unknown> {
   const focusCategories = prefs?.focus_categories
-    ?.map((category) => normalizePrimaryCategoryKey(category))
-    .filter((category): category is PrimaryCategoryKey => category !== null) ?? [];
+    ?.flatMap((category) => expandPrimaryCategoryKeys(category)) ?? [];
   return {
     language: prefs?.language ?? null,
     page_size: prefs?.page_size ?? null,
@@ -31,8 +30,7 @@ function sanitizeCategories(input: unknown): PrimaryCategoryKey[] | null {
   if (!Array.isArray(input)) return null;
   const normalized = input
     .filter((item): item is string => typeof item === "string")
-    .map((item) => normalizePrimaryCategoryKey(item))
-    .filter((item): item is PrimaryCategoryKey => item !== null);
+    .flatMap((item) => expandPrimaryCategoryKeys(item));
   return Array.from(new Set(normalized));
 }
 

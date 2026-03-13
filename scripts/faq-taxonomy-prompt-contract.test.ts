@@ -7,7 +7,7 @@ test("AI analysis prompt asks for new taxonomy fields", () => {
 
   assert.equal(source.includes("primary_category"), true);
   assert.equal(source.includes("secondary_category"), true);
-  assert.equal(source.includes("patterns"), true);
+  assert.equal(source.includes("patterns"), false);
   assert.equal(source.includes("topics"), true);
   assert.equal(source.includes("tool_stack"), true);
   assert.equal(source.includes("categories:"), false);
@@ -18,7 +18,7 @@ test("import pipeline prompt asks for new taxonomy fields", () => {
 
   assert.equal(source.includes("primary_category"), true);
   assert.equal(source.includes("secondary_category"), true);
-  assert.equal(source.includes("patterns"), true);
+  assert.equal(source.includes("patterns"), false);
   assert.equal(source.includes("topics"), true);
   assert.equal(source.includes("tool_stack"), true);
   assert.equal(source.includes("categories (1-2个分类)"), false);
@@ -32,7 +32,7 @@ test("admin routes persist new taxonomy fields", () => {
   for (const source of [createRoute, itemRoute, importRoute]) {
     assert.equal(source.includes("primary_category"), true);
     assert.equal(source.includes("secondary_category"), true);
-    assert.equal(source.includes("patterns"), true);
+    assert.equal(source.includes("patterns"), false);
     assert.equal(source.includes("topics"), true);
     assert.equal(source.includes("tool_stack"), true);
   }

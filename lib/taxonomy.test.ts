@@ -5,6 +5,7 @@ import {
   getFacetLabel,
   getFacetOption,
   getFacetOptions,
+  expandPrimaryCategoryKeys,
   getPrimaryCategory,
   getPrimaryCategoryLabel,
   getPrimaryCategoryOptions,
@@ -17,9 +18,11 @@ import {
 
 test("taxonomy exposes the approved primary categories", () => {
   const categories = getPrimaryCategoryOptions();
-  assert.equal(categories.length, 8);
+  assert.equal(categories.length, 9);
   assert.equal(categories[0]?.key, "fundamentals");
   assert.equal(categories[1]?.key, "model_architecture");
+  assert.equal(categories[5]?.key, "retrieval_systems");
+  assert.equal(categories[6]?.key, "agent_systems");
 });
 
 test("primary category lookup works by stable key", () => {
@@ -45,14 +48,23 @@ test("facet lookup returns bilingual labels", () => {
 
 test("aliases normalize to canonical values", () => {
   assert.equal(normalizeFacetValue("topic", "KVCache"), "kv_cache");
-  assert.equal(normalizeFacetValue("pattern", "multi-agent"), "multi_agent");
   assert.equal(normalizePrimaryCategoryKey("post-training"), "post_training_alignment");
+  assert.equal(normalizePrimaryCategoryKey("retrieval"), "retrieval_systems");
+  assert.equal(normalizePrimaryCategoryKey("agent"), "agent_systems");
 });
 
 test("invalid values are rejected", () => {
   assert.equal(isValidPrimaryCategoryKey("does_not_exist"), false);
+  assert.equal(isValidPrimaryCategoryKey("retrieval_agent_systems"), false);
   assert.equal(isValidFacetValue("tool_stack", "unknown_tool"), false);
   assert.equal(getPrimaryCategory("unknown"), undefined);
+});
+
+test("legacy retrieval-agent preference keys expand to the new split categories", () => {
+  assert.deepEqual(expandPrimaryCategoryKeys("retrieval_agent_systems"), [
+    "retrieval_systems",
+    "agent_systems",
+  ]);
 });
 
 test("facet options expose the configured values", () => {
@@ -77,5 +89,5 @@ test("taxonomy helper results do not expose shared mutable state", () => {
   taxonomy.facets.topic[0]!.zh = "已修改";
   const taxonomyAgain = getTaxonomy();
   assert.equal(taxonomyAgain.categories[0]!.en, "Fundamentals");
-  assert.equal(taxonomyAgain.facets.topic[0]!.zh, "Transformer");
+  assert.equal(taxonomyAgain.facets.topic[0]!.zh, "优化基础");
 });

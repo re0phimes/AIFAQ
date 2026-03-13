@@ -12,28 +12,25 @@ const FAQ_PATH = path.resolve(__dirname, "../data/faq.json");
 
 const PRIMARY_CATEGORY_ORDER = getPrimaryCategoryOptions().map((option) => option.key);
 const TOPIC_ORDER = getFacetOptions("topic").map((option) => option.key);
-const PATTERN_ORDER = getFacetOptions("pattern").map((option) => option.key);
 const TOOL_STACK_ORDER = getFacetOptions("tool_stack").map((option) => option.key);
 
-type LegacyFaqInput = Pick<FAQItem, "question" | "tags" | "categories"> &
-  Partial<
-    Pick<
-      FAQItem,
-      | "id"
-      | "answer"
-      | "references"
-      | "primaryCategory"
-      | "secondaryCategory"
-      | "patterns"
-      | "topics"
-      | "toolStack"
-    >
-  >;
+interface LegacyFaqInput {
+  id?: number;
+  question: string;
+  answer?: string;
+  tags: string[];
+  categories: string[];
+  references?: Reference[];
+  primaryCategory?: PrimaryCategoryKey | null;
+  secondaryCategory?: PrimaryCategoryKey | null;
+  patterns?: string[];
+  topics?: string[];
+  toolStack?: string[];
+}
 
 export interface FAQTaxonomyClassification {
   primary_category: PrimaryCategoryKey | null;
   secondary_category: PrimaryCategoryKey | null;
-  patterns: string[];
   topics: string[];
   tool_stack: string[];
   ambiguous: boolean;
@@ -76,28 +73,24 @@ const TOPIC_CATEGORY_MAP: Record<string, PrimaryCategoryKey> = {
   reward_model: "post_training_alignment",
   ppo: "reinforcement_learning",
   grpo: "reinforcement_learning",
+  rag: "retrieval_systems",
+  reranking: "retrieval_systems",
+  tool_use: "agent_systems",
+  memory: "agent_systems",
+  single_agent: "agent_systems",
+  multi_agent: "agent_systems",
+  human_in_the_loop: "agent_systems",
   kv_cache: "inference_deployment",
   quantization: "inference_deployment",
   distillation: "post_training_alignment",
-};
-
-const PATTERN_CATEGORY_MAP: Record<string, PrimaryCategoryKey> = {
-  workflow: "retrieval_agent_systems",
-  rag: "retrieval_agent_systems",
-  tool_use: "retrieval_agent_systems",
-  single_agent: "retrieval_agent_systems",
-  multi_agent: "retrieval_agent_systems",
-  memory: "retrieval_agent_systems",
-  planner_executor: "retrieval_agent_systems",
-  human_in_the_loop: "retrieval_agent_systems",
 };
 
 const TOOL_STACK_CATEGORY_MAP: Partial<Record<string, PrimaryCategoryKey>> = {
   trl: "post_training_alignment",
   vllm: "inference_deployment",
   llama_cpp: "inference_deployment",
-  langchain: "retrieval_agent_systems",
-  smolagents: "retrieval_agent_systems",
+  langchain: "retrieval_systems",
+  smolagents: "agent_systems",
 };
 
 const TOPIC_FAMILY_BOOSTS: Array<{
@@ -123,6 +116,18 @@ const TOPIC_FAMILY_BOOSTS: Array<{
     topics: ["ppo", "grpo"],
     score: 3,
     reason: "rl-topic-family",
+  },
+  {
+    category: "retrieval_systems",
+    topics: ["rag", "reranking"],
+    score: 3,
+    reason: "retrieval-topic-family",
+  },
+  {
+    category: "agent_systems",
+    topics: ["tool_use", "memory", "single_agent", "multi_agent", "human_in_the_loop"],
+    score: 3,
+    reason: "agent-topic-family",
   },
   {
     category: "inference_deployment",
@@ -238,26 +243,44 @@ const PRIMARY_SIGNALS: ScoredSignal[] = [
     reason: "rl keyword",
   },
   {
-    category: "retrieval_agent_systems",
+    category: "retrieval_systems",
     keywords: [
       "rag",
       "retrieval",
       "检索",
+      "召回",
+      "重排",
+      "rerank",
+      "reranking",
+      "向量数据库",
+      "embedding检索",
+      "queryrewrite",
+    ],
+    score: 4,
+    reason: "retrieval keyword",
+  },
+  {
+    category: "agent_systems",
+    keywords: [
       "智能体",
       "agent系统",
+      "agent",
       "agentic",
       "workflow",
       "toolcalling",
       "functioncalling",
       "planner",
       "executor",
-      "langchain",
       "smolagents",
       "多agent",
       "multiagent",
+      "人在回路",
+      "humanintheloop",
+      "记忆模块",
+      "agentmemory",
     ],
     score: 4,
-    reason: "retrieval/agent keyword",
+    reason: "agent keyword",
   },
   {
     category: "inference_deployment",
@@ -357,7 +380,7 @@ const LEGACY_CATEGORY_HINTS: Record<string, LegacyCategoryHint> = {
   "自然语言处理": { secondary: "pretraining_data" },
   "生成式ai/llm": {},
   "强化学习": { primary: "reinforcement_learning" },
-  "推荐系统与搜索": { primary: "retrieval_agent_systems" },
+  "推荐系统与搜索": { primary: "retrieval_systems" },
   "数据工程与mlops": { primary: "inference_deployment" },
   "ai伦理与安全": { primary: "evaluation_safety" },
   "工具与框架": {},
@@ -376,20 +399,16 @@ const TOPIC_KEYWORDS: Record<string, string[]> = {
   reward_model: ["rewardmodel", "奖励模型"],
   ppo: ["ppo"],
   grpo: ["grpo"],
+  rag: ["rag", "retrievalaugmentedgeneration", "检索增强生成"],
+  reranking: ["reranking", "rerank", "重排"],
+  tool_use: ["tooluse", "toolcalling", "functioncalling", "工具调用", "plannerexecutor", "planner", "规划执行", "规划器"],
+  memory: ["agentmemory", "记忆模块", "长期记忆", "会话记忆", "memorymodule"],
+  single_agent: ["singleagent", "单agent"],
+  multi_agent: ["multiagent", "多agent"],
+  human_in_the_loop: ["humanintheloop", "人在回路", "hitl", "人工审核"],
   kv_cache: ["kvcache", "kvcache", "kvcache机制", "kv缓存"],
   quantization: ["量化", "quantization", "4bit", "8bit", "gptq", "awq", "int4", "int8"],
   distillation: ["distillation", "蒸馏"],
-};
-
-const PATTERN_KEYWORDS: Record<string, string[]> = {
-  workflow: ["workflow", "工作流"],
-  rag: ["rag", "retrievalaugmentedgeneration", "检索增强生成"],
-  tool_use: ["tooluse", "toolcalling", "functioncalling", "工具调用"],
-  single_agent: ["singleagent", "单agent"],
-  multi_agent: ["multiagent", "多agent"],
-  memory: ["agentmemory", "记忆模块", "长期记忆", "会话记忆", "memorymodule"],
-  planner_executor: ["plannerexecutor", "planner", "规划执行", "规划器"],
-  human_in_the_loop: ["humanintheloop", "人在回路", "hitl", "人工审核"],
 };
 
 const TOOL_STACK_KEYWORDS: Record<string, string[]> = {
@@ -431,7 +450,7 @@ function hasKeyword(compactSources: string[], keyword: string): boolean {
 }
 
 function normalizeExistingFacetValues(
-  group: "pattern" | "topic" | "tool_stack",
+  group: "topic" | "tool_stack",
   values: string[] | undefined
 ): string[] {
   if (!Array.isArray(values)) return [];
@@ -439,14 +458,14 @@ function normalizeExistingFacetValues(
     values
       .map((value) => normalizeFacetValue(group, value))
       .filter((value): value is string => value !== null),
-    group === "pattern" ? PATTERN_ORDER : group === "topic" ? TOPIC_ORDER : TOOL_STACK_ORDER
+    group === "topic" ? TOPIC_ORDER : TOOL_STACK_ORDER
   );
 }
 
 function detectFacetValues(
   compactSources: string[],
   tags: string[],
-  group: "pattern" | "topic" | "tool_stack",
+  group: "topic" | "tool_stack",
   keywordsByKey: Record<string, string[]>,
   order: string[]
 ): string[] {
@@ -459,6 +478,20 @@ function detectFacetValues(
     .map(([key]) => key);
 
   return uniqueOrdered([...normalizedFromTags, ...detectedFromKeywords], order);
+}
+
+function normalizeLegacyPatternTopics(values: string[] | undefined): string[] {
+  if (!Array.isArray(values)) return [];
+
+  const normalized = values
+    .flatMap((value) => {
+      const canonical = normalizeFacetValue("topic", value);
+      if (canonical) return [canonical];
+      return compact(value) === "workflow" ? ["tool_use"] : [];
+    })
+    .filter((value): value is string => value !== null);
+
+  return uniqueOrdered(normalized, TOPIC_ORDER);
 }
 
 function normalizeLegacyCategory(category: string): string {
@@ -510,16 +543,28 @@ function mergeExistingOrClassified(
 ): FAQTaxonomyClassification {
   const existingPrimary = normalizePrimaryCategoryKey(item.primaryCategory);
   const existingSecondary = normalizePrimaryCategoryKey(item.secondaryCategory);
-  const existingPatterns = normalizeExistingFacetValues("pattern", item.patterns);
-  const existingTopics = normalizeExistingFacetValues("topic", item.topics);
+  const existingTopics = uniqueOrdered(
+    [
+      ...normalizeExistingFacetValues("topic", item.topics),
+      ...normalizeLegacyPatternTopics(item.patterns),
+    ],
+    TOPIC_ORDER
+  );
   const existingToolStack = normalizeExistingFacetValues("tool_stack", item.toolStack);
+  const resolvedPrimary = existingPrimary ?? classified.primary_category;
+  const resolvedSecondaryCandidate =
+    existingPrimary && existingSecondary === existingPrimary
+      ? null
+      : existingSecondary ?? classified.secondary_category;
+  const resolvedSecondary =
+    resolvedPrimary && resolvedSecondaryCandidate === resolvedPrimary
+      ? null
+      : resolvedSecondaryCandidate;
 
   return {
     ...classified,
-    primary_category: existingPrimary ?? classified.primary_category,
-    secondary_category:
-      existingPrimary && existingSecondary === existingPrimary ? null : existingSecondary ?? classified.secondary_category,
-    patterns: existingPatterns.length > 0 ? existingPatterns : classified.patterns,
+    primary_category: resolvedPrimary,
+    secondary_category: resolvedSecondary,
     topics: existingTopics.length > 0 ? existingTopics : classified.topics,
     tool_stack: existingToolStack.length > 0 ? existingToolStack : classified.tool_stack,
   };
@@ -532,7 +577,6 @@ export function classifyLegacyFaq(item: LegacyFaqInput): FAQTaxonomyClassificati
   const scores = createScoreBreakdown();
 
   const topics = detectFacetValues(compactSources, tags, "topic", TOPIC_KEYWORDS, TOPIC_ORDER);
-  const patterns = detectFacetValues(compactSources, tags, "pattern", PATTERN_KEYWORDS, PATTERN_ORDER);
   const toolStack = detectFacetValues(compactSources, tags, "tool_stack", TOOL_STACK_KEYWORDS, TOOL_STACK_ORDER);
 
   for (const topic of topics) {
@@ -544,11 +588,6 @@ export function classifyLegacyFaq(item: LegacyFaqInput): FAQTaxonomyClassificati
     if (boost.topics.some((topic) => topics.includes(topic))) {
       addScore(scores, matchedSignals, boost.category, boost.score, boost.reason);
     }
-  }
-
-  for (const pattern of patterns) {
-    const category = PATTERN_CATEGORY_MAP[pattern];
-    if (category) addScore(scores, matchedSignals, category, 5, `pattern:${pattern}`);
   }
 
   for (const tool of toolStack) {
@@ -573,7 +612,6 @@ export function classifyLegacyFaq(item: LegacyFaqInput): FAQTaxonomyClassificati
   return mergeExistingOrClassified(item, {
     primary_category: picked.primary,
     secondary_category: picked.secondary,
-    patterns,
     topics,
     tool_stack: toolStack,
     ambiguous: picked.ambiguous,
@@ -585,14 +623,12 @@ export function classifyLegacyFaq(item: LegacyFaqInput): FAQTaxonomyClassificati
 function taxonomyEquals(item: FAQItem, classified: FAQTaxonomyClassification): boolean {
   const currentPrimary = normalizePrimaryCategoryKey(item.primaryCategory);
   const currentSecondary = normalizePrimaryCategoryKey(item.secondaryCategory);
-  const currentPatterns = normalizeExistingFacetValues("pattern", item.patterns);
   const currentTopics = normalizeExistingFacetValues("topic", item.topics);
   const currentToolStack = normalizeExistingFacetValues("tool_stack", item.toolStack);
 
   return (
     currentPrimary === classified.primary_category &&
     currentSecondary === classified.secondary_category &&
-    JSON.stringify(currentPatterns) === JSON.stringify(classified.patterns) &&
     JSON.stringify(currentTopics) === JSON.stringify(classified.topics) &&
     JSON.stringify(currentToolStack) === JSON.stringify(classified.tool_stack)
   );
@@ -604,7 +640,6 @@ export function applyTaxonomyMigration(item: FAQItem): FAQItem {
     ...item,
     primaryCategory: classified.primary_category,
     secondaryCategory: classified.secondary_category,
-    patterns: classified.patterns,
     topics: classified.topics,
     toolStack: classified.tool_stack,
   };

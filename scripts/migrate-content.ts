@@ -4,7 +4,7 @@ import { analyzeFAQ } from "../lib/ai";
 import { extractCandidateImages } from "../lib/image-extractor";
 import { normalizePrimaryCategoryKey } from "../lib/taxonomy";
 import type { Reference } from "../src/types/faq";
-import { classifyLegacyFaq } from "./migrate-faq-taxonomy";
+import { classifyLegacyFaq, type LegacyFaqInput } from "./migrate-faq-taxonomy";
 
 const CONCURRENCY = parseInt(process.argv[2] || "10", 10);
 const LIMIT = parseInt(process.argv[3] || "0", 10); // 0 = no limit
@@ -58,9 +58,8 @@ async function processItem(row: Record<string, unknown>): Promise<void> {
       patterns: Array.isArray(row.patterns) ? (row.patterns as string[]) : [],
       topics: Array.isArray(row.topics) ? (row.topics as string[]) : [],
       toolStack: Array.isArray(row.tool_stack) ? (row.tool_stack as string[]) : [],
-    });
+    } satisfies LegacyFaqInput);
 
-    const patternsLiteral = toTextArrayLiteral(taxonomy.patterns);
     const topicsLiteral = toTextArrayLiteral(taxonomy.topics);
     const toolStackLiteral = toTextArrayLiteral(taxonomy.tool_stack);
 
@@ -69,7 +68,6 @@ async function processItem(row: Record<string, unknown>): Promise<void> {
         UPDATE faq_items SET
           primary_category = ${taxonomy.primary_category},
           secondary_category = ${taxonomy.secondary_category},
-          patterns = ${patternsLiteral}::text[],
           topics = ${topicsLiteral}::text[],
           tool_stack = ${toolStackLiteral}::text[],
           updated_at = NOW()
@@ -102,7 +100,6 @@ async function processItem(row: Record<string, unknown>): Promise<void> {
         images = ${JSON.stringify(result.images)}::jsonb,
         primary_category = ${taxonomy.primary_category},
         secondary_category = ${taxonomy.secondary_category},
-        patterns = ${patternsLiteral}::text[],
         topics = ${topicsLiteral}::text[],
         tool_stack = ${toolStackLiteral}::text[],
         updated_at = NOW()
@@ -137,7 +134,6 @@ async function migrate(): Promise<void> {
         !r.answer_brief ||
         !r.answer_en ||
         !r.primary_category ||
-        !Array.isArray(r.patterns) ||
         !Array.isArray(r.topics) ||
         !Array.isArray(r.tool_stack)
     );

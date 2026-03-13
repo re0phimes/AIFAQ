@@ -132,10 +132,6 @@ function DetailModal({
     item.secondaryCategory
       ? { key: `secondary:${item.secondaryCategory}`, label: getPrimaryCategoryLabel(item.secondaryCategory, lang) }
       : null,
-    ...(item.patterns ?? []).slice(0, 1).map((pattern) => ({
-      key: `pattern:${pattern}`,
-      label: getFacetLabel("pattern", pattern, lang),
-    })),
     ...(item.topics ?? []).slice(0, 2).map((topic) => ({
       key: `topic:${topic}`,
       label: getFacetLabel("topic", topic, lang),

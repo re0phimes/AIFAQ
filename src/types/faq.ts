@@ -23,7 +23,6 @@ export interface FAQItem {
   categories: string[];
   primaryCategory?: PrimaryCategoryKey | null;
   secondaryCategory?: PrimaryCategoryKey | null;
-  patterns?: string[];
   topics?: string[];
   toolStack?: string[];
   references: Reference[];
@@ -57,11 +56,12 @@ export type PrimaryCategoryKey =
   | "pretraining_data"
   | "post_training_alignment"
   | "reinforcement_learning"
-  | "retrieval_agent_systems"
+  | "retrieval_systems"
+  | "agent_systems"
   | "inference_deployment"
   | "evaluation_safety";
 
-export type FAQFacetGroup = "pattern" | "topic" | "tool_stack";
+export type FAQFacetGroup = "topic" | "tool_stack";
 
 export interface FAQTaxonomyCategory {
   key: PrimaryCategoryKey;
@@ -83,7 +83,10 @@ export interface FAQFacetOption {
 
 export interface FAQTaxonomy {
   categories: FAQTaxonomyCategory[];
-  facets: Record<FAQFacetGroup, FAQFacetOption[]>;
+  facets: {
+    topic: FAQFacetOption[];
+    tool_stack: FAQFacetOption[];
+  };
 }
 
 export type VoteType = "upvote" | "downvote";

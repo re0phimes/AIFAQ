@@ -1,5 +1,4 @@
-import type { PrimaryCategoryKey } from "@/src/types/faq";
-import { normalizePrimaryCategoryKey } from "./taxonomy";
+import { expandPrimaryCategoryKeys } from "./taxonomy";
 
 export type PreferenceLang = "zh" | "en";
 
@@ -36,8 +35,7 @@ function dedupeCategories(values: string[] | undefined): string[] {
   if (!values || values.length === 0) return [];
   const normalized = values
     .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-    .map((value) => normalizePrimaryCategoryKey(value))
-    .filter((value): value is PrimaryCategoryKey => value !== null);
+    .flatMap((value) => expandPrimaryCategoryKeys(value));
   return Array.from(new Set(normalized));
 }
 

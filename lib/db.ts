@@ -32,7 +32,6 @@ export interface DBFaqItem {
   categories: string[];
   primary_category: PrimaryCategoryKey | null;
   secondary_category: PrimaryCategoryKey | null;
-  patterns: string[];
   topics: string[];
   tool_stack: string[];
   references: Reference[];
@@ -55,7 +54,6 @@ export interface DBFaqItem {
 interface RawFaqTaxonomyFields {
   primary_category?: unknown;
   secondary_category?: unknown;
-  patterns?: unknown;
   topics?: unknown;
   tool_stack?: unknown;
 }
@@ -63,7 +61,6 @@ interface RawFaqTaxonomyFields {
 export interface NormalizedFaqTaxonomyFields {
   primaryCategory: PrimaryCategoryKey | null;
   secondaryCategory: PrimaryCategoryKey | null;
-  patterns: string[];
   topics: string[];
   toolStack: string[];
 }
@@ -73,10 +70,7 @@ function normalizeTextArray(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
-function normalizeFacetArray(
-  group: "pattern" | "topic" | "tool_stack",
-  value: unknown
-): string[] {
+function normalizeFacetArray(group: "topic" | "tool_stack", value: unknown): string[] {
   const normalized = normalizeTextArray(value)
     .map((item) => normalizeFacetValue(group, item))
     .filter((item): item is string => item !== null);
@@ -94,11 +88,12 @@ export function normalizeFaqTaxonomyFields(
     typeof row.secondary_category === "string"
       ? normalizePrimaryCategoryKey(row.secondary_category)
       : null;
+  const normalizedSecondaryCategory =
+    primaryCategory && secondaryCategory === primaryCategory ? null : secondaryCategory;
 
   return {
     primaryCategory,
-    secondaryCategory,
-    patterns: normalizeFacetArray("pattern", row.patterns),
+    secondaryCategory: normalizedSecondaryCategory,
     topics: normalizeFacetArray("topic", row.topics),
     toolStack: normalizeFacetArray("tool_stack", row.tool_stack),
   };
@@ -379,7 +374,6 @@ export async function updateFaqStatus(
     categories?: string[];
     primary_category?: PrimaryCategoryKey | null;
     secondary_category?: PrimaryCategoryKey | null;
-    patterns?: string[];
     topics?: string[];
     tool_stack?: string[];
     references?: Reference[];
@@ -422,9 +416,8 @@ export async function updateFaqStatus(
       data.secondary_category !== undefined
         ? normalizePrimaryCategoryKey(data.secondary_category)
         : current?.secondary_category ?? null;
-    const patternsLiteral = toTextArrayLiteral(
-      data.patterns !== undefined ? normalizeFacetArray("pattern", data.patterns) : current?.patterns ?? []
-    );
+    const normalizedSecondaryCategory =
+      primaryCategory && secondaryCategory === primaryCategory ? null : secondaryCategory;
     const topicsLiteral = toTextArrayLiteral(
       data.topics !== undefined ? normalizeFacetArray("topic", data.topics) : current?.topics ?? []
     );
@@ -440,8 +433,7 @@ export async function updateFaqStatus(
           tags = ${tagsLiteral}::text[],
           categories = ${categoriesLiteral}::text[],
           primary_category = ${primaryCategory},
-          secondary_category = ${secondaryCategory},
-          patterns = ${patternsLiteral}::text[],
+          secondary_category = ${normalizedSecondaryCategory},
           topics = ${topicsLiteral}::text[],
           tool_stack = ${toolStackLiteral}::text[],
           "references" = ${JSON.stringify(data.references ?? [])}::jsonb,
@@ -527,7 +519,6 @@ function rowToFaqItem(row: Record<string, unknown>): DBFaqItem {
     categories: (row.categories as string[]) ?? [],
     primary_category: taxonomy.primaryCategory,
     secondary_category: taxonomy.secondaryCategory,
-    patterns: taxonomy.patterns,
     topics: taxonomy.topics,
     tool_stack: taxonomy.toolStack,
     references: (typeof row.references === "string"

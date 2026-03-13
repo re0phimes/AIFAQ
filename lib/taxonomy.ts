@@ -13,12 +13,10 @@ const taxonomy = rawTaxonomy as FAQTaxonomy;
 const primaryCategoryByKey = new Map<PrimaryCategoryKey, FAQTaxonomyCategory>();
 const primaryCategoryAliasToKey = new Map<string, PrimaryCategoryKey>();
 const facetOptionMaps: Record<FAQFacetGroup, Map<string, FAQFacetOption>> = {
-  pattern: new Map(),
   topic: new Map(),
   tool_stack: new Map(),
 };
 const facetAliasMaps: Record<FAQFacetGroup, Map<string, string>> = {
-  pattern: new Map(),
   topic: new Map(),
   tool_stack: new Map(),
 };
@@ -41,7 +39,6 @@ function cloneTaxonomy(source: FAQTaxonomy): FAQTaxonomy {
   return {
     categories: source.categories.map(cloneCategory),
     facets: {
-      pattern: source.facets.pattern.map(cloneFacetOption),
       topic: source.facets.topic.map(cloneFacetOption),
       tool_stack: source.facets.tool_stack.map(cloneFacetOption),
     },
@@ -95,6 +92,18 @@ export function normalizePrimaryCategoryKey(value: string | null | undefined): P
   return primaryCategoryAliasToKey.get(normalizeToken(value)) ?? null;
 }
 
+export function expandPrimaryCategoryKeys(value: string | null | undefined): PrimaryCategoryKey[] {
+  if (!value) return [];
+
+  const normalized = normalizeToken(value);
+  if (normalized === "retrieval_agent_systems") {
+    return ["retrieval_systems", "agent_systems"];
+  }
+
+  const canonical = primaryCategoryAliasToKey.get(normalized);
+  return canonical ? [canonical] : [];
+}
+
 export function isValidPrimaryCategoryKey(value: string | null | undefined): value is PrimaryCategoryKey {
   return normalizePrimaryCategoryKey(value) !== null;
 }
@@ -106,7 +115,7 @@ export function getPrimaryCategoryLabel(value: string, lang: Lang): string {
 }
 
 export function getFacetGroups(): FAQFacetGroup[] {
-  return Object.keys(taxonomy.facets) as FAQFacetGroup[];
+  return ["topic", "tool_stack"];
 }
 
 export function getFacetOptions(group: FAQFacetGroup): FAQFacetOption[] {

@@ -78,7 +78,6 @@ export default async function FAQDetailPage({
     categories: faqItem.categories || [],
     primaryCategory: faqItem.primary_category,
     secondaryCategory: faqItem.secondary_category,
-    patterns: faqItem.patterns,
     topics: faqItem.topics,
     toolStack: faqItem.tool_stack,
     difficulty: faqItem.difficulty,

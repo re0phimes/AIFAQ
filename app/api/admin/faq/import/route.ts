@@ -107,7 +107,6 @@ async function processImport(
           categories: [],
           primary_category: result.primary_category,
           secondary_category: result.secondary_category,
-          patterns: result.patterns,
           topics: result.topics,
           tool_stack: result.tool_stack,
           references: result.references,

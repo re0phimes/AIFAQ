@@ -24,10 +24,6 @@ export default function FAQDetailClient({ faq, isFavorited, learningStatus, lang
     faq.secondaryCategory
       ? { key: `secondary:${faq.secondaryCategory}`, label: getPrimaryCategoryLabel(faq.secondaryCategory, lang) }
       : null,
-    ...(faq.patterns ?? []).slice(0, 1).map((pattern) => ({
-      key: `pattern:${pattern}`,
-      label: getFacetLabel("pattern", pattern, lang),
-    })),
     ...(faq.topics ?? []).slice(0, 2).map((topic) => ({
       key: `topic:${topic}`,
       label: getFacetLabel("topic", topic, lang),

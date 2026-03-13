@@ -21,7 +21,6 @@ interface FaqItem {
   categories: string[];
   primary_category: string | null;
   secondary_category: string | null;
-  patterns: string[];
   topics: string[];
   tool_stack: string[];
   references: { type: string; title: string; url?: string }[];
@@ -536,7 +535,6 @@ export default function ReviewPage() {
                 <div className="mt-6 space-y-3 border-t border-[var(--color-border)] pt-4">
                   {(selectedItem.primary_category ||
                     selectedItem.secondary_category ||
-                    selectedItem.patterns.length > 0 ||
                     selectedItem.topics.length > 0 ||
                     selectedItem.tool_stack.length > 0) && (
                     <div>
@@ -553,12 +551,6 @@ export default function ReviewPage() {
                             label={`辅类: ${getPrimaryCategoryLabel(selectedItem.secondary_category, "zh")}`}
                           />
                         )}
-                        {selectedItem.patterns.map((pattern) => (
-                          <TaxonomyPill
-                            key={`pattern:${pattern}`}
-                            label={`模式: ${getFacetLabel("pattern", pattern, "zh")}`}
-                          />
-                        ))}
                         {selectedItem.topics.map((topic) => (
                           <TaxonomyPill
                             key={`topic:${topic}`}

@@ -34,7 +34,6 @@ export async function POST(): Promise<NextResponse> {
     for (const item of items) {
       const tagsLiteral = toTextArrayLiteral(item.tags);
       const categoriesLiteral = toTextArrayLiteral(item.categories);
-      const patternsLiteral = toTextArrayLiteral(item.patterns ?? []);
       const topicsLiteral = toTextArrayLiteral(item.topics ?? []);
       const toolStackLiteral = toTextArrayLiteral(item.toolStack ?? []);
       const refsJson = JSON.stringify(item.references);
@@ -42,7 +41,7 @@ export async function POST(): Promise<NextResponse> {
       const result = await sql`
         INSERT INTO faq_items (
           question, answer_raw, answer, tags, categories,
-          primary_category, secondary_category, patterns, topics, tool_stack,
+          primary_category, secondary_category, topics, tool_stack,
           "references", status, date, upvote_count, downvote_count
         )
         VALUES (
@@ -53,7 +52,6 @@ export async function POST(): Promise<NextResponse> {
           ${categoriesLiteral}::text[],
           ${item.primaryCategory ?? null},
           ${item.secondaryCategory ?? null},
-          ${patternsLiteral}::text[],
           ${topicsLiteral}::text[],
           ${toolStackLiteral}::text[],
           ${refsJson}::jsonb,

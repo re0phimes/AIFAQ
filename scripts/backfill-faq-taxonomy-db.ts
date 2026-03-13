@@ -1,8 +1,8 @@
 import { sql } from "@vercel/postgres";
 import { initDB } from "../lib/db";
 import { normalizePrimaryCategoryKey } from "../lib/taxonomy";
-import { classifyLegacyFaq, type MigrationSummary } from "./migrate-faq-taxonomy";
-import type { FAQItem, Reference } from "../src/types/faq";
+import { classifyLegacyFaq, type LegacyFaqInput, type MigrationSummary } from "./migrate-faq-taxonomy";
+import type { Reference } from "../src/types/faq";
 
 interface CliOptions {
   dryRun: boolean;
@@ -63,23 +63,22 @@ function toTextArrayLiteral(values: string[]): string {
   return `{${values.map((value) => `"${escapePgArrayValue(value)}"`).join(",")}}`;
 }
 
-function toFaqItem(row: DbRow): FAQItem {
+function toLegacyFaqInput(row: DbRow): LegacyFaqInput {
+  const primaryCategory = normalizePrimaryCategoryKey(row.primary_category);
+  const secondaryCategory = normalizePrimaryCategoryKey(row.secondary_category);
+
   return {
     id: row.id,
     question: row.question,
-    questionEn: undefined,
-    date: "",
     tags: row.tags ?? [],
     categories: row.categories ?? [],
-    primaryCategory: normalizePrimaryCategoryKey(row.primary_category),
-    secondaryCategory: normalizePrimaryCategoryKey(row.secondary_category),
+    primaryCategory,
+    secondaryCategory: primaryCategory && secondaryCategory === primaryCategory ? null : secondaryCategory,
     patterns: row.patterns ?? [],
     topics: row.topics ?? [],
     toolStack: row.tool_stack ?? [],
     references: parseReferences(row.references),
     answer: row.answer ?? row.answer_raw,
-    upvoteCount: 0,
-    downvoteCount: 0,
   };
 }
 
@@ -171,13 +170,12 @@ async function backfill(): Promise<void> {
   const summary = createSummary(rows.length);
 
   for (const row of rows) {
-    const item = toFaqItem(row);
+    const item = toLegacyFaqInput(row);
     const classified = classifyLegacyFaq(item);
 
     const changed =
       item.primaryCategory !== classified.primary_category ||
       item.secondaryCategory !== classified.secondary_category ||
-      JSON.stringify(item.patterns ?? []) !== JSON.stringify(classified.patterns) ||
       JSON.stringify(item.topics ?? []) !== JSON.stringify(classified.topics) ||
       JSON.stringify(item.toolStack ?? []) !== JSON.stringify(classified.tool_stack);
 
@@ -203,7 +201,6 @@ async function backfill(): Promise<void> {
 
     if (!changed || options.dryRun) continue;
 
-    const patternsLiteral = toTextArrayLiteral(classified.patterns);
     const topicsLiteral = toTextArrayLiteral(classified.topics);
     const toolStackLiteral = toTextArrayLiteral(classified.tool_stack);
 
@@ -212,11 +209,20 @@ async function backfill(): Promise<void> {
       SET
         primary_category = ${classified.primary_category},
         secondary_category = ${classified.secondary_category},
-        patterns = ${patternsLiteral}::text[],
         topics = ${topicsLiteral}::text[],
         tool_stack = ${toolStackLiteral}::text[],
         updated_at = NOW()
       WHERE id = ${row.id}
+    `;
+  }
+
+  if (!options.dryRun) {
+    await sql`
+      UPDATE faq_items
+      SET secondary_category = NULL,
+          updated_at = NOW()
+      WHERE primary_category IS NOT NULL
+        AND secondary_category = primary_category
     `;
   }
 

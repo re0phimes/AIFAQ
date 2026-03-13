@@ -34,13 +34,20 @@ test("public taxonomy UI no longer exposes legacy tag filters or tag pills", () 
 
   assert.equal(faqList.includes("selectedTags"), false);
   assert.equal(faqList.includes("allTags"), false);
+  assert.equal(faqList.includes("selectedPatterns"), false);
+  assert.equal(faqList.includes("patternCounts"), false);
   assert.equal(tagFilter.includes("Leaf Tags"), false);
+  assert.equal(tagFilter.includes("Patterns"), false);
+  assert.equal(tagFilter.includes('"pattern"'), false);
   assert.equal(searchBar.includes('"tag"'), false);
   assert.equal(faqItem.includes("translateTag"), false);
+  assert.equal(faqItem.includes('getFacetLabel("pattern"'), false);
   assert.equal(detailModal.includes("translateTag"), false);
+  assert.equal(detailModal.includes('getFacetLabel("pattern"'), false);
   assert.equal(favoriteCard.includes("translateTag"), false);
   assert.equal(readingView.includes("translateTag"), false);
   assert.equal(faqDetailClient.includes("faq.tags.map"), false);
+  assert.equal(faqDetailClient.includes('getFacetLabel("pattern"'), false);
 });
 
 test("admin review UI no longer foregrounds legacy tags", () => {

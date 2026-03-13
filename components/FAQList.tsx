@@ -55,14 +55,6 @@ function buildTaxonomySearchText(item: FAQItemType): string {
     tokens.push(topic, getFacetLabel("topic", topic, "zh"), getFacetLabel("topic", topic, "en"));
   }
 
-  for (const pattern of item.patterns ?? []) {
-    tokens.push(
-      pattern,
-      getFacetLabel("pattern", pattern, "zh"),
-      getFacetLabel("pattern", pattern, "en")
-    );
-  }
-
   for (const tool of item.toolStack ?? []) {
     tokens.push(
       tool,
@@ -156,7 +148,6 @@ export default function FAQList({
   const [searchMode, setSearchMode] = useState<SearchMode>("combined");
   const [selectedCategories, setSelectedCategories] = useState<PrimaryCategoryKey[]>([]);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
-  const [selectedPatterns, setSelectedPatterns] = useState<string[]>([]);
   const [openItems, setOpenItems] = useState<Set<number>>(new Set());
   const [selectedItems, setSelectedItems] = useState<Set<number>>(loadSelected);
   const [view, setView] = useState<"list" | "reading">("list");
@@ -250,15 +241,10 @@ export default function FAQList({
   );
 
   const topicOptions = useMemo(() => new Set(getFacetOptions("topic").map((option) => option.key)), []);
-  const patternOptions = useMemo(
-    () => new Set(getFacetOptions("pattern").map((option) => option.key)),
-    []
-  );
 
-  const { categoryCounts, topicCounts, patternCounts } = useMemo(() => {
+  const { categoryCounts, topicCounts } = useMemo(() => {
     const nextCategoryCounts = new Map<PrimaryCategoryKey, number>();
     const nextTopicCounts = new Map<string, number>();
-    const nextPatternCounts = new Map<string, number>();
 
     for (const item of items) {
       const categories = new Set<PrimaryCategoryKey>();
@@ -272,11 +258,6 @@ export default function FAQList({
         if (!topicOptions.has(topic)) continue;
         nextTopicCounts.set(topic, (nextTopicCounts.get(topic) ?? 0) + 1);
       }
-
-      for (const pattern of item.patterns ?? []) {
-        if (!patternOptions.has(pattern)) continue;
-        nextPatternCounts.set(pattern, (nextPatternCounts.get(pattern) ?? 0) + 1);
-      }
     }
 
     return {
@@ -284,11 +265,8 @@ export default function FAQList({
       topicCounts: [...nextTopicCounts.entries()]
         .sort((a, b) => b[1] - a[1])
         .map(([key, count]) => ({ key, count })),
-      patternCounts: [...nextPatternCounts.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .map(([key, count]) => ({ key, count })),
     };
-  }, [items, patternOptions, topicOptions]);
+  }, [items, topicOptions]);
 
   // Filter logic
   const filtered = useMemo(() => {
@@ -341,12 +319,6 @@ export default function FAQList({
       );
     }
 
-    if (selectedPatterns.length > 0) {
-      result = result.filter((item) =>
-        selectedPatterns.some((pattern) => item.patterns?.includes(pattern))
-      );
-    }
-
     if (canFilterByLevel && levelFilter !== "all") {
       result = result.filter((item) => (item.level ?? 1) === levelFilter);
     }
@@ -358,7 +330,6 @@ export default function FAQList({
     searchMode,
     selectedCategories,
     selectedTopics,
-    selectedPatterns,
     showFocusOnly,
     focusCategories,
     session?.user?.tier,
@@ -418,13 +389,6 @@ export default function FAQList({
   function handleToggleTopic(topic: string): void {
     setSelectedTopics((prev) =>
       prev.includes(topic) ? prev.filter((item) => item !== topic) : [...prev, topic]
-    );
-    setCurrentPage(1);
-  }
-
-  function handleTogglePattern(pattern: string): void {
-    setSelectedPatterns((prev) =>
-      prev.includes(pattern) ? prev.filter((item) => item !== pattern) : [...prev, pattern]
     );
     setCurrentPage(1);
   }
@@ -619,18 +583,14 @@ export default function FAQList({
             categories={categoryOptions}
             categoryCounts={categoryCounts}
             topicCounts={topicCounts}
-            patternCounts={patternCounts}
             selectedCategories={selectedCategories}
             selectedTopics={selectedTopics}
-            selectedPatterns={selectedPatterns}
             onToggleCategory={handleToggleCategory}
             onToggleTopic={handleToggleTopic}
-            onTogglePattern={handleTogglePattern}
             lang={lang}
             onClearAll={() => {
               setSelectedCategories([]);
               setSelectedTopics([]);
-              setSelectedPatterns([]);
               setCurrentPage(1);
             }}
           />

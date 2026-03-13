@@ -35,10 +35,10 @@ test("PPO content maps to reinforcement_learning", () => {
   });
 
   assert.equal(result.primary_category, "reinforcement_learning");
-  assert.deepEqual(result.topics, ["ppo"]);
+  assert.equal(result.topics.includes("ppo"), true);
 });
 
-test("RAG content maps to retrieval_agent_systems", () => {
+test("RAG content maps to retrieval_systems", () => {
   const result = classifyLegacyFaq({
     question: "RAG 为什么会检索错文档？",
     tags: ["RAG", "LangChain"],
@@ -46,8 +46,8 @@ test("RAG content maps to retrieval_agent_systems", () => {
     references: [],
   });
 
-  assert.equal(result.primary_category, "retrieval_agent_systems");
-  assert.deepEqual(result.patterns, ["rag"]);
+  assert.equal(result.primary_category, "retrieval_systems");
+  assert.deepEqual(result.topics, ["rag"]);
   assert.deepEqual(result.tool_stack, ["langchain"]);
 });
 
@@ -74,7 +74,7 @@ test("full finetuning memory question maps to post_training_alignment without ag
 
   assert.equal(result.primary_category, "post_training_alignment");
   assert.equal(result.ambiguous, false);
-  assert.deepEqual(result.patterns, []);
+  assert.equal(result.topics.includes("memory"), false);
 });
 
 test("max_position_embeddings maps to model_architecture", () => {
