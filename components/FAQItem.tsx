@@ -256,6 +256,9 @@ function FAQItem({
   const [detailedOverride, setDetailedOverride] = useState<boolean | null>(null);
   const [showVersions, setShowVersions] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  // Reset per-item override when the global mode changes.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setDetailedOverride(null); }, [globalDetailed]);
   const detailed = detailedOverride ?? globalDetailed;
   const hasTimelinessWarning = (item.downvoteCount ?? 0) >= 3;
   const taxonomyPills = getTaxonomyPills(item, lang);
