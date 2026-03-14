@@ -91,13 +91,13 @@ interface FAQListProps {
   focusCategories?: string[];
   onFocusEmpty?: () => void;
   initialPageSize?: number;
-  initialGlobalDetailed?: boolean;
+  globalDetailed: boolean;
+  onGlobalDetailedChange?: (value: boolean) => void;
   onPreferenceChange?: (patch: { pageSize?: number; defaultDetailed?: boolean }) => void;
 }
 
 const LS_KEY = "aifaq-selected";
 const LS_PAGESIZE = "aifaq-pagesize";
-const LS_GLOBAL_DETAILED = "aifaq-global-detailed";
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 
 function loadSelected(): Set<number> {
@@ -114,14 +114,6 @@ function loadPageSize(): number {
   const raw = localStorage.getItem("aifaq-pageSize") ?? localStorage.getItem(LS_PAGESIZE);
   const parsed = raw ? Number(raw) : NaN;
   return PAGE_SIZE_OPTIONS.includes(parsed as (typeof PAGE_SIZE_OPTIONS)[number]) ? parsed : 10;
-}
-
-function loadDefaultDetailed(): boolean {
-  if (typeof window === "undefined") return false;
-  const globalValue = localStorage.getItem(LS_GLOBAL_DETAILED);
-  if (globalValue !== null) return globalValue === "true";
-  const fallbackValue = localStorage.getItem("aifaq-defaultDetailed");
-  return fallbackValue === "true";
 }
 
 export default function FAQList({
@@ -141,7 +133,8 @@ export default function FAQList({
   focusCategories = [],
   onFocusEmpty,
   initialPageSize,
-  initialGlobalDetailed,
+  globalDetailed,
+  onGlobalDetailedChange,
   onPreferenceChange,
 }: FAQListProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -156,7 +149,6 @@ export default function FAQList({
   const [pageSize, setPageSize] = useState(() => initialPageSize ?? loadPageSize());
   const [sortMode, setSortMode] = useState<SortMode>("default");
   const [levelFilter, setLevelFilter] = useState<"all" | 1 | 2>("all");
-  const [globalDetailed, setGlobalDetailed] = useState(() => initialGlobalDetailed ?? loadDefaultDetailed());
   const [showFocusOnly, setShowFocusOnly] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -205,18 +197,6 @@ export default function FAQList({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPageSize(initialPageSize);
   }, [initialPageSize]);
-
-  useEffect(() => {
-    if (initialGlobalDetailed === undefined) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setGlobalDetailed(initialGlobalDetailed);
-  }, [initialGlobalDetailed]);
-
-  // Persist globalDetailed
-  useEffect(() => {
-    localStorage.setItem(LS_GLOBAL_DETAILED, String(globalDetailed));
-    onPreferenceChange?.({ defaultDetailed: globalDetailed });
-  }, [globalDetailed, onPreferenceChange]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -663,21 +643,21 @@ export default function FAQList({
               {t("collapseAll", lang)}
             </button>
             <div className="flex items-center gap-1 ml-2 border-l border-border pl-2">
-              <button
-                onClick={() => setGlobalDetailed(false)}
-                className={`rounded-full px-2.5 py-1.5 text-xs transition-colors ${
-                  !globalDetailed
-                    ? "bg-primary text-white"
+                <button
+                  onClick={() => onGlobalDetailedChange?.(false)}
+                  className={`rounded-full px-2.5 py-1.5 text-xs transition-colors ${
+                    !globalDetailed
+                      ? "bg-primary text-white"
                     : "text-subtext hover:bg-surface"
                 }`}
               >
                 {t("brief", lang)}
               </button>
-              <button
-                onClick={() => setGlobalDetailed(true)}
-                className={`rounded-full px-2.5 py-1.5 text-xs transition-colors ${
-                  globalDetailed
-                    ? "bg-primary text-white"
+                <button
+                  onClick={() => onGlobalDetailedChange?.(true)}
+                  className={`rounded-full px-2.5 py-1.5 text-xs transition-colors ${
+                    globalDetailed
+                      ? "bg-primary text-white"
                     : "text-subtext hover:bg-surface"
                 }`}
               >

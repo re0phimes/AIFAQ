@@ -609,6 +609,14 @@ function FAQPageInner({ items }: FAQPageProps) {
     [updatePreferences]
   );
 
+  const handleGlobalDetailedChange = useCallback(
+    (value: boolean) => {
+      if (value === preferencesRef.current.defaultDetailed) return;
+      void updatePreferences({ defaultDetailed: value }, true);
+    },
+    [updatePreferences]
+  );
+
   const handleFocusEmpty = useCallback(() => {
     if (session?.user?.id) {
       const confirmText =
@@ -658,7 +666,10 @@ function FAQPageInner({ items }: FAQPageProps) {
         focusCategories={preferences.focusCategories}
         onFocusEmpty={handleFocusEmpty}
         initialPageSize={preferences.pageSize}
-        initialGlobalDetailed={preferences.defaultDetailed}
+        globalDetailed={preferences.defaultDetailed ?? false}
+        onGlobalDetailedChange={(value) => {
+          handleGlobalDetailedChange(value);
+        }}
         onPreferenceChange={handleListPreferenceChange}
       />
 
