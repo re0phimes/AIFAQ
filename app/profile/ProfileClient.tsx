@@ -11,6 +11,21 @@ import Toast from "@/components/Toast";
 import DetailModal from "@/components/DetailModal";
 
 const LS_VOTED = "aifaq-voted";
+const LS_PREFS = "aifaq-prefs-v2";
+
+interface SharedPreferencesSnapshot {
+  language?: "zh" | "en";
+  pageSize?: number;
+  defaultDetailed?: boolean;
+  focusCategories?: PrimaryCategoryKey[];
+  updatedAt?: string;
+}
+
+interface SettingsState {
+  lang: "zh" | "en";
+  pageSize: number;
+  focusCategories: PrimaryCategoryKey[];
+}
 
 function loadVotedMap(): Map<number, VoteType> {
   if (typeof window === "undefined") return new Map();
@@ -31,6 +46,67 @@ function saveVotedMap(map: Map<number, VoteType>): void {
   const obj: Record<string, VoteType> = {};
   for (const [k, v] of map) obj[String(k)] = v;
   localStorage.setItem(LS_VOTED, JSON.stringify(obj));
+}
+
+function loadSharedPreferencesSnapshot(): SharedPreferencesSnapshot {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(LS_PREFS);
+    if (!raw) return {};
+    return JSON.parse(raw) as SharedPreferencesSnapshot;
+  } catch {
+    return {};
+  }
+}
+
+function loadDefaultDetailedPreference(): boolean {
+  const snapshot = loadSharedPreferencesSnapshot();
+  if (typeof snapshot.defaultDetailed === "boolean") {
+    return snapshot.defaultDetailed;
+  }
+
+  if (typeof window === "undefined") return false;
+  const saved =
+    localStorage.getItem("aifaq-defaultDetailed") ??
+    localStorage.getItem("aifaq-global-detailed");
+  return saved === "true";
+}
+
+function saveDefaultDetailedPreference(value: boolean): void {
+  if (typeof window === "undefined") return;
+
+  localStorage.setItem("aifaq-defaultDetailed", String(value));
+  localStorage.setItem("aifaq-global-detailed", String(value));
+
+  const snapshot = loadSharedPreferencesSnapshot();
+  localStorage.setItem(
+    LS_PREFS,
+    JSON.stringify({
+      ...snapshot,
+      defaultDetailed: value,
+      updatedAt: new Date().toISOString(),
+    } satisfies SharedPreferencesSnapshot)
+  );
+}
+
+function saveProfilePreferences(next: SettingsState, defaultDetailed: boolean): void {
+  if (typeof window === "undefined") return;
+
+  localStorage.setItem("aifaq-lang", next.lang);
+  localStorage.setItem("aifaq-pageSize", String(next.pageSize));
+  localStorage.setItem("aifaq-pagesize", String(next.pageSize));
+  localStorage.setItem("aifaq-focus-categories", JSON.stringify(next.focusCategories));
+  saveDefaultDetailedPreference(defaultDetailed);
+  localStorage.setItem(
+    LS_PREFS,
+    JSON.stringify({
+      language: next.lang,
+      pageSize: next.pageSize,
+      defaultDetailed,
+      focusCategories: next.focusCategories,
+      updatedAt: new Date().toISOString(),
+    } satisfies SharedPreferencesSnapshot)
+  );
 }
 
 // Alert Triangle Icon Component
@@ -96,7 +172,7 @@ export default function ProfileClient({
   const [filter, setFilter] = useState<"all" | "unread" | "learning" | "mastered">("all");
   const [pendingRemovals, setPendingRemovals] = useState<Set<number>>(new Set());
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [globalDetailed, setGlobalDetailed] = useState(false);
+  const [globalDetailed, setGlobalDetailed] = useState(loadDefaultDetailedPreference);
   const [openItems, setOpenItems] = useState<Set<number>>(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalItem, setModalItem] = useState<FAQItem | null>(null);
@@ -113,17 +189,6 @@ export default function ProfileClient({
   useEffect(() => {
     fingerprintRef.current = fingerprint;
   }, [fingerprint]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = localStorage.getItem("aifaq-defaultDetailed");
-    if (saved !== null) setGlobalDetailed(saved === "true");
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem("aifaq-defaultDetailed", String(globalDetailed));
-  }, [globalDetailed]);
 
   useEffect(() => {
     if (sessionUser?.id) return;
@@ -242,6 +307,11 @@ export default function ProfileClient({
   const handleModalRevokeVote = useCallback(() => {
     if (modalItem) handleRevokeVote(modalItem.id);
   }, [modalItem, handleRevokeVote]);
+
+  const handleGlobalDetailedChange = useCallback((value: boolean) => {
+    setGlobalDetailed(value);
+    saveDefaultDetailedPreference(value);
+  }, []);
 
   const handleUpdateStatus = useCallback(async (faqId: number, status: "learning" | "mastered") => {
     try {
@@ -520,7 +590,7 @@ export default function ProfileClient({
                 <span className="text-xs text-subtext">{t("defaultViewMode", lang)}</span>
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => setGlobalDetailed(false)}
+                    onClick={() => handleGlobalDetailedChange(false)}
                     className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
                       !globalDetailed
                         ? "bg-primary text-white"
@@ -530,7 +600,7 @@ export default function ProfileClient({
                     {t("brief", lang)}
                   </button>
                   <button
-                    onClick={() => setGlobalDetailed(true)}
+                    onClick={() => handleGlobalDetailedChange(true)}
                     className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
                       globalDetailed
                         ? "bg-primary text-white"
@@ -576,7 +646,12 @@ export default function ProfileClient({
           )}
         </>
       ) : (
-        <SettingsTab lang={lang} sessionUser={sessionUser} />
+        <SettingsTab
+          lang={lang}
+          sessionUser={sessionUser}
+          defaultDetailed={globalDetailed}
+          onDefaultDetailedChange={handleGlobalDetailedChange}
+        />
       )}
 
       <DetailModal
@@ -600,6 +675,8 @@ export default function ProfileClient({
 interface SettingsTabProps {
   lang: "zh" | "en";
   sessionUser?: { id?: string; name?: string | null; image?: string | null } | null;
+  defaultDetailed: boolean;
+  onDefaultDetailedChange: (value: boolean) => void;
 }
 
 function normalizeFocusCategories(values: unknown): PrimaryCategoryKey[] {
@@ -610,17 +687,21 @@ function normalizeFocusCategories(values: unknown): PrimaryCategoryKey[] {
   return Array.from(new Set(normalized));
 }
 
-function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
-  const [settings, setSettings] = useState({
+function SettingsTab({
+  lang,
+  sessionUser,
+  defaultDetailed,
+  onDefaultDetailedChange,
+}: SettingsTabProps) {
+  const defaultDetailedRef = useRef(defaultDetailed);
+  const onDefaultDetailedChangeRef = useRef(onDefaultDetailedChange);
+  const [settings, setSettings] = useState<SettingsState>({
     lang:
       ((typeof window !== "undefined" ? localStorage.getItem("aifaq-lang") : null) as
         | "zh"
         | "en") || lang,
     pageSize:
       Number(typeof window !== "undefined" ? localStorage.getItem("aifaq-pageSize") : null) || 20,
-    defaultDetailed:
-      (typeof window !== "undefined" ? localStorage.getItem("aifaq-defaultDetailed") : null) ===
-      "true",
     focusCategories:
       typeof window !== "undefined" && localStorage.getItem("aifaq-focus-categories")
         ? (() => {
@@ -638,24 +719,13 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
 
   const availableCategories = getPrimaryCategoryOptions();
 
-  const saveLocalPreferences = useCallback((next: typeof settings): void => {
-    localStorage.setItem("aifaq-lang", next.lang);
-    localStorage.setItem("aifaq-pageSize", String(next.pageSize));
-    localStorage.setItem("aifaq-pagesize", String(next.pageSize));
-    localStorage.setItem("aifaq-defaultDetailed", String(next.defaultDetailed));
-    localStorage.setItem("aifaq-global-detailed", String(next.defaultDetailed));
-    localStorage.setItem("aifaq-focus-categories", JSON.stringify(next.focusCategories));
-    localStorage.setItem(
-      "aifaq-prefs-v2",
-      JSON.stringify({
-        language: next.lang,
-        pageSize: next.pageSize,
-        defaultDetailed: next.defaultDetailed,
-        focusCategories: next.focusCategories,
-        updatedAt: new Date().toISOString(),
-      })
-    );
-  }, []);
+  useEffect(() => {
+    defaultDetailedRef.current = defaultDetailed;
+  }, [defaultDetailed]);
+
+  useEffect(() => {
+    onDefaultDetailedChangeRef.current = onDefaultDetailedChange;
+  }, [onDefaultDetailedChange]);
 
   const patchRemote = useCallback(async (patch: Record<string, unknown>) => {
     try {
@@ -681,37 +751,45 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
               : prev.lang) as "zh" | "en",
             pageSize:
               typeof remote.page_size === "number" ? remote.page_size : prev.pageSize,
-            defaultDetailed:
-              typeof remote.default_detailed === "boolean"
-                ? remote.default_detailed
-                : prev.defaultDetailed,
             focusCategories: Array.isArray(remote.focus_categories)
               ? normalizeFocusCategories(remote.focus_categories)
               : prev.focusCategories,
           };
-          saveLocalPreferences(next);
+          const nextDefaultDetailed =
+            typeof remote.default_detailed === "boolean"
+              ? remote.default_detailed
+              : defaultDetailedRef.current;
+          saveProfilePreferences(next, nextDefaultDetailed);
+          if (nextDefaultDetailed !== defaultDetailedRef.current) {
+            onDefaultDetailedChangeRef.current(nextDefaultDetailed);
+          }
           return next;
         });
       })
       .catch(() => {});
-  }, [saveLocalPreferences]);
+  }, []);
 
-  const updateSetting = <K extends "lang" | "pageSize" | "defaultDetailed">(
+  const updateSetting = <K extends keyof SettingsState>(
     key: K,
     value: (typeof settings)[K]
   ) => {
     setSettings((prev) => {
       const next = { ...prev, [key]: value };
-      saveLocalPreferences(next);
+      saveProfilePreferences(next, defaultDetailed);
       return next;
     });
     if (key === "lang") {
       void patchRemote({ language: value });
     } else if (key === "pageSize") {
       void patchRemote({ page_size: value });
-    } else if (key === "defaultDetailed") {
-      void patchRemote({ default_detailed: value });
     }
+  };
+
+  const updateDefaultDetailed = (value: boolean) => {
+    if (value === defaultDetailed) return;
+    onDefaultDetailedChange(value);
+    saveProfilePreferences(settings, value);
+    void patchRemote({ default_detailed: value });
   };
 
   const toggleFocusCategory = (category: PrimaryCategoryKey) => {
@@ -720,7 +798,7 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
         ? prev.focusCategories.filter((item) => item !== category)
         : [...prev.focusCategories, category];
       const next = { ...prev, focusCategories: nextCategories };
-      saveLocalPreferences(next);
+      saveProfilePreferences(next, defaultDetailed);
       void patchRemote({ focus_categories: nextCategories });
       return next;
     });
@@ -803,9 +881,9 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
             </label>
             <div className="flex gap-2">
               <button
-                onClick={() => updateSetting("defaultDetailed", false)}
+                onClick={() => updateDefaultDetailed(false)}
                 className={`rounded-full px-4 py-2 text-sm transition-colors ${
-                  !settings.defaultDetailed
+                  !defaultDetailed
                     ? "bg-primary text-white"
                     : "border-[0.5px] border-border text-subtext hover:bg-surface"
                 }`}
@@ -813,9 +891,9 @@ function SettingsTab({ lang, sessionUser }: SettingsTabProps) {
                 {t("brief", lang)}
               </button>
               <button
-                onClick={() => updateSetting("defaultDetailed", true)}
+                onClick={() => updateDefaultDetailed(true)}
                 className={`rounded-full px-4 py-2 text-sm transition-colors ${
-                  settings.defaultDetailed
+                  defaultDetailed
                     ? "bg-primary text-white"
                     : "border-[0.5px] border-border text-subtext hover:bg-surface"
                 }`}
