@@ -270,13 +270,19 @@ function FAQPageInner({ items }: FAQPageProps) {
       default_detailed?: boolean;
       focus_categories?: string[];
     }) => {
-      if (!session?.user?.id) return;
-      if (Object.keys(patch).length === 0) return;
-      await fetch("/api/user/preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      }).catch(() => {});
+      if (!session?.user?.id) return null;
+      if (Object.keys(patch).length === 0) return null;
+      try {
+        const res = await fetch("/api/user/preferences", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        });
+        if (!res.ok) return null;
+        return normalizeServerPreferences((await res.json()) as ServerPreferencesResponse);
+      } catch {
+        return null;
+      }
     },
     [session?.user?.id]
   );
@@ -374,15 +380,53 @@ function FAQPageInner({ items }: FAQPageProps) {
       if (syncInFlightRef.current) return;
       syncInFlightRef.current = true;
       try {
+        const requestStartLocalHash = buildPrefsHash(toSnapshot(preferencesRef.current));
         const res = await fetch("/api/user/preferences");
         if (!res.ok) return;
         const data = (await res.json()) as ServerPreferencesResponse;
         const serverPrefs = normalizeServerPreferences(data);
         const serverHash = buildPrefsHash(toSnapshot(serverPrefs));
-
-        const localPrefs = preferencesRef.current;
-        const localHash = buildPrefsHash(toSnapshot(localPrefs));
         const syncMeta = loadPreferenceSyncMeta();
+        const currentLocalPrefs = preferencesRef.current;
+        const currentLocalHash = buildPrefsHash(toSnapshot(currentLocalPrefs));
+
+        if (currentLocalHash !== requestStartLocalHash) {
+          if (currentLocalHash === serverHash) {
+            applyPreferencesLocalOnly(serverPrefs);
+            savePreferenceSyncMeta(
+              finalizeSyncMeta({
+                previous: syncMeta,
+                serverUpdatedAt: serverPrefs.updatedAt,
+                serverHash,
+                dismissedConflictKey: null,
+              })
+            );
+            return;
+          }
+
+          const syncedCurrentPrefs = await patchRemotePreferences({
+            language: currentLocalPrefs.language,
+            page_size: currentLocalPrefs.pageSize,
+            default_detailed: currentLocalPrefs.defaultDetailed,
+            focus_categories: currentLocalPrefs.focusCategories,
+          });
+
+          if (syncedCurrentPrefs) {
+            applyPreferencesLocalOnly(syncedCurrentPrefs);
+            savePreferenceSyncMeta(
+              finalizeSyncMeta({
+                previous: syncMeta,
+                serverUpdatedAt: syncedCurrentPrefs.updatedAt,
+                serverHash: buildPrefsHash(toSnapshot(syncedCurrentPrefs)),
+                dismissedConflictKey: null,
+              })
+            );
+          }
+          return;
+        }
+
+        const localPrefs = currentLocalPrefs;
+        const localHash = currentLocalHash;
         const hasLocalPrefs = hasMeaningfulLocalPreferences(localPrefs);
         const localHasUnsyncedChanges =
           hasLocalPrefs && (syncMeta.lastSyncedHash === null || syncMeta.lastSyncedHash !== localHash);
@@ -462,7 +506,7 @@ function FAQPageInner({ items }: FAQPageProps) {
     };
 
     void run();
-  }, [applyPreferencesLocalOnly, session?.user?.id, showConfirm]);
+  }, [applyPreferencesLocalOnly, patchRemotePreferences, session?.user?.id, showConfirm]);
 
   // --- Vote handlers (stable via refs) ---
   const handleVote = useCallback(
