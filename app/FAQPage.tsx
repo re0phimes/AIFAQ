@@ -318,7 +318,18 @@ function FAQPageInner({ items }: FAQPageProps) {
       if (patch.defaultDetailed !== undefined) remotePatch.default_detailed = patch.defaultDetailed;
       if (patch.focusCategories !== undefined) remotePatch.focus_categories = next.focusCategories;
 
-      await patchRemotePreferences(remotePatch);
+      const syncedPrefs = await patchRemotePreferences(remotePatch);
+      if (syncedPrefs) {
+        applyPreferencesLocalOnly(syncedPrefs);
+        savePreferenceSyncMeta(
+          finalizeSyncMeta({
+            previous: loadPreferenceSyncMeta(),
+            serverUpdatedAt: syncedPrefs.updatedAt,
+            serverHash: buildPrefsHash(toSnapshot(syncedPrefs)),
+            dismissedConflictKey: null,
+          })
+        );
+      }
     },
     [applyPreferencesLocalOnly, patchRemotePreferences, session?.user?.id]
   );

@@ -18,6 +18,9 @@ $source = Get-Content $faqPagePath -Raw
 
 Assert-Contains $source 'const requestStartLocalHash = buildPrefsHash(toSnapshot(preferencesRef.current));' 'FAQPage should capture the local preference hash before fetching server preferences.'
 Assert-Contains $source 'if (currentLocalHash !== requestStartLocalHash) {' 'FAQPage should detect local preference edits made while server sync is in flight.'
+Assert-Contains $source 'const syncedPrefs = await patchRemotePreferences(remotePatch);' 'FAQPage should consume the normalized server response after a logged-in preference update.'
+Assert-Contains $source 'if (syncedPrefs) {' 'FAQPage should branch on a successful logged-in preference sync response.'
+Assert-Contains $source 'serverUpdatedAt: syncedPrefs.updatedAt,' 'FAQPage should update sync metadata using the synced server timestamp.'
 Assert-Contains $source 'const syncedCurrentPrefs = await patchRemotePreferences({' 'FAQPage should push the current local preferences when local edits win the race.'
 Assert-Contains $source 'applyPreferencesLocalOnly(syncedCurrentPrefs);' 'FAQPage should normalize local state from the synced server response after resolving a sync race.'
 
