@@ -6,6 +6,7 @@ import type { Components } from "react-markdown";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
+import { preprocessMarkdown } from "@/lib/markdown-content";
 
 interface MarkdownContentProps {
   content: string;
@@ -26,18 +27,19 @@ export default function MarkdownContent({
   className,
   delay = 0 
 }: MarkdownContentProps) {
-  const [readyContent, setReadyContent] = useState<string | null>(delay === 0 ? content : null);
-  const contentReady = delay === 0 || readyContent === content;
+  const normalizedContent = preprocessMarkdown(content);
+  const [readyContent, setReadyContent] = useState<string | null>(delay === 0 ? normalizedContent : null);
+  const contentReady = delay === 0 || readyContent === normalizedContent;
 
   // 延迟渲染内容（用于 Modal 优化）
   useEffect(() => {
     if (delay === 0) return;
     const timer = setTimeout(() => {
-      setReadyContent(content);
+      setReadyContent(normalizedContent);
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [content, delay]);
+  }, [normalizedContent, delay]);
 
   // delay > 0 时，挂载但未准备好内容显示骨架屏
   if (delay > 0 && !contentReady) {
@@ -62,7 +64,7 @@ export default function MarkdownContent({
         rehypePlugins={[rehypeKatex]}
         components={customComponents}
       >
-        {content}
+        {normalizedContent}
       </ReactMarkdown>
     </div>
   );

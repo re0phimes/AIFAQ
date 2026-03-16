@@ -6,6 +6,7 @@ import type { Components } from "react-markdown";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
+import { preprocessMarkdown } from "@/lib/markdown-content";
 
 interface AsyncMarkdownContentProps {
   content: string;
@@ -26,11 +27,12 @@ const customComponents: Components = {
  */
 function AsyncMarkdownContent({ content, className }: AsyncMarkdownContentProps) {
   const [rendered, setRendered] = useState<{ source: string; node: React.ReactNode } | null>(null);
-  const contentRef = useRef(content);
-  const isLoading = rendered?.source !== content;
+  const normalizedContent = preprocessMarkdown(content);
+  const contentRef = useRef(normalizedContent);
+  const isLoading = rendered?.source !== normalizedContent;
 
   useEffect(() => {
-    contentRef.current = content;
+    contentRef.current = normalizedContent;
 
     let cancelled = false;
 
@@ -68,7 +70,7 @@ function AsyncMarkdownContent({ content, className }: AsyncMarkdownContentProps)
       cancelled = true;
       cancelScheduledRender();
     };
-  }, [content]);
+  }, [normalizedContent]);
 
   // 加载状态：显示简单的骨架屏，不做复杂处理
   if (isLoading) {

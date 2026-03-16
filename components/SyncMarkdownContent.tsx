@@ -6,6 +6,7 @@ import type { Components } from "react-markdown";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
+import { preprocessMarkdown } from "@/lib/markdown-content";
 
 interface SyncMarkdownContentProps {
   content: string;
@@ -28,6 +29,7 @@ function SyncMarkdownContent({
   content,
   className
 }: SyncMarkdownContentProps) {
+  const normalizedContent = preprocessMarkdown(content);
   return (
     <div className={className}>
       <ReactMarkdown
@@ -35,7 +37,7 @@ function SyncMarkdownContent({
         rehypePlugins={[rehypeKatex]}
         components={customComponents}
       >
-        {content}
+        {normalizedContent}
       </ReactMarkdown>
     </div>
   );

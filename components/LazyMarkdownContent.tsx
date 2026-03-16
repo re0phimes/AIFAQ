@@ -4,7 +4,9 @@ import { useState, useEffect, useRef, memo } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
+import { preprocessMarkdown } from "@/lib/markdown-content";
 
 interface LazyMarkdownContentProps {
   content: string;
@@ -38,9 +40,10 @@ const customComponents: Components = {
  * 避免大段 Markdown 阻塞主线程
  */
 function LazyMarkdownContent({ content, className }: LazyMarkdownContentProps) {
+  const normalizedContent = preprocessMarkdown(content);
   const [readyContent, setReadyContent] = useState<string | null>(null);
   const scheduledRef = useRef(false);
-  const isReady = readyContent === content;
+  const isReady = readyContent === normalizedContent;
 
   useEffect(() => {
     scheduledRef.current = false;
@@ -51,21 +54,21 @@ function LazyMarkdownContent({ content, className }: LazyMarkdownContentProps) {
       scheduledRef.current = true;
 
       if (window.requestIdleCallback) {
-        const id = window.requestIdleCallback(() => setReadyContent(content), { timeout: 100 });
+        const id = window.requestIdleCallback(() => setReadyContent(normalizedContent), { timeout: 100 });
         return () => window.cancelIdleCallback?.(id);
       }
 
-      const id = window.setTimeout(() => setReadyContent(content), 50);
+      const id = window.setTimeout(() => setReadyContent(normalizedContent), 50);
       return () => window.clearTimeout(id);
     };
 
     return scheduleRender();
-  }, [content]);
+  }, [normalizedContent]);
 
   // 未准备好时显示简化预览（去除 Markdown 标记的纯文本）
   if (!isReady) {
     // 快速提取纯文本预览（只处理前 2000 字符，避免长内容卡顿）
-    const previewText = content
+    const previewText = normalizedContent
       .slice(0, 2000)
       .replace(/[#*_`\[\](){}|]/g, "")  // 移除常见 Markdown 标记
       .replace(/\$[^$]+\$/g, "[公式]")   // 数学公式占位
@@ -77,7 +80,7 @@ function LazyMarkdownContent({ content, className }: LazyMarkdownContentProps) {
           {previewText.split('\n').map((line, i) => (
             <p key={i} className="mb-2 text-text/70">{line || ' '}</p>
           ))}
-          {content.length > 2000 && (
+          {normalizedContent.length > 2000 && (
             <p className="text-subtext text-sm">加载更多内容...</p>
           )}
         </div>
@@ -88,11 +91,11 @@ function LazyMarkdownContent({ content, className }: LazyMarkdownContentProps) {
   return (
     <div className={className}>
       <ReactMarkdown
-        remarkPlugins={[[remarkMath, { singleDollarTextMath: true }]]}
+        remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
         rehypePlugins={[rehypeKatex]}
         components={customComponents}
       >
-        {content}
+        {normalizedContent}
       </ReactMarkdown>
     </div>
   );
