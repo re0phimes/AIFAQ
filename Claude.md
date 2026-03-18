@@ -76,25 +76,42 @@ AIFAQ 是一个 AI/ML FAQ 知识库项目，目标是：
 2. Agent 触发与执行隔离
 - 通过独立 `self-hosted runner` 触发 Codex/Claude Code skills。
 - 主业务运行时环境不直接执行 agent。
+- 一期先补齐 `ADMIN_API_KEY` 鉴权，供程序化上传与 admin API 调用。
 
-3. 后台批量 API（一期）
+3. Admin API Key 统一鉴权
+- 所有 `/api/admin/*` 路由统一支持:
+  - GitHub admin session
+  - `Authorization: Bearer <ADMIN_API_KEY>`
+- `verifyAdmin` 改为接收 `NextRequest`，统一处理 bearer + session。
+- 若显式携带错误的 `Authorization` header，则直接 `401`，不回退 session。
+- `ADMIN_API_KEY` 仅允许通过请求头传递，不支持 query 参数。
+- Bearer key 比较使用固定时间比较，避免明文日志和错误细节泄露。
+- 首批覆盖:
+  - `app/api/admin/faq/route.ts`
+  - `app/api/admin/faq/[id]/route.ts`
+  - `app/api/admin/faq/import/route.ts`
+  - `app/api/admin/faq/import/[id]/route.ts`
+  - `app/api/admin/users/[id]/route.ts`
+- `.env.example` 补充 `ADMIN_API_KEY=`，并与后台上传页 API 文案保持一致。
+
+4. 后台批量 API（一期）
 - 范围仅限:
   - `publish`
   - `reject`
   - `regenerate`
   - `set_level`
 
-4. 历史信息查看
+5. 历史信息查看
 - 优先实现“内容版本 diff 历史”查看。
 
-5. 开源脱敏（严格模式）
+6. 开源脱敏（严格模式）
 - 密钥、身份标识、IP、敏感原文、内部 prompt 默认脱敏并最小化落盘。
 
-6. 相似问题识别（BERT，两段式）
+7. 相似问题识别（BERT，两段式）
 - 提交阶段: 相似问题提示，不阻断。
 - Review 阶段: 强提示并要求处理（合并/保留决策）。
 
-7. 平台接入范围（一期）
+8. 平台接入范围（一期）
 - 仅接入:
   - `self-hosted agent-runner`
   - `1个向量库`
