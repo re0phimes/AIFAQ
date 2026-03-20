@@ -1,9 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth";
-import { getFaqItemById, updateFaqLevel, updateFaqStatus, getPublishedFaqItems } from "@/lib/db";
+import {
+  createAdminTask,
+  createRejectEvent,
+  getFaqItemById,
+  updateFaqLevel,
+  updateFaqStatus,
+  getPublishedFaqItems,
+} from "@/lib/db";
 import { analyzeFAQ } from "@/lib/ai";
 import { extractCandidateImages } from "@/lib/image-extractor";
 import { waitUntil } from "@vercel/functions";
+import {
+  REJECT_REASON_VALUES,
+  type RejectReason,
+} from "@/lib/admin-task-types";
+import { dispatchAdminTask } from "@/lib/admin-task-dispatch";
+
+function normalizeRejectReasons(value: unknown): RejectReason[] {
+  if (!Array.isArray(value)) {
+    return ["content_incomplete"];
+  }
+
+  const normalized = value.filter(
+    (reason): reason is RejectReason =>
+      typeof reason === "string" &&
+      (REJECT_REASON_VALUES as readonly string[]).includes(reason)
+  );
+
+  return normalized.length > 0
+    ? [...new Set(normalized)]
+    : ["content_incomplete"];
+}
+
+function normalizeRejectNote(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -43,11 +77,49 @@ export async function PATCH(
     return NextResponse.json({ ok: true });
   }
   if (body.action === "reject") {
+    const reasons = normalizeRejectReasons(body.reasons);
+    const note = normalizeRejectNote(body.note);
+
+    const rejectEvent = await createRejectEvent({
+      faqId: numId,
+      reasons,
+      note,
+      createdBy: "admin",
+    });
+    const task = await createAdminTask({
+      taskType: "regenerate",
+      source: "reject_auto",
+      createdBy: "admin",
+      payload: {
+        faqId: numId,
+        rejectEventId: rejectEvent.id,
+        question: item.question,
+        answerRaw: item.answer_raw,
+        existingReferences: item.references
+          .filter((reference) => typeof reference.url === "string" && reference.url.trim().length > 0)
+          .map((reference) => ({
+            type: reference.type,
+            url: reference.url!,
+          })),
+        reasons,
+        note,
+      },
+    });
+
     await updateFaqStatus(numId, "rejected", {
       reviewed_at: new Date(),
       reviewed_by: "admin",
     });
-    return NextResponse.json({ ok: true });
+
+    try {
+      await dispatchAdminTask(task);
+      return NextResponse.json({ ok: true, taskId: task.id });
+    } catch {
+      return NextResponse.json(
+        { error: "Reject recorded but task dispatch failed", taskId: task.id },
+        { status: 502 }
+      );
+    }
   }
   if (body.action === "unpublish") {
     await updateFaqStatus(numId, "review", {

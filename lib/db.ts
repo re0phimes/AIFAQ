@@ -9,6 +9,12 @@ import {
   mergePreferences,
   type UserPreferencesSnapshot,
 } from "./preferences-sync";
+import type {
+  AdminTaskSource,
+  AdminTaskStatus,
+  AdminTaskType,
+  RegenerateTaskPayload,
+} from "./admin-task-types";
 
 let schemaReady = false;
 
@@ -49,6 +55,28 @@ export interface DBFaqItem {
   reviewed_by: string | null;
   current_version: number;
   last_updated_at: Date | null;
+}
+
+export interface DBFaqRejectEvent {
+  id: number;
+  faq_id: number;
+  reasons: string[];
+  note: string | null;
+  created_by: string | null;
+  created_at: Date;
+}
+
+export interface DBAdminTask {
+  id: string;
+  task_type: AdminTaskType;
+  source: AdminTaskSource;
+  status: AdminTaskStatus;
+  payload_json: RegenerateTaskPayload;
+  result_json: Record<string, unknown> | null;
+  error_message: string | null;
+  created_by: string | null;
+  created_at: Date;
+  updated_at: Date;
 }
 
 interface RawFaqTaxonomyFields {
@@ -244,6 +272,34 @@ export async function initDB(): Promise<void> {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS faq_reject_events (
+      id          SERIAL PRIMARY KEY,
+      faq_id      INTEGER NOT NULL REFERENCES faq_items(id) ON DELETE CASCADE,
+      reasons     TEXT[] NOT NULL,
+      note        TEXT,
+      created_by  TEXT,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_faq_reject_events_faq_id ON faq_reject_events(faq_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS admin_tasks (
+      id            TEXT PRIMARY KEY,
+      task_type     VARCHAR(30) NOT NULL,
+      source        VARCHAR(30) NOT NULL,
+      status        VARCHAR(20) NOT NULL DEFAULT 'pending',
+      payload_json  JSONB NOT NULL DEFAULT '{}'::jsonb,
+      result_json   JSONB,
+      error_message TEXT,
+      created_by    TEXT,
+      created_at    TIMESTAMPTZ DEFAULT NOW(),
+      updated_at    TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_admin_tasks_status_created_at ON admin_tasks(status, created_at DESC)`;
+
   // Version tracking columns on faq_items
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS current_version INTEGER DEFAULT 1`;
   await sql`ALTER TABLE faq_items ADD COLUMN IF NOT EXISTS last_updated_at TIMESTAMPTZ`;
@@ -304,6 +360,155 @@ export async function createFaqItem(
     RETURNING *
   `;
   return rowToFaqItem(result.rows[0]);
+}
+
+function rowToRejectEvent(row: Record<string, unknown>): DBFaqRejectEvent {
+  return {
+    id: row.id as number,
+    faq_id: row.faq_id as number,
+    reasons: (row.reasons as string[]) ?? [],
+    note: (row.note as string | null) ?? null,
+    created_by: (row.created_by as string | null) ?? null,
+    created_at: new Date(row.created_at as string),
+  };
+}
+
+function rowToAdminTask(row: Record<string, unknown>): DBAdminTask {
+  const payloadJson =
+    typeof row.payload_json === "string"
+      ? JSON.parse(row.payload_json)
+      : row.payload_json;
+  const resultJson =
+    typeof row.result_json === "string"
+      ? JSON.parse(row.result_json)
+      : row.result_json;
+
+  return {
+    id: row.id as string,
+    task_type: row.task_type as AdminTaskType,
+    source: row.source as AdminTaskSource,
+    status: row.status as AdminTaskStatus,
+    payload_json: payloadJson as RegenerateTaskPayload,
+    result_json: (resultJson as Record<string, unknown> | null) ?? null,
+    error_message: (row.error_message as string | null) ?? null,
+    created_by: (row.created_by as string | null) ?? null,
+    created_at: new Date(row.created_at as string),
+    updated_at: new Date(row.updated_at as string),
+  };
+}
+
+export async function createRejectEvent(input: {
+  faqId: number;
+  reasons: string[];
+  note?: string | null;
+  createdBy?: string | null;
+}): Promise<DBFaqRejectEvent> {
+  await ensureSchema();
+  const reasonsLiteral = toTextArrayLiteral(input.reasons);
+  const result = await sql`
+    INSERT INTO faq_reject_events (faq_id, reasons, note, created_by)
+    VALUES (${input.faqId}, ${reasonsLiteral}::text[], ${input.note ?? null}, ${input.createdBy ?? null})
+    RETURNING *
+  `;
+  return rowToRejectEvent(result.rows[0]);
+}
+
+export async function createAdminTask(input: {
+  id?: string;
+  taskType: AdminTaskType;
+  source: AdminTaskSource;
+  payload: RegenerateTaskPayload;
+  createdBy?: string | null;
+}): Promise<DBAdminTask> {
+  await ensureSchema();
+  const id = input.id ?? `task_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const result = await sql`
+    INSERT INTO admin_tasks (id, task_type, source, status, payload_json, created_by)
+    VALUES (
+      ${id},
+      ${input.taskType},
+      ${input.source},
+      'pending',
+      ${JSON.stringify(input.payload)}::jsonb,
+      ${input.createdBy ?? null}
+    )
+    RETURNING *
+  `;
+  return rowToAdminTask(result.rows[0]);
+}
+
+export async function getAdminTaskById(id: string): Promise<DBAdminTask | null> {
+  await ensureSchema();
+  const result = await sql`
+    SELECT * FROM admin_tasks WHERE id = ${id}
+  `;
+  if (result.rows.length === 0) return null;
+  return rowToAdminTask(result.rows[0]);
+}
+
+export async function updateAdminTaskStatus(
+  id: string,
+  status: AdminTaskStatus,
+  data?: {
+    resultJson?: Record<string, unknown> | null;
+    errorMessage?: string | null;
+  },
+  expectedCurrentStatuses?: AdminTaskStatus[]
+): Promise<boolean> {
+  await ensureSchema();
+  const resultJson = JSON.stringify(data?.resultJson ?? null);
+  const errorMessage = data?.errorMessage ?? null;
+
+  if (expectedCurrentStatuses && expectedCurrentStatuses.length > 0) {
+    const expectedStatusesLiteral = toTextArrayLiteral(expectedCurrentStatuses);
+    const result = await sql`
+      UPDATE admin_tasks
+      SET status = ${status},
+          result_json = ${resultJson}::jsonb,
+          error_message = ${errorMessage},
+          updated_at = NOW()
+      WHERE id = ${id}
+        AND status = ANY(${expectedStatusesLiteral}::text[])
+      RETURNING id
+    `;
+    return result.rows.length > 0;
+  }
+
+  const result = await sql`
+    UPDATE admin_tasks
+    SET status = ${status},
+        result_json = ${resultJson}::jsonb,
+        error_message = ${errorMessage},
+        updated_at = NOW()
+    WHERE id = ${id}
+    RETURNING id
+  `;
+  return result.rows.length > 0;
+}
+
+export async function transitionAdminTaskStatus(
+  id: string,
+  fromStatuses: AdminTaskStatus[],
+  toStatus: AdminTaskStatus,
+  data?: {
+    resultJson?: Record<string, unknown> | null;
+    errorMessage?: string | null;
+  }
+): Promise<DBAdminTask | null> {
+  await ensureSchema();
+  const fromStatusesLiteral = toTextArrayLiteral(fromStatuses);
+  const result = await sql`
+    UPDATE admin_tasks
+    SET status = ${toStatus},
+        result_json = ${JSON.stringify(data?.resultJson ?? null)}::jsonb,
+        error_message = ${data?.errorMessage ?? null},
+        updated_at = NOW()
+    WHERE id = ${id}
+      AND status = ANY(${fromStatusesLiteral}::text[])
+    RETURNING *
+  `;
+  if (result.rows.length === 0) return null;
+  return rowToAdminTask(result.rows[0]);
 }
 
 export interface DBFaqVersion {
