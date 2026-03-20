@@ -4,8 +4,8 @@ import { createFaqItem, getAllFaqItems, getPublishedFaqItems, updateFaqStatus } 
 import { analyzeFAQ } from "@/lib/ai";
 import { waitUntil } from "@vercel/functions";
 
-export async function GET(): Promise<NextResponse> {
-  const authed = await verifyAdmin();
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const authed = await verifyAdmin(request);
   if (!authed) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const items = await getAllFaqItems();
@@ -13,7 +13,7 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const authed = await verifyAdmin();
+  const authed = await verifyAdmin(request);
   if (!authed) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { question, answer } = await request.json();
