@@ -61,24 +61,7 @@ AIFAQ 是一个 AI/ML FAQ 知识库项目，目标是：
 
 ## 当前重点 TODO
 
-1. Admin Review 退回自动重生成
-- 退回后立即自动触发重生成。
-- 退回原因为固定枚举（可多选）+ 备注。
-- 固定枚举:
-  - `images_missing`
-  - `content_incomplete`
-  - `formula_missing`
-  - `reference_weak`
-  - `format_issue`
-  - `language_issue`
-  - `policy_risk`
-
-2. Agent 触发与执行隔离
-- 通过独立 `self-hosted runner` 触发 Codex/Claude Code skills。
-- 主业务运行时环境不直接执行 agent。
-- 一期先补齐 `ADMIN_API_KEY` 鉴权，供程序化上传与 admin API 调用。
-
-3. Admin API Key 统一鉴权
+1. Admin API Key 统一鉴权
 - 所有 `/api/admin/*` 路由统一支持:
   - GitHub admin session
   - `Authorization: Bearer <ADMIN_API_KEY>`
@@ -93,6 +76,23 @@ AIFAQ 是一个 AI/ML FAQ 知识库项目，目标是：
   - `app/api/admin/faq/import/[id]/route.ts`
   - `app/api/admin/users/[id]/route.ts`
 - `.env.example` 补充 `ADMIN_API_KEY=`，并与后台上传页 API 文案保持一致。
+
+2. Agent 触发与执行隔离
+- 通过独立 `self-hosted runner` 触发 Codex/Claude Code skills。
+- 主业务运行时环境不直接执行 agent。
+- 一期先补齐 `ADMIN_API_KEY` 鉴权，供程序化上传与 admin API 调用。
+
+3. Admin Review 退回自动重生成
+- 退回后立即自动触发重生成。
+- 退回原因为固定枚举（可多选）+ 备注。
+- 固定枚举:
+  - `images_missing`
+  - `content_incomplete`
+  - `formula_missing`
+  - `reference_weak`
+  - `format_issue`
+  - `language_issue`
+  - `policy_risk`
 
 4. 后台批量 API（一期）
 - 范围仅限:
@@ -111,11 +111,27 @@ AIFAQ 是一个 AI/ML FAQ 知识库项目，目标是：
 - 提交阶段: 相似问题提示，不阻断。
 - Review 阶段: 强提示并要求处理（合并/保留决策）。
 
-8. 平台接入范围（一期）
+8. 手机端查看自适应
+- 无论直接展开还是 `modal`，都不要出现影响阅读体验的横向滚动条。
+- 重点检查:
+  - markdown 表格
+  - 公式
+  - 代码块
+  - 图片 gallery
+  - 标签 / 筛选条
+  - 详情弹窗内容区
+
+9. 平台接入范围（一期）
 - 仅接入:
   - `self-hosted agent-runner`
   - `1个向量库`
 - 其他平台先留接口，不在一期强接入。
+
+## 下一阶段 TODO
+
+1. 微信小程序支持
+- 与现有后台共享数据库。
+- 先评估当前 Vercel Postgres 免费额度是否有超额风险，再决定是否需要迁移或分层。
 
 ## 备注
 

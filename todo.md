@@ -1,6 +1,6 @@
 # AIFAQ TODO (Discussion + Execution View)
 
-更新时间: 2026-03-18
+更新时间: 2026-03-20
 真源: `Claude.md`（本文件为讨论与执行视图）
 
 ## 规则
@@ -9,61 +9,47 @@
 - 本文件先记录讨论结论，再按迭代维护状态。
 - 状态约定: `todo` / `doing` / `blocked` / `done`。
 
-## 当前迭代（讨论结论）
+## 整体 TODO（排序版）
 
-1. Admin Review 退回自动重生成（`todo`）
-- 结论:
-  - 退回后立即自动触发重生成。
-  - 退回原因为固定枚举（可多选）+ 备注。
-- 固定枚举:
-  - `images_missing`
-  - `content_incomplete`
-  - `formula_missing`
-  - `reference_weak`
-  - `format_issue`
-  - `language_issue`
-  - `policy_risk`
+1. Admin API Key 统一鉴权（`todo`）
+- 目标: 所有 `/api/admin/*` 路由统一支持 GitHub session 与 `Authorization: Bearer <ADMIN_API_KEY>`，`verifyAdmin` 统一处理 NextRequest。
+- 要点: 拒绝错误 Authorization，禁止 query 传 key，key 比较用固定时间算法，`.env.example` 补充 `ADMIN_API_KEY=`。
 
-2. OpenCrawl / Agent 触发路径（`todo`）
-- 结论:
-  - 走独立 `self-hosted runner`。
-  - 允许触发 Codex/Claude Code skills，但不在主业务运行时环境直接执行。
-  - 一期先补齐 `ADMIN_API_KEY` 鉴权，打通程序化上传与轮询状态查询。
+2. Agent 触发与执行隔离（`todo`）
+- 目标: 通过独立 `self-hosted runner` 调用 Codex/Claude Code skills，主业务运行时不直接执行 agent。
+- 要点: 补齐 runner 认证与状态回调，程序化上传依赖前一步的鉴权。
 
-3. Admin API Key 方案（`todo`）
-- 结论:
-  - 所有 `/api/admin/*` 路由统一支持两种鉴权:
-    - 浏览器后台: 继续使用 GitHub admin session。
-    - 程序化调用: 使用 `Authorization: Bearer <ADMIN_API_KEY>`。
-  - `verifyAdmin` 改为接收 `NextRequest`，统一处理 bearer + session。
-  - 若请求显式携带错误的 `Authorization` header，则直接返回 `401`，不回退到 session。
-  - Bearer key 仅允许从请求头传递，不支持 query 参数。
-  - key 比较使用固定时间比较，避免明文日志和错误细节泄露。
-  - 覆盖范围至少包括:
-    - `app/api/admin/faq/route.ts`
-    - `app/api/admin/faq/[id]/route.ts`
-    - `app/api/admin/faq/import/route.ts`
-    - `app/api/admin/faq/import/[id]/route.ts`
-    - `app/api/admin/users/[id]/route.ts`
-  - `.env.example` 补充 `ADMIN_API_KEY=`，与上传页 API 文案保持一致。
+3. Admin Review 退回自动重生成（`todo`）
+- 目标: 退回后立即生成任务，固定枚举原因（多选）附备注，自动派发给 runner。
+- 要点: 原因列表保留现有枚举，触发后进入 `review` 状态并可追踪来源。
 
-4. 批量 API 与历史查看（`todo`）
-- 结论:
-  - 一期批量 API 只做: `publish` / `reject` / `regenerate` / `set_level`。
-  - 历史查看优先做“内容版本 diff 历史”。
+4. 后台批量 API（一期）（`todo`）
+- 目标: 提供 `publish` / `reject` / `regenerate` / `set_level` 批量动作。
+- 要点: 逐条返回执行结果，并复用统一鉴权与执行路径。
 
-5. 开源仓库脱敏（`todo`）
-- 结论:
-  - 采用严格脱敏模式（密钥、身份、IP、敏感原文、内部 prompt）。
+5. 历史信息查看（`todo`）
+- 目标: 优先支持“内容版本 diff 历史”查看。
+- 要点: API 可以对比任意版本，统一在审核页展示 diff 摘要。
 
-6. 相似问题识别（`todo`）
-- 结论:
-  - 两段式:
-    - 提交阶段: BERT 相似问题提示（不阻断）。
-    - Review 阶段: 强提示并要求处理。
+6. 开源脱敏（严格模式）（`todo`）
+- 目标: 严格脱敏密钥、身份、IP、敏感原文和内部 prompt。
+- 要点: 任务/日志只记录必要字段，callback 内容在入库前 sanitize。
 
-7. 平台接入范围（`todo`）
-- 结论:
-  - 一期仅接入: `self-hosted agent-runner` + `1个向量库`。
-  - 其余平台先保留接口，不在一期强接入。
+7. 相似问题识别（BERT，两段式）（`todo`）
+- 目标: 提交阶段提示、不阻断；Review 阶段强提示并要求处理（合并/保留决策）。
+- 要点: 提供候选列表与分数，审稿者需记录处理结果。
+
+8. 手机端查看自适应（`todo`）
+- 目标: 无论直接展开还是通过 `DetailModal`，都不出现影响阅读的横向滚动条。
+- 要点: 检查 markdown 表格、公式、代码块、图片 gallery、标签/筛选条、详情弹窗内容区等横向 overflow 源，确保按触控尺寸优化。
+
+9. 平台接入范围（一期）（`todo`）
+- 目标: 一期仅接入 `self-hosted agent-runner` 与 `1个向量库`，其他平台保留接口但暂不强接。
+- 要点: 明确范围，避免过多平台耦合。
+
+## 下一阶段筹备
+
+1. 微信小程序支持（`todo`）
+- 目标: 将小程序与现有后台共享数据库。
+- 要点: 先评估当前 Vercel Postgres 免费额度是否有超额风险，再决定是否需要数据分层或迁移。
 
