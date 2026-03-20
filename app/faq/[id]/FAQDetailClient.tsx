@@ -49,10 +49,10 @@ export default function FAQDetailClient({ faq, isFavorited, learningStatus, lang
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between">
+        <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold text-text">{faq.question}</h1>
           {taxonomyPills.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
@@ -69,7 +69,7 @@ export default function FAQDetailClient({ faq, isFavorited, learningStatus, lang
           <button
             onClick={handleMarkMastered}
             disabled={updating}
-            className="ml-4 rounded-full border border-green-500 px-4 py-2 text-sm text-green-600 hover:bg-green-50 disabled:opacity-50"
+            className="rounded-full border border-green-500 px-4 py-2 text-sm text-green-600 hover:bg-green-50 disabled:opacity-50 sm:ml-4"
           >
             {updating ? t("updating", lang) : t("markAsMastered", lang)}
           </button>
@@ -77,8 +77,11 @@ export default function FAQDetailClient({ faq, isFavorited, learningStatus, lang
       </div>
 
       {/* Content */}
-      <div className="prose prose-sm max-w-none">
-        <MarkdownContent content={faq.answer} />
+      <div className="min-w-0 overflow-x-hidden">
+        <MarkdownContent
+          className="prose prose-sm min-w-0 max-w-none text-text [&_pre]:max-w-full [&_pre]:text-[13px]"
+          content={faq.answer}
+        />
       </div>
 
       {/* Back button */}

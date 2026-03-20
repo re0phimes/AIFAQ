@@ -106,7 +106,7 @@ function VersionPopover({
     <div
       ref={ref}
       onClick={(e) => e.stopPropagation()}
-      className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-border bg-panel p-3 shadow-lg md:w-80"
+      className="absolute left-0 top-full z-50 mt-1 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-panel p-3 shadow-lg md:w-80"
     >
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-medium text-text">
@@ -269,7 +269,7 @@ function FAQItem({
 
   return (
     <article
-      className={`rounded-xl border-[0.5px] transition-all duration-200 ${
+      className={`min-w-0 overflow-hidden rounded-xl border-[0.5px] transition-all duration-200 ${
         isOpen
           ? "border-primary/30 bg-panel shadow-sm"
           : isSelected
@@ -390,7 +390,7 @@ function FAQItem({
       </div>
 
       {isOpen && (
-        <div className={`answer-scroll px-4 pb-4 ${
+        <div className={`answer-scroll min-w-0 overflow-x-hidden px-4 pb-4 ${
           showCheckbox ? "pl-10 md:pl-14" : "pl-4 md:pl-5"
         }`}>
               {item.answerBrief && (
@@ -425,10 +425,10 @@ function FAQItem({
                 </div>
               )}
               <AsyncMarkdownContent
-                className="prose prose-sm max-w-none text-text
+                className="prose prose-sm min-w-0 max-w-none text-text
                   [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5
                   [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm
-                  [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:p-4
+                  [&_pre]:max-w-full [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:p-4 [&_pre]:text-[13px]
                   [&_pre_code]:bg-transparent [&_pre_code]:p-0
                   [&_.katex-display]:overflow-x-auto
                   [&_.katex-display]:py-2"
@@ -458,7 +458,7 @@ function FAQItem({
               )}
               <ReferenceList references={item.references} lang={lang} />
               {/* Vote buttons — up/down 互斥 */}
-              <div className="mt-3 flex items-center gap-3 border-t border-border/50 pt-3">
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/50 pt-3 sm:gap-3">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -537,7 +537,7 @@ function FAQItem({
                     }
                     onToggleFavorite?.(item.id);
                   }}
-                  className={`ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-1
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 sm:ml-auto
                     text-xs transition-colors ${
                       isFavorited
                         ? "bg-amber-50 text-amber-600"

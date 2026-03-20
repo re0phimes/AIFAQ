@@ -83,7 +83,7 @@ export default function FavoriteCard({
   const timeLabelKey = learning_status === "unread" ? "savedAt" : "lastReviewedAt";
 
   return (
-    <article className={`rounded-xl border-[0.5px] bg-panel transition-all duration-200 ${
+    <article className={`min-w-0 overflow-hidden rounded-xl border-[0.5px] bg-panel transition-all duration-200 ${
       isPending
         ? 'border-red-300 opacity-50 grayscale'
         : 'border-border hover:border-primary/20'
@@ -179,7 +179,7 @@ export default function FavoriteCard({
       {!detailedMode && isExpanded && (
         <div className="border-t border-border/50 px-4 pb-4 pt-3">
           <MarkdownContent
-            className="prose prose-sm max-w-none text-text [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:p-4 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_.katex-display]:overflow-x-auto [&_.katex-display]:py-2"
+            className="prose prose-sm min-w-0 max-w-none text-text [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm [&_pre]:max-w-full [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:p-4 [&_pre]:text-[13px] [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_.katex-display]:overflow-x-auto [&_.katex-display]:py-2"
             content={briefContent}
           />
           {faq.images && faq.images.length > 0 && (

@@ -53,12 +53,12 @@ export default function ImageGallery({ images, lang, onOpen, className }: ImageG
   if (images.length === 0) return null;
 
   return (
-    <section className={`mt-4 ${className ?? ""}`} aria-label={t("imageGallery", lang)}>
-      <div className="relative">
+    <section className={`mt-4 min-w-0 max-w-full ${className ?? ""}`} aria-label={t("imageGallery", lang)}>
+      <div className="relative min-w-0 max-w-full">
         <div
           ref={scrollerRef}
           onScroll={handleScroll}
-          className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]"
+          className="flex max-w-full snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:thin]"
         >
           {images.map((img, index) => (
             <button

@@ -80,7 +80,7 @@ function DetailModal({
   if (!item) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6"
         aria-modal="true"
         role="dialog"
       >
@@ -93,7 +93,7 @@ function DetailModal({
 
         {/* Modal content skeleton - 简化动画 */}
         <div
-          className="relative flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border-[0.5px] border-border bg-bg shadow-2xl md:max-h-[85vh]"
+          className="relative flex max-h-[90vh] min-w-0 w-full max-w-4xl max-w-full flex-col overflow-hidden rounded-2xl border-[0.5px] border-border bg-bg shadow-2xl md:max-h-[85vh]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header skeleton - 移除单个动画，改用整体透明度 */}
@@ -110,7 +110,7 @@ function DetailModal({
           </div>
 
           {/* Content skeleton - 静态，无动画 */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6 opacity-60">
+          <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 md:px-6 opacity-60">
             <div className="space-y-3">
               <div className="h-4 w-full rounded bg-surface" />
               <div className="h-4 w-5/6 rounded bg-surface" />
@@ -140,7 +140,7 @@ function DetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6"
       aria-modal="true"
       role="dialog"
     >
@@ -154,7 +154,7 @@ function DetailModal({
 
       {/* Modal content - 仅使用 GPU 加速的动画属性 */}
       <div
-        className="relative flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border-[0.5px] border-border bg-bg shadow-2xl animate-modal-in-fast md:max-h-[85vh]"
+        className="relative flex max-h-[90vh] min-w-0 w-full max-w-4xl max-w-full flex-col overflow-hidden rounded-2xl border-[0.5px] border-border bg-bg shadow-2xl animate-modal-in-fast md:max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -218,9 +218,9 @@ function DetailModal({
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6">
+        <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 md:px-6">
           <AsyncMarkdownContent
-            className="prose prose-base max-w-none text-text [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:p-4 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_.katex-display]:overflow-x-auto [&_.katex-display]:py-2"
+            className="prose prose-base min-w-0 max-w-none text-text [&_code]:rounded [&_code]:bg-surface [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-sm [&_pre]:max-w-full [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:p-4 [&_pre]:text-[13px] [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_.katex-display]:overflow-x-auto [&_.katex-display]:py-2"
             content={lang === "en" && item.answerEn ? item.answerEn : item.answer}
           />
 
@@ -249,8 +249,8 @@ function DetailModal({
         </div>
 
         {/* Footer with vote buttons */}
-        <div className="border-t border-border/50 px-4 py-3 md:px-6">
-          <div className="flex items-center gap-3">
+        <div className="overflow-x-hidden border-t border-border/50 px-4 py-3 md:px-6">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               onClick={() => {
                 if (currentVote === "upvote") {
@@ -329,7 +329,7 @@ function DetailModal({
                 }
                 onToggleFavorite?.();
               }}
-              className={`ml-auto inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors ${
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors sm:ml-auto ${
                 isFavorited
                   ? "bg-amber-50 text-amber-600"
                   : "text-subtext hover:bg-surface"

@@ -61,7 +61,7 @@ AIFAQ 是一个 AI/ML FAQ 知识库项目，目标是：
 
 ## 当前重点 TODO
 
-1. Admin API Key 统一鉴权
+1. Admin API Key 统一鉴权（done）
 - 所有 `/api/admin/*` 路由统一支持:
   - GitHub admin session
   - `Authorization: Bearer <ADMIN_API_KEY>`
@@ -77,12 +77,21 @@ AIFAQ 是一个 AI/ML FAQ 知识库项目，目标是：
   - `app/api/admin/users/[id]/route.ts`
 - `.env.example` 补充 `ADMIN_API_KEY=`，并与后台上传页 API 文案保持一致。
 
-2. Agent 触发与执行隔离
+2. Agent 触发与执行隔离（doing）
 - 通过独立 `self-hosted runner` 触发 Codex/Claude Code skills。
 - 主业务运行时环境不直接执行 agent。
-- 一期先补齐 `ADMIN_API_KEY` 鉴权，供程序化上传与 admin API 调用。
+- 已完成 control plane 最小闭环:
+  - `admin_tasks`
+  - `dispatch`
+  - `callback`
+  - `RUNNER_SHARED_SECRET`
+  - 任务状态机与失败回退
+- 未完成:
+  - 真实 `self-hosted runner` 实现/部署
+  - 程序化上传链路
+  - execution plane 联调
 
-3. Admin Review 退回自动重生成
+3. Admin Review 退回自动重生成（done）
 - 退回后立即自动触发重生成。
 - 退回原因为固定枚举（可多选）+ 备注。
 - 固定枚举:
@@ -93,6 +102,10 @@ AIFAQ 是一个 AI/ML FAQ 知识库项目，目标是：
   - `format_issue`
   - `language_issue`
   - `policy_risk`
+- 最小闭环已完成:
+  - `reject -> create task -> dispatch -> callback -> FAQ 回写 review`
+- 遗留风险:
+  - `reject event + admin task + faq status` 仍未事务化
 
 4. 后台批量 API（一期）
 - 范围仅限:
@@ -104,8 +117,12 @@ AIFAQ 是一个 AI/ML FAQ 知识库项目，目标是：
 5. 历史信息查看
 - 优先实现“内容版本 diff 历史”查看。
 
-6. 开源脱敏（严格模式）
+6. 开源脱敏（严格模式）（doing）
 - 密钥、身份标识、IP、敏感原文、内部 prompt 默认脱敏并最小化落盘。
+- 已完成:
+  - runner callback 入库前 `sanitize`
+- 未完成:
+  - 其他日志/导出/开源路径的统一脱敏
 
 7. 相似问题识别（BERT，两段式）
 - 提交阶段: 相似问题提示，不阻断。

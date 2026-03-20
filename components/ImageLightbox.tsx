@@ -132,10 +132,10 @@ export default function ImageLightbox({
   const thumbnails = images;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 md:p-6" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-3 md:p-6" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/80" onClick={onClose} aria-hidden="true" />
 
-      <div className="relative flex h-[92vh] w-full max-w-6xl flex-col rounded-xl border-[0.5px] border-border bg-panel">
+      <div className="relative flex h-[92vh] min-w-0 w-full max-w-6xl max-w-full flex-col overflow-hidden rounded-xl border-[0.5px] border-border bg-panel">
         <div className="flex items-center justify-between border-b border-border/60 px-3 py-2 md:px-4">
           <p className="text-sm text-subtext">
             {boundedCurrentIndex + 1} / {images.length}
@@ -153,7 +153,7 @@ export default function ImageLightbox({
         </div>
 
         <div
-          className="relative flex min-h-0 flex-1 items-center justify-center px-2 py-3 md:px-6"
+          className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center px-2 py-3 md:px-6"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -167,7 +167,7 @@ export default function ImageLightbox({
             ‹
           </button>
 
-          <figure className={`max-h-full w-full overflow-hidden rounded-lg border-[0.5px] border-border bg-bg ${shakeClass}`}>
+          <figure className={`max-h-full min-w-0 w-full overflow-hidden rounded-lg border-[0.5px] border-border bg-bg ${shakeClass}`}>
             <Image
               src={image.url}
               alt={image.caption}
@@ -194,7 +194,7 @@ export default function ImageLightbox({
         </div>
 
         <div className="border-t border-border/60 px-3 py-2 md:px-4">
-          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]" aria-label={t("imageGallery", lang)}>
+          <div className="flex max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:thin]" aria-label={t("imageGallery", lang)}>
             {thumbnails.map((thumb, index) => (
               <button
                 key={`${thumb.url}-${index}`}

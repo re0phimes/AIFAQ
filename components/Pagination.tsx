@@ -38,9 +38,9 @@ export default function Pagination({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="mt-4 flex flex-col items-center gap-3 sm:flex-row
+    <div className="mt-4 flex max-w-full flex-col items-stretch gap-3 sm:flex-row
       sm:justify-between">
-      <div className="flex items-center gap-3 text-xs text-subtext">
+      <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-subtext sm:justify-start sm:gap-3">
         <span>
           {paginationInfo(totalItems, currentPage, totalPages, lang)}
         </span>
@@ -58,42 +58,44 @@ export default function Pagination({
         </select>
       </div>
 
-      <div className="flex items-center gap-1">
-        <button
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage <= 1}
-          className="rounded px-2 py-1 text-xs text-subtext
-            hover:bg-surface disabled:opacity-30 disabled:hover:bg-transparent"
-        >
-          {t("prevPage", lang)}
-        </button>
-        {getPageNumbers(currentPage, totalPages).map((p, i) =>
-          p === "..." ? (
-            <span key={`ellipsis-${i}`} className="px-1 text-xs text-subtext">
-              ...
-            </span>
-          ) : (
-            <button
-              key={p}
-              onClick={() => onPageChange(p)}
-              className={`min-w-[28px] rounded px-2 py-1 text-xs transition-colors ${
-                p === currentPage
-                  ? "bg-primary font-medium text-white"
-                  : "text-text hover:bg-surface"
-              }`}
-            >
-              {p}
-            </button>
-          )
-        )}
-        <button
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage >= totalPages}
-          className="rounded px-2 py-1 text-xs text-subtext
-            hover:bg-surface disabled:opacity-30 disabled:hover:bg-transparent"
-        >
-          {t("nextPage", lang)}
-        </button>
+      <div className="w-full overflow-x-auto pb-1 sm:w-auto sm:overflow-visible sm:pb-0">
+        <div className="flex min-w-max items-center gap-1 sm:min-w-0">
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage <= 1}
+            className="shrink-0 rounded px-2 py-1 text-xs text-subtext
+              hover:bg-surface disabled:opacity-30 disabled:hover:bg-transparent"
+          >
+            {t("prevPage", lang)}
+          </button>
+          {getPageNumbers(currentPage, totalPages).map((p, i) =>
+            p === "..." ? (
+              <span key={`ellipsis-${i}`} className="shrink-0 px-1 text-xs text-subtext">
+                ...
+              </span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => onPageChange(p)}
+                className={`min-w-[28px] shrink-0 rounded px-2 py-1 text-xs transition-colors ${
+                  p === currentPage
+                    ? "bg-primary font-medium text-white"
+                    : "text-text hover:bg-surface"
+                }`}
+              >
+                {p}
+              </button>
+            )
+          )}
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage >= totalPages}
+            className="shrink-0 rounded px-2 py-1 text-xs text-subtext
+              hover:bg-surface disabled:opacity-30 disabled:hover:bg-transparent"
+          >
+            {t("nextPage", lang)}
+          </button>
+        </div>
       </div>
     </div>
   );

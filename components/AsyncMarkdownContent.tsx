@@ -15,7 +15,7 @@ interface AsyncMarkdownContentProps {
 
 const customComponents: Components = {
   table: ({ children }) => (
-    <div className="table-wrapper overflow-x-auto">
+    <div className="table-wrapper max-w-full overflow-x-auto">
       <table>{children}</table>
     </div>
   ),

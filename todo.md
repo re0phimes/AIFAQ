@@ -11,17 +11,19 @@
 
 ## 整体 TODO（排序版）
 
-1. Admin API Key 统一鉴权（`todo`）
+1. Admin API Key 统一鉴权（`done`）
 - 目标: 所有 `/api/admin/*` 路由统一支持 GitHub session 与 `Authorization: Bearer <ADMIN_API_KEY>`，`verifyAdmin` 统一处理 NextRequest。
 - 要点: 拒绝错误 Authorization，禁止 query 传 key，key 比较用固定时间算法，`.env.example` 补充 `ADMIN_API_KEY=`。
 
-2. Agent 触发与执行隔离（`todo`）
+2. Agent 触发与执行隔离（`doing`）
 - 目标: 通过独立 `self-hosted runner` 调用 Codex/Claude Code skills，主业务运行时不直接执行 agent。
-- 要点: 补齐 runner 认证与状态回调，程序化上传依赖前一步的鉴权。
+- 已完成: control plane 侧已补齐 `admin_tasks`、`dispatch`、`callback`、`RUNNER_SHARED_SECRET`、状态机与失败回退。
+- 未完成: 真实 `self-hosted runner` 仓库/部署、程序化上传链路、执行面联调。
 
-3. Admin Review 退回自动重生成（`todo`）
+3. Admin Review 退回自动重生成（`done`）
 - 目标: 退回后立即生成任务，固定枚举原因（多选）附备注，自动派发给 runner。
-- 要点: 原因列表保留现有枚举，触发后进入 `review` 状态并可追踪来源。
+- 已完成: `reject -> create task -> dispatch -> callback -> FAQ 回写 review` 最小闭环已打通，可追踪来源。
+- 后续增强: reject event / task / faq status 仍未做事务化。
 
 4. 后台批量 API（一期）（`todo`）
 - 目标: 提供 `publish` / `reject` / `regenerate` / `set_level` 批量动作。
@@ -31,9 +33,10 @@
 - 目标: 优先支持“内容版本 diff 历史”查看。
 - 要点: API 可以对比任意版本，统一在审核页展示 diff 摘要。
 
-6. 开源脱敏（严格模式）（`todo`）
+6. 开源脱敏（严格模式）（`doing`）
 - 目标: 严格脱敏密钥、身份、IP、敏感原文和内部 prompt。
-- 要点: 任务/日志只记录必要字段，callback 内容在入库前 sanitize。
+- 已完成: runner callback 入库前已做 `sanitize`，仅保留必要结果字段。
+- 未完成: 其他日志/导出/开源路径的统一脱敏策略仍未补齐。
 
 7. 相似问题识别（BERT，两段式）（`todo`）
 - 目标: 提交阶段提示、不阻断；Review 阶段强提示并要求处理（合并/保留决策）。

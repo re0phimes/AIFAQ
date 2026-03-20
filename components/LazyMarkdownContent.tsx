@@ -15,7 +15,7 @@ interface LazyMarkdownContentProps {
 
 const customComponents: Components = {
   table: ({ children }) => (
-    <div className="overflow-x-auto">
+    <div className="table-wrapper max-w-full overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         {children}
       </table>

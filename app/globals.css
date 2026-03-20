@@ -50,6 +50,12 @@ body {
   font-family: var(--font-sans);
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -89,9 +95,21 @@ body {
 }
 
 /* Markdown prose refinements */
+.prose {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .prose p {
   margin-bottom: 0.75em;
   line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.prose li,
+.prose blockquote,
+.prose a {
+  overflow-wrap: anywhere;
 }
 
 /* KaTeX: prevent prose/code styles from leaking into rendered math */
@@ -100,7 +118,9 @@ body {
 }
 
 .prose .katex-display {
+  max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
   padding: 0.5rem 0;
 }
 
@@ -197,8 +217,11 @@ body {
 
 /* Table wrapper for horizontal scroll */
 .prose .table-wrapper {
+  max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
   margin: 1em 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .prose .table-wrapper table {
@@ -206,10 +229,37 @@ body {
   min-width: 100%;
 }
 
+.prose pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.prose pre code,
+.prose code {
+  overflow-wrap: anywhere;
+}
+
+.prose img {
+  max-width: 100%;
+  height: auto;
+}
+
 /* Mobile: disable stagger animation for performance */
 @media (max-width: 767px) {
   .faq-item-enter {
     animation-delay: 0ms !important;
+  }
+
+  .prose pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .prose pre code {
+    white-space: inherit;
+    word-break: inherit;
+    overflow-wrap: inherit;
   }
 }
 
