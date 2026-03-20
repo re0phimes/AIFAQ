@@ -131,3 +131,7 @@ test("sanitize keeps only valid reference and image shapes", () => {
     },
   ]);
 });
+
+test("callback route accepts pending or running tasks for ambiguous dispatch delivery", () => {
+  assert.match(callbackSource, /CALLBACK_ACCEPTED_TASK_STATUSES\s*=\s*\["pending", "running"\]/);
+});

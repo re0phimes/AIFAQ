@@ -1,6 +1,12 @@
 import type { FAQImage, Reference } from "@/src/types/faq";
 import type { RegenerateTaskResult } from "./admin-task-types";
 
+export interface SanitizedRunnerCallbackPayload {
+  ok: boolean;
+  error?: string;
+  result?: RegenerateTaskResult;
+}
+
 function sanitizeText(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -9,10 +15,14 @@ function sanitizeText(value: unknown): string | null {
 
 function sanitizeStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
-  return value
-    .filter((item): item is string => typeof item === "string")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  return [
+    ...new Set(
+      value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    ),
+  ];
 }
 
 function sanitizeReferenceType(value: unknown): Reference["type"] | null {
@@ -72,30 +82,29 @@ function sanitizeImages(value: unknown): FAQImage[] {
   });
 }
 
-export function sanitizeRunnerCallbackPayload(input: unknown): RegenerateTaskResult | null {
-  const payload =
-    typeof input === "object" && input !== null && !Array.isArray(input)
-      ? (input as Record<string, unknown>)
-      : null;
+export function sanitizeRunnerCallbackPayload(input: unknown): SanitizedRunnerCallbackPayload {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    return { ok: false, error: "Invalid callback payload" };
+  }
 
-  if (!payload) {
-    return null;
+  const payload = input as Record<string, unknown>;
+  if (payload.status !== "succeeded" && payload.status !== "failed") {
+    return { ok: false, error: "Invalid callback status" };
   }
 
   if (payload.status === "failed") {
     return {
-      status: "failed",
-      error_message: sanitizeText(payload.error_message) ?? "Runner task failed",
+      ok: true,
+      result: {
+        status: "failed",
+        error_message: sanitizeText(payload.error_message) ?? "Runner task failed",
+      },
     };
-  }
-
-  if (payload.status !== "succeeded") {
-    return null;
   }
 
   const answer = sanitizeText(payload.answer);
   if (!answer) {
-    return null;
+    return { ok: false, error: "Succeeded callback must include answer" };
   }
 
   const result: RegenerateTaskResult = {
@@ -136,5 +145,5 @@ export function sanitizeRunnerCallbackPayload(input: unknown): RegenerateTaskRes
   const images = sanitizeImages(payload.images);
   if (images.length > 0) result.images = images;
 
-  return result;
+  return { ok: true, result };
 }
