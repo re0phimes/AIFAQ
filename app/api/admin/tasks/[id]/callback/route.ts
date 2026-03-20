@@ -9,6 +9,14 @@ import {
 import { RUNNER_SHARED_SECRET } from "@/lib/env";
 import { sanitizeRunnerCallbackPayload } from "@/lib/sanitize";
 
+const CALLBACK_ACCEPTED_TASK_STATUSES = ["pending", "running"] as const;
+
+function isCallbackReadyTaskStatus(status: string): boolean {
+  return CALLBACK_ACCEPTED_TASK_STATUSES.includes(
+    status as (typeof CALLBACK_ACCEPTED_TASK_STATUSES)[number]
+  );
+}
+
 function isValidRunnerSecret(authHeader: string | null): boolean {
   if (!authHeader || !RUNNER_SHARED_SECRET) return false;
 
@@ -30,46 +38,33 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const body = await request.json().catch(() => null);
+  const sanitizedPayload = sanitizeRunnerCallbackPayload(body);
+  if (!sanitizedPayload.ok || !sanitizedPayload.result) {
+    return NextResponse.json(
+      { error: sanitizedPayload.error ?? "Invalid runner callback payload" },
+      { status: 400 }
+    );
+  }
+  const sanitized = sanitizedPayload.result;
+
   const { id } = await params;
   const task = await getAdminTaskById(id);
   if (!task) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
-  if (task.status !== "running") {
-    return NextResponse.json({ error: "Task not running" }, { status: 409 });
+  if (!isCallbackReadyTaskStatus(task.status)) {
+    return NextResponse.json({ error: "Task not ready for callback" }, { status: 409 });
   }
-
-  let rawPayload: unknown;
-  try {
-    rawPayload = await request.json();
-  } catch {
-    await transitionAdminTaskStatus(id, ["running"], "failed", {
-      errorMessage: "Invalid callback JSON",
-    });
-    return NextResponse.json({ error: "Invalid callback JSON" }, { status: 400 });
-  }
-
-  const sanitization = sanitizeRunnerCallbackPayload(rawPayload);
-  if (!sanitization.ok || !sanitization.result) {
-    await transitionAdminTaskStatus(id, ["running"], "failed", {
-      errorMessage: sanitization.error ?? "Invalid callback payload",
-    });
-    return NextResponse.json(
-      { error: sanitization.error ?? "Invalid callback payload" },
-      { status: 400 }
-    );
-  }
-
-  const sanitized = sanitization.result;
 
   try {
     if (sanitized.status === "failed") {
       const updatedTask = await transitionAdminTaskStatus(
         id,
-        ["running"],
+        [...CALLBACK_ACCEPTED_TASK_STATUSES],
         "failed",
         {
-          resultJson: sanitized as unknown as Record<string, unknown>,
+          resultJson: sanitized as Record<string, unknown>,
           errorMessage: sanitized.error_message ?? "Runner task failed",
         }
       );
@@ -84,10 +79,10 @@ export async function POST(
     if (!item) {
       await transitionAdminTaskStatus(
         id,
-        ["running"],
+        [...CALLBACK_ACCEPTED_TASK_STATUSES],
         "failed",
         {
-          resultJson: sanitized as unknown as Record<string, unknown>,
+          resultJson: sanitized as Record<string, unknown>,
           errorMessage: "FAQ not found for runner callback",
         }
       );
@@ -113,9 +108,9 @@ export async function POST(
 
     const updatedTask = await transitionAdminTaskStatus(
       id,
-      ["running"],
+      [...CALLBACK_ACCEPTED_TASK_STATUSES],
       "succeeded",
-      { resultJson: sanitized as unknown as Record<string, unknown> }
+      { resultJson: sanitized as Record<string, unknown> }
     );
     if (!updatedTask) {
       return NextResponse.json({ error: "Task not ready for callback" }, { status: 409 });
@@ -126,10 +121,10 @@ export async function POST(
     const message = err instanceof Error ? err.message : "Runner callback handling failed";
     await transitionAdminTaskStatus(
       id,
-      ["running"],
+      [...CALLBACK_ACCEPTED_TASK_STATUSES],
       "failed",
       {
-        resultJson: sanitized as unknown as Record<string, unknown>,
+        resultJson: sanitized as Record<string, unknown>,
         errorMessage: message,
       }
     );

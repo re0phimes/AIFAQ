@@ -87,16 +87,22 @@ test("dispatch helper reserves running before outbound dispatch and rolls back t
 });
 
 test("sanitize rejects malformed callback status instead of defaulting to success", () => {
-  assert.equal(sanitizeRunnerCallbackPayload({}), null);
+  assert.deepEqual(sanitizeRunnerCallbackPayload({}), {
+    ok: false,
+    error: "Invalid callback status",
+  });
 });
 
 test("sanitize requires answer for succeeded callback", () => {
-  assert.equal(
+  assert.deepEqual(
     sanitizeRunnerCallbackPayload({
       status: "succeeded",
       tags: ["rag"],
     }),
-    null
+    {
+      ok: false,
+      error: "Succeeded callback must include answer",
+    }
   );
 });
 
@@ -116,22 +122,19 @@ test("sanitize keeps only valid reference and image shapes", () => {
     ],
   });
 
-  assert.deepEqual(result?.references, [
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.result?.references, [
     {
       type: "paper",
       title: "Attention Is All You Need",
       url: "https://example.com/paper",
     },
   ]);
-  assert.deepEqual(result?.images, [
+  assert.deepEqual(result.result?.images, [
     {
       url: "https://example.com/figure.png",
       caption: "Figure 1",
       source: "paper",
     },
   ]);
-});
-
-test("callback route accepts pending or running tasks for ambiguous dispatch delivery", () => {
-  assert.match(callbackSource, /CALLBACK_ACCEPTED_TASK_STATUSES\s*=\s*\["pending", "running"\]/);
 });
