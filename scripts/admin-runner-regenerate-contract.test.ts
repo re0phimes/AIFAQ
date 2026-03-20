@@ -138,3 +138,7 @@ test("sanitize keeps only valid reference and image shapes", () => {
     },
   ]);
 });
+
+test("callback route only accepts running tasks", () => {
+  assert.match(callbackSource, /task\.status !== "running"/);
+});

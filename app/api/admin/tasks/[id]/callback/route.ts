@@ -8,6 +8,7 @@ import {
 } from "@/lib/db";
 import { RUNNER_SHARED_SECRET } from "@/lib/env";
 import { sanitizeRunnerCallbackPayload } from "@/lib/sanitize";
+import { normalizePrimaryCategoryKey } from "@/lib/taxonomy";
 
 const CALLBACK_ACCEPTED_TASK_STATUSES = ["pending", "running"] as const;
 
@@ -64,7 +65,7 @@ export async function POST(
         [...CALLBACK_ACCEPTED_TASK_STATUSES],
         "failed",
         {
-          resultJson: sanitized as Record<string, unknown>,
+          resultJson: sanitized as unknown as Record<string, unknown>,
           errorMessage: sanitized.error_message ?? "Runner task failed",
         }
       );
@@ -82,7 +83,7 @@ export async function POST(
         [...CALLBACK_ACCEPTED_TASK_STATUSES],
         "failed",
         {
-          resultJson: sanitized as Record<string, unknown>,
+          resultJson: sanitized as unknown as Record<string, unknown>,
           errorMessage: "FAQ not found for runner callback",
         }
       );
@@ -97,8 +98,9 @@ export async function POST(
       question_en: sanitized.question_en ?? item.question_en ?? undefined,
       tags: sanitized.tags ?? item.tags,
       categories: item.categories,
-      primary_category: sanitized.primary_category ?? item.primary_category,
-      secondary_category: sanitized.secondary_category ?? item.secondary_category,
+      primary_category: normalizePrimaryCategoryKey(sanitized.primary_category) ?? item.primary_category,
+      secondary_category:
+        normalizePrimaryCategoryKey(sanitized.secondary_category) ?? item.secondary_category,
       topics: sanitized.topics ?? item.topics,
       tool_stack: sanitized.tool_stack ?? item.tool_stack,
       references: sanitized.references ?? item.references,
@@ -110,7 +112,7 @@ export async function POST(
       id,
       [...CALLBACK_ACCEPTED_TASK_STATUSES],
       "succeeded",
-      { resultJson: sanitized as Record<string, unknown> }
+      { resultJson: sanitized as unknown as Record<string, unknown> }
     );
     if (!updatedTask) {
       return NextResponse.json({ error: "Task not ready for callback" }, { status: 409 });
@@ -124,7 +126,7 @@ export async function POST(
       [...CALLBACK_ACCEPTED_TASK_STATUSES],
       "failed",
       {
-        resultJson: sanitized as Record<string, unknown>,
+        resultJson: sanitized as unknown as Record<string, unknown>,
         errorMessage: message,
       }
     );
