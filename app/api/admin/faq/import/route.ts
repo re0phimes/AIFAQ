@@ -2,15 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth";
 import {
   createImportRecord,
+  createAdminTask,
   updateImportStatus,
-  createFaqItem,
-  updateFaqStatus,
-  getPublishedFaqItems,
 } from "@/lib/db";
-import { parseFileToMarkdown } from "@/lib/ocr";
-import { generateQAPairs, judgeQAPairs } from "@/lib/import-pipeline";
-import { analyzeFAQ } from "@/lib/ai";
-import { waitUntil } from "@vercel/functions";
+import { dispatchAdminTask } from "@/lib/admin-task-dispatch";
+import { normalizeExternalSubmissionPayload } from "@/lib/external-submission-types";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const authed = await verifyAdmin(request);
@@ -39,90 +35,52 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   await createImportRecord(importId, filename, fileType);
 
   const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
+  const fileBase64 = Buffer.from(arrayBuffer).toString("base64");
+  const normalized = normalizeExternalSubmissionPayload({
+    submission_type: "document",
+    source: "admin_import",
+    source_id: importId,
+    import_id: importId,
+    filename,
+    file_type: fileType,
+    mime_type: file.type || `text/${fileType}`,
+    file_base64: fileBase64,
+  });
+  if (!normalized.ok) {
+    await updateImportStatus(importId, "failed", { error_msg: normalized.error });
+    return NextResponse.json({ error: normalized.error }, { status: 400 });
+  }
 
-  waitUntil(processImport(importId, buffer, filename, file.type || `text/${fileType}`));
+  const task = await createAdminTask({
+    taskType: "ingest_submission",
+    source: "admin_import",
+    payload: normalized.value,
+    createdBy: "admin",
+  });
+
+  try {
+    await dispatchAdminTask(task);
+    await updateImportStatus(importId, "pending");
+  } catch {
+    await updateImportStatus(importId, "failed", {
+      error_msg: "Import recorded but task dispatch failed",
+    });
+    return NextResponse.json(
+      {
+        importId,
+        taskId: task.id,
+        status: "failed",
+        message: "文件已接收，但任务派发失败",
+      },
+      { status: 502 }
+    );
+  }
 
   return NextResponse.json({
     importId,
-    status: "processing",
+    taskId: task.id,
+    status: "pending",
     fileType,
     message: "文件已接收，正在处理...",
   }, { status: 202 });
-}
-
-async function processImport(
-  importId: string,
-  buffer: Buffer,
-  filename: string,
-  mimeType: string
-): Promise<void> {
-  try {
-    await updateImportStatus(importId, "parsing");
-    const markdownText = await parseFileToMarkdown(buffer, filename, mimeType);
-
-    if (!markdownText.trim()) {
-      await updateImportStatus(importId, "failed", { error_msg: "文件内容为空" });
-      return;
-    }
-
-    await updateImportStatus(importId, "generating");
-    const existingTags = [...new Set(
-      (await getPublishedFaqItems()).flatMap((item) => item.tags)
-    )];
-    const qaPairs = await generateQAPairs(markdownText, existingTags);
-
-    if (qaPairs.length === 0) {
-      await updateImportStatus(importId, "completed", { total_qa: 0, passed_qa: 0 });
-      return;
-    }
-
-    await updateImportStatus(importId, "judging", { total_qa: qaPairs.length });
-
-    const documentSummary = markdownText.slice(0, 2000);
-    const judgeResult = await judgeQAPairs(qaPairs, documentSummary);
-
-    const passedPairs = qaPairs.filter((_, i) =>
-      judgeResult.results[i]?.verdict === "pass"
-    );
-
-    await updateImportStatus(importId, "enriching", {
-      total_qa: qaPairs.length,
-      passed_qa: passedPairs.length,
-    });
-
-    for (const qa of passedPairs) {
-      try {
-        const item = await createFaqItem(qa.question, qa.answer);
-        await updateFaqStatus(item.id, "processing");
-
-        const result = await analyzeFAQ(qa.question, qa.answer, existingTags);
-        await updateFaqStatus(item.id, "review", {
-          answer: result.answer,
-          answer_brief: result.answer_brief,
-          answer_en: result.answer_en,
-          answer_brief_en: result.answer_brief_en,
-          question_en: result.question_en,
-          tags: result.tags,
-          categories: [],
-          primary_category: result.primary_category,
-          secondary_category: result.secondary_category,
-          topics: result.topics,
-          tool_stack: result.tool_stack,
-          references: result.references,
-          images: result.images,
-        });
-      } catch (err) {
-        console.error(`Failed to process QA: ${qa.question}`, err);
-      }
-    }
-
-    await updateImportStatus(importId, "completed", {
-      total_qa: qaPairs.length,
-      passed_qa: passedPairs.length,
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    await updateImportStatus(importId, "failed", { error_msg: message });
-  }
 }

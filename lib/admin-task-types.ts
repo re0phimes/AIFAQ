@@ -1,4 +1,5 @@
 import type { FAQImage, Reference } from "@/src/types/faq";
+import type { ExternalSubmissionTaskPayload } from "./external-submission-types";
 
 export const REJECT_REASON_VALUES = [
   "images_missing",
@@ -21,10 +22,15 @@ export const ADMIN_TASK_STATUS_VALUES = [
 
 export type AdminTaskStatus = (typeof ADMIN_TASK_STATUS_VALUES)[number];
 
-export const ADMIN_TASK_TYPE_VALUES = ["regenerate"] as const;
+export const ADMIN_TASK_TYPE_VALUES = ["regenerate", "ingest_submission"] as const;
 export type AdminTaskType = (typeof ADMIN_TASK_TYPE_VALUES)[number];
 
-export const ADMIN_TASK_SOURCE_VALUES = ["reject_auto"] as const;
+export const ADMIN_TASK_SOURCE_VALUES = [
+  "reject_auto",
+  "external_api",
+  "admin_manual",
+  "admin_import",
+] as const;
 export type AdminTaskSource = (typeof ADMIN_TASK_SOURCE_VALUES)[number];
 
 export interface RegenerateTaskPayload {
@@ -53,3 +59,5 @@ export interface RegenerateTaskResult {
   images?: FAQImage[];
   error_message?: string | null;
 }
+
+export type AdminTaskPayload = RegenerateTaskPayload | ExternalSubmissionTaskPayload;

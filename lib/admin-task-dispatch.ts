@@ -16,7 +16,9 @@ export class AdminTaskDispatchDeliveryError extends Error {
   }
 }
 
-export async function sendRunnerDispatch(task: Pick<DBAdminTask, "id" | "payload_json">): Promise<void> {
+export async function sendRunnerDispatch(
+  task: Pick<DBAdminTask, "id" | "task_type" | "source" | "payload_json">
+): Promise<void> {
   if (!RUNNER_DISPATCH_URL || !RUNNER_SHARED_SECRET) {
     throw new Error("Runner dispatch env is not configured");
   }
@@ -29,6 +31,8 @@ export async function sendRunnerDispatch(task: Pick<DBAdminTask, "id" | "payload
     },
     body: JSON.stringify({
       taskId: task.id,
+      taskType: task.task_type,
+      source: task.source,
       payload: task.payload_json,
     }),
   });
@@ -37,7 +41,9 @@ export async function sendRunnerDispatch(task: Pick<DBAdminTask, "id" | "payload
   }
 }
 
-export async function dispatchAdminTask(task: Pick<DBAdminTask, "id" | "payload_json">): Promise<void> {
+export async function dispatchAdminTask(
+  task: Pick<DBAdminTask, "id" | "task_type" | "source" | "payload_json">
+): Promise<void> {
   const reserved = await transitionAdminTaskStatus(task.id, ["pending"], "running");
   if (!reserved) {
     throw new AdminTaskDispatchStateError();

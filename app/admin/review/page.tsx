@@ -229,10 +229,18 @@ export default function ReviewPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        alert(body.error ?? `操作失败 (${res.status})`);
+        await showAlert({
+          title: "操作失败",
+          message: body.error ?? `操作失败 (${res.status})`,
+          confirmText: "我知道了",
+        });
       }
     } catch {
-      alert("网络错误，请重试");
+      await showAlert({
+        title: "网络错误",
+        message: "网络错误，请重试",
+        confirmText: "我知道了",
+      });
     } finally {
       setActionLoading(false);
       fetchItems();

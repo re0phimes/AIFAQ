@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth";
-import { createFaqItem, getAllFaqItems, getPublishedFaqItems, updateFaqStatus } from "@/lib/db";
-import { analyzeFAQ } from "@/lib/ai";
-import { waitUntil } from "@vercel/functions";
+import { createAdminTask, getAllFaqItems } from "@/lib/db";
+import { dispatchAdminTask } from "@/lib/admin-task-dispatch";
+import { normalizeExternalSubmissionPayload } from "@/lib/external-submission-types";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const authed = await verifyAdmin(request);
@@ -21,41 +21,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "问题和答案不能为空" }, { status: 400 });
   }
 
-  const item = await createFaqItem(question.trim(), answer.trim());
+  const normalized = normalizeExternalSubmissionPayload({
+    submission_type: "qa",
+    source: "admin_manual",
+    question,
+    answer,
+  });
+  if (!normalized.ok) {
+    return NextResponse.json({ error: normalized.error }, { status: 400 });
+  }
 
-  // Async AI analysis via waitUntil
-  waitUntil(processAIAnalysis(item.id, question.trim(), answer.trim()));
+  const task = await createAdminTask({
+    taskType: "ingest_submission",
+    source: "admin_manual",
+    payload: normalized.value,
+    createdBy: "admin",
+  });
 
-  return NextResponse.json(item, { status: 201 });
-}
-
-async function processAIAnalysis(id: number, question: string, answerRaw: string): Promise<void> {
   try {
-    await updateFaqStatus(id, "processing");
-
-    // Get existing tags for consistency
-    const readyItems = await getPublishedFaqItems();
-    const existingTags = [...new Set(readyItems.flatMap((item) => item.tags))];
-
-    const result = await analyzeFAQ(question, answerRaw, existingTags);
-
-    await updateFaqStatus(id, "review", {
-      answer: result.answer,
-      answer_brief: result.answer_brief,
-      answer_en: result.answer_en,
-      answer_brief_en: result.answer_brief_en,
-      question_en: result.question_en,
-      tags: result.tags,
-      categories: [],
-      primary_category: result.primary_category,
-      secondary_category: result.secondary_category,
-      topics: result.topics,
-      tool_stack: result.tool_stack,
-      references: result.references,
-      images: result.images,
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    await updateFaqStatus(id, "failed", { error_message: message });
+    await dispatchAdminTask(task);
+    return NextResponse.json({ ok: true, taskId: task.id, status: "running" }, { status: 201 });
+  } catch {
+    return NextResponse.json(
+      { error: "提交已记录，但任务派发失败", taskId: task.id, status: "pending" },
+      { status: 502 }
+    );
   }
 }

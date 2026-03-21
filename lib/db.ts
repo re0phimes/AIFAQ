@@ -10,10 +10,10 @@ import {
   type UserPreferencesSnapshot,
 } from "./preferences-sync";
 import type {
+  AdminTaskPayload,
   AdminTaskSource,
   AdminTaskStatus,
   AdminTaskType,
-  RegenerateTaskPayload,
 } from "./admin-task-types";
 
 let schemaReady = false;
@@ -71,7 +71,7 @@ export interface DBAdminTask {
   task_type: AdminTaskType;
   source: AdminTaskSource;
   status: AdminTaskStatus;
-  payload_json: RegenerateTaskPayload;
+  payload_json: AdminTaskPayload;
   result_json: Record<string, unknown> | null;
   error_message: string | null;
   created_by: string | null;
@@ -388,7 +388,7 @@ function rowToAdminTask(row: Record<string, unknown>): DBAdminTask {
     task_type: row.task_type as AdminTaskType,
     source: row.source as AdminTaskSource,
     status: row.status as AdminTaskStatus,
-    payload_json: payloadJson as RegenerateTaskPayload,
+    payload_json: payloadJson as AdminTaskPayload,
     result_json: (resultJson as Record<string, unknown> | null) ?? null,
     error_message: (row.error_message as string | null) ?? null,
     created_by: (row.created_by as string | null) ?? null,
@@ -417,7 +417,7 @@ export async function createAdminTask(input: {
   id?: string;
   taskType: AdminTaskType;
   source: AdminTaskSource;
-  payload: RegenerateTaskPayload;
+  payload: AdminTaskPayload;
   createdBy?: string | null;
 }): Promise<DBAdminTask> {
   await ensureSchema();

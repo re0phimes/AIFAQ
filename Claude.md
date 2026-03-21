@@ -80,16 +80,23 @@ AIFAQ 是一个 AI/ML FAQ 知识库项目，目标是：
 2. Agent 触发与执行隔离（doing）
 - 通过独立 `self-hosted runner` 触发 Codex/Claude Code skills。
 - 主业务运行时环境不直接执行 agent。
-- 已完成 control plane 最小闭环:
+- 已完成 control plane 闭环与 intake 收口:
   - `admin_tasks`
   - `dispatch`
   - `callback`
   - `RUNNER_SHARED_SECRET`
   - 任务状态机与失败回退
+  - `POST /api/external/submissions`
+  - `EXTERNAL_SUBMISSION_API_KEY`
+  - `POST /api/admin/faq` 已改为 `create task -> dispatch`
+  - `POST /api/admin/faq/import` 已改为 `create task -> dispatch`
+  - runner callback 已支持 `ingest_submission` 的 `qa` / `document`
+  - README 已补齐外部接入与 callback body 规范
 - 未完成:
   - 真实 `self-hosted runner` 实现/部署
-  - 程序化上传链路
   - execution plane 联调
+  - 大文件/对象存储型上传链路优化（当前 document 任务仍走最小闭环 payload 方案）
+  - runner 侧按 `taskType/source/payload` 的正式协议消费与回传
 
 3. Admin Review 退回自动重生成（done）
 - 退回后立即自动触发重生成。

@@ -1,6 +1,6 @@
 # AIFAQ TODO (Discussion + Execution View)
 
-更新时间: 2026-03-20
+更新时间: 2026-03-21
 真源: `Claude.md`（本文件为讨论与执行视图）
 
 ## 规则
@@ -18,7 +18,11 @@
 2. Agent 触发与执行隔离（`doing`）
 - 目标: 通过独立 `self-hosted runner` 调用 Codex/Claude Code skills，主业务运行时不直接执行 agent。
 - 已完成: control plane 侧已补齐 `admin_tasks`、`dispatch`、`callback`、`RUNNER_SHARED_SECRET`、状态机与失败回退。
-- 未完成: 真实 `self-hosted runner` 仓库/部署、程序化上传链路、执行面联调。
+- 已完成: `POST /api/external/submissions` + `EXTERNAL_SUBMISSION_API_KEY`，外部可按 `qa` / `document` 统一建任务。
+- 已完成: `POST /api/admin/faq` 已切到 `create task -> dispatch -> callback -> review`。
+- 已完成: `POST /api/admin/faq/import` 已切到 `create task -> dispatch -> callback -> review`，import status 由 callback 回写。
+- 已完成: callback 已支持 `ingest_submission` 的 `qa` / `document` 结果回写，并在 README 写明请求体规范。
+- 未完成: 真实 `self-hosted runner` 仓库/部署、执行面联调、大文件/对象存储型上传链路优化。
 
 3. Admin Review 退回自动重生成（`done`）
 - 目标: 退回后立即生成任务，固定枚举原因（多选）附备注，自动派发给 runner。

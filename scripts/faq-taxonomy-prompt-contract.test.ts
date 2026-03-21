@@ -25,11 +25,9 @@ test("import pipeline prompt asks for new taxonomy fields", () => {
 });
 
 test("admin routes persist new taxonomy fields", () => {
-  const createRoute = fs.readFileSync("app/api/admin/faq/route.ts", "utf8");
   const itemRoute = fs.readFileSync("app/api/admin/faq/[id]/route.ts", "utf8");
-  const importRoute = fs.readFileSync("app/api/admin/faq/import/route.ts", "utf8");
 
-  for (const source of [createRoute, itemRoute, importRoute]) {
+  for (const source of [itemRoute]) {
     assert.equal(source.includes("primary_category"), true);
     assert.equal(source.includes("secondary_category"), true);
     assert.equal(source.includes("patterns"), false);
