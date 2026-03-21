@@ -9,8 +9,11 @@ import {
   updateFaqStatus,
 } from "@/lib/db";
 import { RUNNER_SHARED_SECRET } from "@/lib/env";
-import type { ExternalSubmissionTaskPayload } from "@/lib/external-submission-types";
-import type { RegenerateTaskPayload } from "@/lib/admin-task-types";
+import type {
+  ExternalDocumentSubmissionTaskResult,
+  ExternalSubmissionTaskPayload,
+} from "@/lib/external-submission-types";
+import type { RegenerateTaskPayload, RegenerateTaskResult } from "@/lib/admin-task-types";
 import {
   sanitizeDocumentRunnerCallbackPayload,
   sanitizeRunnerCallbackPayload,
@@ -60,8 +63,10 @@ export async function POST(
     task.task_type === "ingest_submission"
       ? (task.payload_json as ExternalSubmissionTaskPayload)
       : null;
+  const isDocumentIngestTask =
+    task.task_type === "ingest_submission" && taskPayload?.submission_type === "document";
   const sanitizedPayload =
-    task.task_type === "ingest_submission" && taskPayload?.submission_type === "document"
+    isDocumentIngestTask
       ? sanitizeDocumentRunnerCallbackPayload(body)
       : sanitizeRunnerCallbackPayload(body);
   if (!sanitizedPayload.ok || !sanitizedPayload.result) {
@@ -99,8 +104,9 @@ export async function POST(
         return NextResponse.json({ error: "Invalid ingest submission payload" }, { status: 409 });
       }
       if (taskPayload.submission_type === "document") {
+        const documentResult = sanitized as ExternalDocumentSubmissionTaskResult;
         const createdFaqIds: number[] = [];
-        for (const item of sanitized.items ?? []) {
+        for (const item of documentResult.items ?? []) {
           const created = await createFaqItem(item.question, item.answer_raw ?? item.answer);
           await updateFaqStatus(created.id, "review", {
             answer: item.answer,
@@ -123,8 +129,8 @@ export async function POST(
 
         if (taskPayload.import_id) {
           await updateImportStatus(taskPayload.import_id, "completed", {
-            total_qa: sanitized.total_qa ?? createdFaqIds.length,
-            passed_qa: sanitized.passed_qa ?? createdFaqIds.length,
+            total_qa: documentResult.total_qa ?? createdFaqIds.length,
+            passed_qa: documentResult.passed_qa ?? createdFaqIds.length,
           });
         }
 
@@ -145,21 +151,22 @@ export async function POST(
         return NextResponse.json({ error: "Unsupported ingest submission type for callback" }, { status: 409 });
       }
 
+      const qaResult = sanitized as RegenerateTaskResult;
       const item = await createFaqItem(taskPayload.question, taskPayload.answer);
       await updateFaqStatus(item.id, "review", {
-        answer: sanitized.answer,
-        answer_brief: sanitized.answer_brief ?? undefined,
-        answer_en: sanitized.answer_en ?? undefined,
-        answer_brief_en: sanitized.answer_brief_en ?? undefined,
-        question_en: sanitized.question_en ?? undefined,
-        tags: sanitized.tags ?? [],
+        answer: qaResult.answer,
+        answer_brief: qaResult.answer_brief ?? undefined,
+        answer_en: qaResult.answer_en ?? undefined,
+        answer_brief_en: qaResult.answer_brief_en ?? undefined,
+        question_en: qaResult.question_en ?? undefined,
+        tags: qaResult.tags ?? [],
         categories: [],
-        primary_category: normalizePrimaryCategoryKey(sanitized.primary_category),
-        secondary_category: normalizePrimaryCategoryKey(sanitized.secondary_category),
-        topics: sanitized.topics ?? [],
-        tool_stack: sanitized.tool_stack ?? [],
-        references: sanitized.references ?? [],
-        images: sanitized.images ?? [],
+        primary_category: normalizePrimaryCategoryKey(qaResult.primary_category),
+        secondary_category: normalizePrimaryCategoryKey(qaResult.secondary_category),
+        topics: qaResult.topics ?? [],
+        tool_stack: qaResult.tool_stack ?? [],
+        references: qaResult.references ?? [],
+        images: qaResult.images ?? [],
         change_reason: `${task.source}:${id}`,
       });
 
@@ -181,6 +188,7 @@ export async function POST(
     }
 
     const faqId = (task.payload_json as RegenerateTaskPayload).faqId;
+    const regenerateResult = sanitized as RegenerateTaskResult;
     const existingItem = await getFaqItemById(faqId);
     if (!existingItem) {
       await transitionAdminTaskStatus(
@@ -196,21 +204,24 @@ export async function POST(
     }
 
     await updateFaqStatus(faqId, "review", {
-      answer: sanitized.answer,
-      answer_brief: sanitized.answer_brief ?? existingItem.answer_brief ?? undefined,
-      answer_en: sanitized.answer_en ?? existingItem.answer_en ?? undefined,
-      answer_brief_en: sanitized.answer_brief_en ?? existingItem.answer_brief_en ?? undefined,
-      question_en: sanitized.question_en ?? existingItem.question_en ?? undefined,
-      tags: sanitized.tags ?? existingItem.tags,
+      answer: regenerateResult.answer,
+      answer_brief: regenerateResult.answer_brief ?? existingItem.answer_brief ?? undefined,
+      answer_en: regenerateResult.answer_en ?? existingItem.answer_en ?? undefined,
+      answer_brief_en:
+        regenerateResult.answer_brief_en ?? existingItem.answer_brief_en ?? undefined,
+      question_en: regenerateResult.question_en ?? existingItem.question_en ?? undefined,
+      tags: regenerateResult.tags ?? existingItem.tags,
       categories: existingItem.categories,
       primary_category:
-        normalizePrimaryCategoryKey(sanitized.primary_category) ?? existingItem.primary_category,
+        normalizePrimaryCategoryKey(regenerateResult.primary_category) ??
+        existingItem.primary_category,
       secondary_category:
-        normalizePrimaryCategoryKey(sanitized.secondary_category) ?? existingItem.secondary_category,
-      topics: sanitized.topics ?? existingItem.topics,
-      tool_stack: sanitized.tool_stack ?? existingItem.tool_stack,
-      references: sanitized.references ?? existingItem.references,
-      images: sanitized.images ?? existingItem.images,
+        normalizePrimaryCategoryKey(regenerateResult.secondary_category) ??
+        existingItem.secondary_category,
+      topics: regenerateResult.topics ?? existingItem.topics,
+      tool_stack: regenerateResult.tool_stack ?? existingItem.tool_stack,
+      references: regenerateResult.references ?? existingItem.references,
+      images: regenerateResult.images ?? existingItem.images,
       change_reason: `reject_auto:${id}`,
     });
 
